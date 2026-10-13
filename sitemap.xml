@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Home -->
+  <url><loc>https://nexus-ways.com/</loc><lastmod>2026-10-02</lastmod></url>
+
+  <!-- Solutions hub (uncomment only if a /solutions/ page is built)
+  <url><loc>https://nexus-ways.com/solutions/</loc><lastmod>2026-10-02</lastmod></url>
+  -->
+
+  <!-- Solutions: Business Strategy -->
+  <url><loc>https://nexus-ways.com/solutions/business-strategy/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/business-strategy/fundraising/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/business-strategy/business-growth/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/business-strategy/market-entry/</loc><lastmod>2026-10-02</lastmod></url>
+
+  <!-- Solutions: Digital Engine -->
+  <url><loc>https://nexus-ways.com/solutions/digital-engine/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/digital-engine/seo/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/digital-engine/website/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/digital-engine/content/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/solutions/digital-engine/ai-infrastructure/</loc><lastmod>2026-10-02</lastmod></url>
+
+  <!-- Solutions: Investment Arm -->
+  <url><loc>https://nexus-ways.com/solutions/investment-arm/</loc><lastmod>2026-10-02</lastmod></url>
+
+  <!-- Company (FAQ lives on the Home page as #faq; Desk and Nexus Desk are outside this sitemap) -->
+  <url><loc>https://nexus-ways.com/about/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/careers/</loc><lastmod>2026-10-02</lastmod></url>
+  <url><loc>https://nexus-ways.com/contact/</loc><lastmod>2026-10-02</lastmod></url>
+
+</urlset>
