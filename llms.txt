@@ -10,18 +10,19 @@ Nexus Ways Group works with a limited number of clients and delivers advisory wo
 - [Fundraising](https://nexus-ways.com/solutions/business-strategy/fundraising/): Fundraising readiness, investor materials, pitch narrative and financial models for companies preparing to raise capital.
 - [Business Growth](https://nexus-ways.com/solutions/business-strategy/business-growth/): Go-to-market strategy, sales and pricing strategy, and growth roadmaps for B2B companies.
 - [Market Entry](https://nexus-ways.com/solutions/business-strategy/market-entry/): Market entry and international expansion advisory.
-- [Digital Engine](https://nexus-ways.com/solutions/digital-engine/): Execution layer for advisory clients: brand, website, SEO, content, CRM, automation and AI systems.
-- [SEO System](https://nexus-ways.com/solutions/digital-engine/seo/): Search and generative-engine visibility for B2B companies.
-- [Website System](https://nexus-ways.com/solutions/digital-engine/website/): Website design and build for B2B and advisory brands.
-- [Content Creation System](https://nexus-ways.com/solutions/digital-engine/content/): Content production and marketing assets, including AI-assisted content.
-- [AI Infrastructure System](https://nexus-ways.com/solutions/digital-engine/ai-infrastructure/): Automation and AI infrastructure for commercial operations.
+- [Digital Engine](https://nexus-ways.com/solutions/digital-engine/): Execution arm supporting advisory clients: SEO, paid media, websites, content and AI infrastructure, each independently scoped and measured against targets agreed in writing.
+- [SEO](https://nexus-ways.com/solutions/digital-engine/seo/): Technical SEO audit and roadmap, monthly SEO execution, and local search and authority building.
+- [Paid Ads](https://nexus-ways.com/solutions/digital-engine/ads/): Google, Meta and LinkedIn campaigns managed against return, with tracking before spend and ad budgets kept in the client's own accounts.
+- [Website](https://nexus-ways.com/solutions/digital-engine/website/): Conversion-focused corporate websites and e-commerce stores, mobile-first and fully tracked, with the domain registered to the client.
+- [Content](https://nexus-ways.com/solutions/digital-engine/content/): Editorial content and social media across LinkedIn, Instagram and YouTube, built on a brand tone guide and a value-first content mix.
+- [AI Infrastructure](https://nexus-ways.com/solutions/digital-engine/ai-infrastructure/): CRM implementation, workflow and lead automation, and AI-assisted content and reporting with human review.
 - [Investment Arm](https://nexus-ways.com/solutions/investment-arm/): Investor deal flow, startup and business screening, commercial and strategic due diligence, investor matching and introductions, and deal structuring support for angels, family offices, VC funds and corporate investors.
 
 ## Company
 
 - [About](https://nexus-ways.com/about/): Who Nexus Ways Group is, how it works and its founder.
-- [Careers](https://nexus-ways.com/careers/): Open roles and how to work with Nexus Ways Group.
-- [Contact](https://nexus-ways.com/contact/): Enquiry form, email and WhatsApp.
+- [Careers](https://nexus-ways.com/careers/): Talent network for strategy, finance, investment research, digital execution and AI specialists.
+- [Contact](https://nexus-ways.com/contact/): Enquiry form routed by pillar, email, WhatsApp and office hours in Istanbul and Dubai.
 - [FAQ](https://nexus-ways.com/#faq): Common questions about what Nexus Ways does, who it works with and how engagements are priced.
 
 ## Focus
