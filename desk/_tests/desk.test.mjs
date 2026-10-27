@@ -32,6 +32,17 @@ test('repository validates cleanly (public data, fixtures, parent manifest, meth
   assert.equal(r.report.index.opportunities.length, 0, 'production must have no published opportunities yet');
 });
 
+test('generated pages are up to date with templates and data', () => {
+  execFileSync('node', [path.join(ROOT, 'desk/_tools/build.mjs'), '--check']);
+});
+
+test('desk runtime uses no persistent browser storage', () => {
+  for (const f of fs.readdirSync(path.join(ROOT, 'desk/assets/js'))) {
+    const t = fs.readFileSync(path.join(ROOT, 'desk/assets/js', f), 'utf8');
+    assert.ok(!/localStorage|sessionStorage|indexedDB|document\.cookie/.test(t), f);
+  }
+});
+
 test('production public data contains no illustrative record and no FIX- id', () => {
   for (const f of fs.readdirSync(path.join(ROOT, 'desk/data/public'))) {
     const t = fs.readFileSync(path.join(ROOT, 'desk/data/public', f), 'utf8');
@@ -206,6 +217,9 @@ test('lifecycle: a real (non-fixture) store exports only approved, public-safe d
     assert.ok(!pm.some(m => ['CONSTRUCTION_PROGRESS', 'SITE_PLAN'].includes(m.media_type)), 'verbal/restricted media excluded');
     for (const m of pm) { const buf = fs.readFileSync(path.join(repo, m.file.public_path)); assert.equal(buf.indexOf(Buffer.from('EXIF')), -1); }
     let v = validateRepo(repo, { today: TODAY }); assert.deepEqual(v.errors, []);
+    // 9: the exported opportunity gets its own generated page from the shared template, bound to its id only
+    const page = fs.readFileSync(path.join(repo, 'desk/opportunities', opp.toLowerCase(), 'index.html'), 'utf8');
+    assert.match(page, new RegExp(`data-id="${opp}"`));
     // 10: injected leaks are caught
     const inject = (fn, code) => { const snap = new Map(); fn(snap); const e = codes(validateRepo(repo, { today: TODAY })); for (const [f, t] of snap) t === null ? fs.rmSync(f, { force: true }) : fs.writeFileSync(f, t); assert.ok(e.includes(code), `expected ${code}, got ${e.join(',')}`); };
     const edit = (snap, f, fn) => { snap.set(f, fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null); fs.writeFileSync(f, fn(snap.get(f))); };

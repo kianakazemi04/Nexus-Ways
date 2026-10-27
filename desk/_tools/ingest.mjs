@@ -453,6 +453,7 @@ export function exportPublic({ storeDir, id, repoRoot, today }) {
     const dst = path.join(repoRoot, m.file.public_path); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst);
   }
   const v = validateRepo(repoRoot, { today, writeIndex: true });
+  execFileSync('node', [path.join(repoRoot, 'desk/_tools/build.mjs')]); // generate the opportunity page from the same template
   return { exported: [...exported].sort(), skipped, errors: v.errors };
 }
 
@@ -465,6 +466,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const fixture = !!a.fixture;
   if (fixture && path.resolve(a.store) !== path.join(repoRoot, 'desk/_fixtures')) { console.error('--fixture requires --store desk/_fixtures'); process.exit(2); }
   if (!fixture && a.store && path.resolve(a.store).startsWith(path.join(repoRoot, 'desk'))) { console.error('a real (non-fixture) store must live outside the public repository'); process.exit(2); }
+  const refreshFixtureGate = () => { if (fixture) validateRepo(repoRoot, { today, writeIndex: true }); };
+  process.on('exit', () => { if (['ingest', 'approve', 'approve-disclosure'].includes(cmd) && (a.apply || cmd !== 'ingest')) refreshFixtureGate(); });
   try {
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: path.resolve(a.store), fixture, apply: !!a.apply, today, repoRoot }); console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(path.resolve(a.store)); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }

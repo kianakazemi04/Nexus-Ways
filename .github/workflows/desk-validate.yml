@@ -22,5 +22,7 @@ jobs:
         run: pip install pillow==11.0.0
       - name: Validate Desk data, fixtures, media, method registry and parent-site manifest
         run: node desk/_tools/validate.mjs
+      - name: Check generated Desk pages are up to date
+        run: node desk/_tools/build.mjs --check
       - name: Run Desk test suite (unit rules + full ingestion lifecycle)
         run: node --test desk/_tests/desk.test.mjs
