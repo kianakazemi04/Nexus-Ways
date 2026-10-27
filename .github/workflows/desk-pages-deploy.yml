@@ -1,0 +1,53 @@
+name: Nexus Desk gated Pages deployment
+# Deploys the site ONLY after the Desk validation workflow (validator, page check, unit + lifecycle tests, real
+# Pages-builder check and browser checks) has passed for the same commit.
+#
+# IMPORTANT — inert until the owner changes one repository setting:
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# While the source is "Deploy from a branch", GitHub's own pages-build-deployment keeps publishing every push to
+# main regardless of this workflow, so validation does NOT yet block deployment. See desk/_tools/README.md.
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  validate:
+    uses: ./.github/workflows/desk-validate.yml
+  build:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with the GitHub Pages builder
+        uses: actions/jekyll-build-pages@v1.0.13
+        with:
+          source: ./
+          destination: ./_site
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-check the exact tree that will be deployed
+        run: python3 desk/_tests/pages_check.py _site
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+  deploy:
+    needs: [validate, build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

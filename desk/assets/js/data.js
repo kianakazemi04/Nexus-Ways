@@ -32,7 +32,9 @@ async function loadOnce() {
   const pubOpp = new Set(index.opportunities || []); const pubMedia = new Set(index.media || []);
   const permOk = (m) => m.permission && m.permission.status === 'GRANTED_WRITTEN' && (m.permission.scope || []).includes('desk_web') && (!m.permission.expires_at || m.permission.expires_at >= today);
 
-  const visibleOpp = (o) => FIXTURE ? isFix(o.id) : (pubOpp.has(o.id) && !isFix(o.id) && o.record_status === 'PUBLISHED' && !!o.review);
+  // defence in depth: an opportunity is never shown if any linked disclosure is missing or not legally approved
+  const disclosuresOk = (o) => (o.disclosure_ids || []).length > 0 && o.disclosure_ids.every(i => { const d = byId.get(i); return d && d.legal_review === 'APPROVED'; });
+  const visibleOpp = (o) => FIXTURE ? isFix(o.id) : (pubOpp.has(o.id) && !isFix(o.id) && o.record_status === 'PUBLISHED' && !!o.review && disclosuresOk(o));
   const visibleMedia = (m) => {
     if (FIXTURE && isFix(m.id)) { const why = gate && gate.media && gate.media[m.id]; return !why || why.every(w => w === 'illustrative'); }
     return pubMedia.has(m.id) && !isFix(m.id) && permOk(m);

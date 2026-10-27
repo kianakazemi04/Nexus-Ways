@@ -40,6 +40,45 @@ const DENY_FIELD_PATH = /(price|rent|yield|roi|score|rank|fair_value|forecast|co
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 const PHONE = /(\+|\b00)\d[\d\s().-]{7,}\d/;
 
+// ---------------------------------------------------------------- V16 free-text pricing / commercial terms (audit B2)
+// Field names alone are not enough: a price can sit inside a claim, summary or description. These patterns look for
+// money amounts (currency code/symbol/word next to a number), per-area prices, and commercial terms carrying a rate
+// (yield, return, commission, discount, down payment, payment plan). Dates, dimensions, unit counts, percentages of
+// construction progress and record identifiers are deliberately not matched (see the negative tests).
+const NUM = String.raw`\d{1,3}(?:[.,   ]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?`;
+const MAG = String.raw`(?:\s?(?:k|K|m|M|mn|mln|bn|b|B|million|billion|thousand|milyon|milyar|bin|mio\.?)\b)?`;
+const CODE = String.raw`(?:USD|EUR|GBP|TRY|TL|AED|SAR|QAR|KWD|BHD|OMR|CHF|RUB|CNY|JPY|INR|Dhs?|DH)`;
+const SYM = String.raw`(?:(?:US|C|A|NZ|HK|S)?\$|[€£₺₽¥﷼])`;
+const MONEYWORD = String.raw`(?:dollars?|euros?|pounds sterling|sterling|lira|liras|dirhams?|riyals?|dolar|avro|sterlin)`;
+const RATE = String.raw`(?:\d+(?:[.,]\d+)?\s?%|%\s?\d+(?:[.,]\d+)?|\d+(?:[.,]\d+)?\s?per ?cent)`;
+const COMMERCIAL = String.raw`(?:yields?|returns?|ROI|IRR|cap rate|getiri(?:si)?|commissions?|komisyon(?:u)?|discounts?|indirim(?:i)?|down ?payments?|downpayments?|deposits?|peşinat|kapora|appreciation|değer artışı|rental income|kira geliri)`;
+const PLAN = String.raw`(?:payment plans?|ödeme plan[ıi]|post-handover|installments?|instalments?|taksit(?:le)?)`;
+const PRICEWORD = String.raw`(?:prices?|priced|pricing|asking|starting (?:from|at)|fiyat(?:ı|lar|ları)?|başlayan|rent(?:al)?s?|kira(?:sı)?)`;
+const PRICE_PATTERNS = [
+  ['currency symbol and amount', new RegExp(String.raw`${SYM}\s?(?:${NUM})${MAG}`, 'u')],
+  ['currency code and amount', new RegExp(String.raw`(?<![A-Za-z])${CODE}\.?\s?(?:${NUM})${MAG}(?![A-Za-z0-9])`, 'u')],
+  ['amount and currency code', new RegExp(String.raw`(?<![A-Za-z0-9])(?:${NUM})${MAG}\s?${CODE}(?![A-Za-z])`, 'u')],
+  ['amount and currency symbol', new RegExp(String.raw`(?<![A-Za-z0-9])(?:${NUM})${MAG}\s?[€£₺₽¥﷼]`, 'u')],
+  ['amount and currency word', new RegExp(String.raw`(?<![A-Za-z0-9])(?:${NUM})${MAG}\s?${MONEYWORD}\b`, 'iu')],
+  ['price per area', new RegExp(String.raw`(?<![A-Za-z0-9])(?:${NUM})\s?(?:/|per)\s?(?:sq\.? ?ft|sqft|square (?:foot|feet|metres?|meters?)|m2|m²|sqm)(?![A-Za-z])`, 'iu')],
+  ['commercial term with a rate', new RegExp(String.raw`${COMMERCIAL}\W{0,3}(?:\S+\s){0,3}?${RATE}|${RATE}\W{0,3}(?:\S+\s){0,3}?${COMMERCIAL}`, 'iu')],
+  ['payment plan terms', new RegExp(String.raw`${PLAN}\W{0,3}(?:\S+\s){0,3}?(?:\d{1,2}\s?/\s?\d{1,2}|${RATE}|\d+\s?(?:months?|ay))|(?:\d{1,2}\s?/\s?\d{1,2}|\d+\s?(?:months?|ay))\W{0,3}(?:\S+\s){0,2}?${PLAN}`, 'iu')],
+  ['price word and amount', new RegExp(String.raw`${PRICEWORD}\W{0,3}(?:\S+\s){0,3}?(?:\d{1,3}(?:[.,   ]\d{3})+|\d+(?:[.,]\d+)?\s?(?:k|K|m|M|mn|mln|bn|million|billion|thousand|milyon|milyar|bin)\b)`, 'iu')]
+];
+// paths whose strings are identifiers, links or hashes rather than prose (they are checked by other rules)
+const NON_PROSE_PATH = /(\.(id|slug|sha256|public_path|source_url|url|evidence_ref|geo_code|series_id|base_period|period|retrieved_at|published_at|last_verified|accessed_at|approved_at|expires_at|depicted_date|expected_delivery|field|state|status|kind|type|role|unit|currency|area_basis|activation|record_status|category|key|legal_review|verification_status|evidence_class|tier|source_type|domain|scope|media_type|content_category|risk_type|horizon|controllability|severity|probability|admin_level|delivery_status|research_closure|data_completeness|gate_version|approved_by|country)|_id|_ids\[\d+\]|_types?\[\d+\]|scope\[\d+\])$/;
+export function commercialTextHits(text) {
+  if (typeof text !== 'string' || !text) return [];
+  const hits = [];
+  for (const [label, re] of PRICE_PATTERNS) { const m = text.match(re); if (m) hits.push(`${label}: "${m[0].trim()}"`); }
+  return hits;
+}
+export function recordCommercialHits(r) {
+  const out = [];
+  walk(r, (kind, v, at) => { if (kind === 'str' && !NON_PROSE_PATH.test(at)) for (const h of commercialTextHits(v)) out.push(`${at} — ${h}`); });
+  return out;
+}
+
 // ---------------------------------------------------------------- minimal JSON Schema (2020-12 subset)
 function typeOf(v) { return v === null ? 'null' : Array.isArray(v) ? 'array' : Number.isInteger(v) ? 'integer' : typeof v; }
 function typeOk(t, v) { const a = typeOf(v); return t === a || (t === 'number' && a === 'integer'); }
@@ -222,6 +261,19 @@ export function validateDataset(ds, opts) {
     if (kind === 'key' && DENY_KEY.test(v)) E('V08', r.id, `forbidden key "${v}" at ${at}`);
     if (kind === 'str' && !/\.(sha256|id|public_path|width|height)$/.test(at) && (EMAIL.test(v) || PHONE.test(v))) E('V14', r.id, `possible personal data at ${at}`);
   });
+  // V16 — prices and commercial terms hidden in free text. Public records: hard error. Private/fixture stores: computed
+  // per record here and turned into a gate reason below, so approval is refused before anything is exported.
+  const commercialHits = new Map();
+  for (const recs of Object.values(ds.collections)) for (const r of recs) {
+    if (!r || !r.id) continue;
+    const hits = recordCommercialHits(r);
+    if (!hits.length) continue;
+    commercialHits.set(r.id, hits);
+    const isPublic = ds.origin ? ds.origin[r.id] === 'public' : mode === 'public';
+    if (isPublic) for (const h of hits) E('V16', r.id, `price or commercial term in free text at ${h}`);
+  }
+  // V17 — a disclosure marked APPROVED must carry its approval date
+  for (const r of C('disclosures')) if (r.legal_review === 'APPROVED' && !r.approved_at) E('V17', r.id, 'APPROVED disclosure without approved_at');
 
   // V11 — media integrity (file checks delegated)
   const hashOwner = new Map();
@@ -291,9 +343,20 @@ export function validateDataset(ds, opts) {
       if (covers !== 1) why.push(covers ? 'more than one cover' : 'no publishable cover');
       if (!ok.some(x => x.role === 'gallery')) why.push('no publishable gallery image');
       if ([pr.id, r.id, r.asset_id, pr.developer_id].some(i => i && errIds.has(i))) why.push('validation errors');
+      // free-text pricing anywhere in what this opportunity would publish (audit B2)
+      const closure = new Set([r.id, pr.id, pr.developer_id, pr.district_id, pr.area_id, r.asset_id].filter(Boolean));
+      for (const c of ['evidence', 'risks', 'conflicts', 'research_blocks', 'media', 'disclosures']) for (const x of C(c)) if (x.subject && subjects.some(s => sameRef(s, x.subject))) closure.add(x.id);
+      for (const i of r.disclosure_ids || []) closure.add(i);
+      for (const i of closure) if (commercialHits.has(i)) why.push(`${i} has a price or commercial term in free text`);
     }
-    const ds2 = (r.disclosure_ids || []).map(i => get(i)).filter(Boolean);
-    if (!ds2.some(d => d.r.legal_review === 'APPROVED')) why.push('no legally approved disclosure');
+    // every applicable disclosure must be legally approved — one approved notice never covers a pending one (audit B1)
+    for (const d of applicableDisclosures(C('disclosures'), r)) {
+      if (d.legal_review !== 'APPROVED') why.push(`disclosure ${d.id} (${d.kind}) legal review pending`);
+      else if (!d.approved_at) why.push(`disclosure ${d.id} approved without a date`);
+      if (!(r.disclosure_ids || []).includes(d.id)) why.push(`disclosure ${d.id} applies to this opportunity but is not linked to it`);
+    }
+    for (const i of r.disclosure_ids || []) if (!get(i) || get(i).coll !== 'disclosures') why.push(`linked disclosure ${i} is missing`);
+    if (!(r.disclosure_ids || []).length) why.push('no disclosure recorded');
     opp[r.id] = why;
     if (r.record_status === 'PUBLISHED' && why.length) E('V12', r.id, `PUBLISHED but not eligible: ${why.join('; ')}`);
   }
@@ -305,6 +368,17 @@ export function validateDataset(ds, opts) {
     if (m && m.r.activation === 'INACTIVE' && r.record_status === 'PUBLISHED') E('V13', r.id, 'opportunity published in an inactive market');
   }
   return { errors, eligibility: { opportunities: opp, media } };
+}
+
+// Disclosures that apply to an opportunity: those it links, plus any recorded against the opportunity itself or its
+// project subject (so an unlinked pending disclosure cannot be silently left out).
+export function applicableDisclosures(disclosures, opp) {
+  const out = new Map();
+  for (const d of disclosures || []) {
+    if (!d || !d.id) continue;
+    if ((opp.disclosure_ids || []).includes(d.id) || sameRef(d.subject, { type: 'opportunity', id: opp.id }) || (opp.subject && sameRef(d.subject, opp.subject))) out.set(d.id, d);
+  }
+  return [...out.values()];
 }
 
 // ---------------------------------------------------------------- repository-level checks

@@ -16,7 +16,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize } from './validate.mjs';
+import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -32,6 +32,43 @@ const pad = (n, w) => String(n).padStart(w, '0');
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+
+// ------------------------------------------------------------ store location guard (audit B3)
+// A real research store must never sit anywhere inside the public repository (not only under desk/): anything
+// written there is one `git add` away from publication. Paths are resolved and normalised — `..`, relative
+// segments and symbolic links on any existing ancestor — before comparison. Anything that cannot be resolved
+// with certainty is refused (fail closed).
+export class StorePathError extends Error {}
+const CASE_INSENSITIVE = process.platform === 'darwin' || process.platform === 'win32';
+const norm = (p) => (CASE_INSENSITIVE ? p.toLowerCase() : p);
+export function resolveReal(p, what = 'path') {
+  if (typeof p !== 'string' || !p.trim()) throw new StorePathError(`${what} is missing`);
+  if (p.includes('\0')) throw new StorePathError(`${what} contains a null byte`);
+  let cur = path.resolve(p); const tail = [];
+  for (;;) {
+    try { return path.join(fs.realpathSync.native(cur), ...tail.reverse()); }
+    catch (e) {
+      if (e.code !== 'ENOENT') throw new StorePathError(`${what} cannot be resolved safely (${e.code})`);
+      const parent = path.dirname(cur);
+      if (parent === cur) throw new StorePathError(`${what} cannot be resolved safely`);
+      tail.push(path.basename(cur)); cur = parent;
+    }
+  }
+}
+const within = (child, parent) => { const rel = path.relative(norm(parent), norm(child)); return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)); };
+export function assertStorePath(storeDir, repoRoot, { fixture = false } = {}) {
+  const store = resolveReal(storeDir, 'store path');
+  const root = resolveReal(repoRoot, 'repository root');
+  const fixtures = path.join(root, 'desk', '_fixtures');
+  if (fixture) {
+    if (norm(store) !== norm(fixtures)) throw new StorePathError('--fixture requires --store desk/_fixtures');
+    return store;
+  }
+  if (norm(store) === norm(fixtures)) throw new StorePathError('desk/_fixtures holds illustrative fixtures only; use --fixture, or a real store outside the repository');
+  if (within(store, root)) throw new StorePathError('a real (non-fixture) store must live outside the public repository — the resolved store path is inside it');
+  if (within(root, store)) throw new StorePathError('a real store must not contain the public repository');
+  return store;
+}
 
 // ------------------------------------------------------------ store
 export function loadStore(dir) {
@@ -89,6 +126,7 @@ export function runGate(store, { fixture, today, repoRoot }) {
 
 // ------------------------------------------------------------ ingest
 export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today, repoRoot }) {
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture });
   const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'intake.json'), 'utf8'));
   const store = loadStore(storeDir);
   const fx = fixture ? 'FIX-' : '';
@@ -384,6 +422,7 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
 // ------------------------------------------------------------ approve (owner action only)
 export function approve({ storeDir, id, by, fixture, today, repoRoot }) {
   if (by !== 'owner') throw new Error('approval must be recorded --by owner');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture });
   const store = loadStore(storeDir);
   const opp = store.collections.opportunities.find(o => o.id === id); if (!opp) throw new Error(`${id} not found`);
   const project = store.collections.projects.find(p => p.id === opp.subject.id);
@@ -404,8 +443,9 @@ export function approve({ storeDir, id, by, fixture, today, repoRoot }) {
 }
 
 // ------------------------------------------------------------ record the owner's legal sign-off of a disclosure text
-export function approveDisclosure({ storeDir, id, by, today }) {
+export function approveDisclosure({ storeDir, id, by, today, fixture = false, repoRoot = path.resolve(HERE, '../..') }) {
   if (by !== 'owner') throw new Error('legal approval must be recorded --by owner after counsel review');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture });
   const store = loadStore(storeDir);
   const d = store.collections.disclosures.find(x => x.id === id); if (!d) throw new Error(`${id} not found`);
   d.legal_review = 'APPROVED'; d.approved_at = today; saveStore(store);
@@ -414,11 +454,17 @@ export function approveDisclosure({ storeDir, id, by, today }) {
 // ------------------------------------------------------------ export public projection (approved, real records only)
 export function exportPublic({ storeDir, id, repoRoot, today }) {
   if (id.startsWith('FIX-')) throw new Error('illustrative fixtures can never be exported');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
   const store = loadStore(storeDir);
   const gate = runGate(store, { fixture: false, today, repoRoot });
   const opp = store.collections.opportunities.find(o => o.id === id);
   if (!opp || opp.record_status !== 'PUBLISHED' || !opp.review) throw new Error(`${id} is not approved`);
   if (gate.eligibility.opportunities[id].length) throw new Error(`${id} fails the gate: ${gate.eligibility.opportunities[id].join('; ')}`);
+  // defence in depth (audit B1): every applicable disclosure must be approved and is exported in full — never skipped
+  const disclosures = applicableDisclosures(store.collections.disclosures, opp);
+  const pending = disclosures.filter(d => d.legal_review !== 'APPROVED' || !d.approved_at);
+  if (!disclosures.length || pending.length) throw new Error(`${id} cannot be exported: ${disclosures.length ? 'disclosure approval pending for ' + pending.map(d => `${d.id} (${d.kind})`).join(', ') : 'no disclosure recorded'}`);
+  const disclosureIds = new Set(disclosures.map(d => d.id));
   const pubDir = path.join(repoRoot, 'desk/data/public');
   const pub = {}; for (const c of Object.keys(COLLECTIONS)) pub[c] = JSON.parse(fs.readFileSync(path.join(pubDir, `${c}.json`), 'utf8')).records;
   const market = pub.markets.find(m => m.id === opp.market_id);
@@ -435,7 +481,7 @@ export function exportPublic({ storeDir, id, repoRoot, today }) {
   take('conflicts', r => subj.has(r.subject.id));
   take('research_blocks', r => subj.has(r.subject.id));
   take('risks', r => subj.has(r.subject.id));
-  take('disclosures', r => opp.disclosure_ids.includes(r.id) && (r.legal_review === 'APPROVED' || (skipped.push(`${r.id} (legal review pending)`), false)));
+  take('disclosures', r => disclosureIds.has(r.id));
   take('media', r => subj.has(r.subject.id) && (gate.eligibility.media[r.id].length === 0 || (skipped.push(`${r.id} (${gate.eligibility.media[r.id].join(', ')})`), false)));
   const srcs = new Set([...out.evidence.map(e => e.source_id), ...out.media.map(m => m.provenance.source_id)]);
   take('sources', r => srcs.has(r.id));
@@ -464,15 +510,17 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10);
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  if (fixture && path.resolve(a.store) !== path.join(repoRoot, 'desk/_fixtures')) { console.error('--fixture requires --store desk/_fixtures'); process.exit(2); }
-  if (!fixture && a.store && path.resolve(a.store).startsWith(path.join(repoRoot, 'desk'))) { console.error('a real (non-fixture) store must live outside the public repository'); process.exit(2); }
+  if (['ingest', 'gate', 'approve', 'approve-disclosure', 'export'].includes(cmd)) {
+    try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
+    catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
+  }
   const refreshFixtureGate = () => { if (fixture) validateRepo(repoRoot, { today, writeIndex: true }); };
   process.on('exit', () => { if (['ingest', 'approve', 'approve-disclosure'].includes(cmd) && (a.apply || cmd !== 'ingest')) refreshFixtureGate(); });
   try {
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: path.resolve(a.store), fixture, apply: !!a.apply, today, repoRoot }); console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(path.resolve(a.store)); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
     else if (cmd === 'approve') { const r = approve({ storeDir: path.resolve(a.store), id: a.id, by: a.by, fixture, today, repoRoot }); console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported)` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
-    else if (cmd === 'approve-disclosure') { approveDisclosure({ storeDir: path.resolve(a.store), id: a.id, by: a.by, today }); console.log(`${a.id} legal review recorded as APPROVED`); }
+    else if (cmd === 'approve-disclosure') { approveDisclosure({ storeDir: a.store, id: a.id, by: a.by, today, fixture, repoRoot }); console.log(`${a.id} legal review recorded as APPROVED`); }
     else if (cmd === 'export') { const r = exportPublic({ storeDir: path.resolve(a.store), id: a.id, repoRoot, today }); console.log(`exported ${r.exported.length} records; skipped: ${r.skipped.join(', ') || 'none'}`); for (const e of r.errors) console.error(`✗ [${e.code}] ${e.id}: ${e.msg}`); process.exit(r.errors.length ? 1 : 0); }
     else { console.log('commands: ingest | gate | approve-disclosure | approve | export'); process.exit(2); }
   } catch (e) { console.error(`✗ ${e.message}`); process.exit(1); }

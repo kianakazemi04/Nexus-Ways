@@ -1,10 +1,11 @@
 name: Nexus Desk validation
 # Runs the Desk data validator and test suite. Free on public repositories.
-# Validation does not deploy anything; GitHub Pages deployment from main is unchanged.
+# Validation does not deploy anything. It is also called by desk-pages-deploy.yml, which deploys only after it passes.
 on:
   push:
     branches: ['**']
   pull_request:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -24,8 +25,8 @@ jobs:
         run: node desk/_tools/validate.mjs
       - name: Check generated Desk pages are up to date
         run: node desk/_tools/build.mjs --check
-      - name: Run Desk test suite (unit rules + full ingestion lifecycle)
-        run: node --test desk/_tests/desk.test.mjs
+      - name: Run Desk test suites (unit rules, ingestion lifecycle, P0 audit regressions)
+        run: node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs
   pages-build-check:
     # Reproduces the real GitHub Pages build (same builder as pages-build-deployment) WITHOUT deploying,
     # then tests the built site served at the domain root, as nexus-ways.com serves it.
