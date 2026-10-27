@@ -15,6 +15,7 @@ const ASSET_V = '1';
 
 // UI chrome strings per language. Only English is published in Stage 1 (D-08); tr/ar are added here and built under /desk/tr/ and /desk/ar/.
 const STR = { en: { explore: 'Explore', markets: 'Markets', intel: 'Intelligence', consult: 'Consultation', parent: 'Nexus Ways', by: 'By Nexus Ways', theme: 'Switch light or dark mode', menu: 'Menu', disclosures: 'Disclosures', notAdvice: 'Nexus Desk provides research and analysis to support investment decisions. It is not investment advice. Nexus Ways does not manage capital or operate a fund.' } };
+// Published languages. Adding 'tr' or 'ar' = add STR[lang] + content translations, then { dir, prefix: '/tr' | '/ar' } here; pages build under desk/tr/ and desk/ar/.
 const LANGS = { en: { dir: 'ltr', prefix: '' } };
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
@@ -39,7 +40,7 @@ function layout({ lang = 'en', title, description, current, body, script, bodyAt
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600${L.dir === 'rtl' ? '&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600' : ''}&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/desk/assets/css/desk.css?v=${ASSET_V}">
 </head>
 <body${bodyAttr}>

@@ -3,7 +3,8 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp
 const LANG = (document.documentElement.lang || 'en').slice(0, 2).toLowerCase(); // language comes from the URL path (/desk/, later /desk/tr/, /desk/ar/)
 export const tx = (t) => t ? esc(t[LANG] || t.en || '') : '';
 
-export const L = {
+// UI labels per language. English is the base; a TR or AR dictionary only needs the keys it translates (D-08).
+const LBL_EN = {
   delivery_status: { OFF_PLAN: 'Off-plan', UNDER_CONSTRUCTION: 'Under construction', COMPLETED: 'Completed' },
   asset_type: { APARTMENT: 'Apartment', VILLA: 'Villa', TOWNHOUSE: 'Townhouse', RESIDENCE: 'Residence', MIXED_USE: 'Mixed use' },
   media_type: { PHOTO: 'Photograph', RENDERING: 'Architectural rendering', FLOOR_PLAN: 'Indicative floor plan', SITE_PLAN: 'Site plan', CONSTRUCTION_PROGRESS: 'Construction progress photo', ILLUSTRATIVE: 'Illustrative image', MAP: 'Map' },
@@ -20,6 +21,8 @@ export const L = {
   tier: { 1: 'Tier 1 · primary / official', 2: 'Tier 2 · authoritative secondary', 3: 'Tier 3 · market / commercial', 4: 'Tier 4 · discovery only' },
   disclosure: { COMMERCIAL_RELATIONSHIP: 'Commercial relationship', COMMISSION: 'Commission', CONFLICT_OF_INTEREST: 'Conflict of interest', LEGAL_NOTICE: 'Legal notice' }
 };
+const LBL = { en: LBL_EN };
+export const L = Object.fromEntries(Object.entries(LBL_EN).map(([k, v]) => [k, { ...v, ...((LBL[LANG] || {})[k] || {}) }]));
 export const lab = (map, v) => esc((L[map] && L[map][v]) || v || '');
 const VORDER = ['VERIFIED', 'CORROBORATED', 'SOURCE-REPORTED', 'DEVELOPER-CLAIM', 'UNVERIFIED'];
 export const strongest = (evs) => evs.length ? VORDER[Math.min(...evs.map(e => VORDER.indexOf(e.verification_status)))] : null;

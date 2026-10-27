@@ -1,0 +1,151 @@
+{
+  "package_id": "PKG-YYYYMMDD-<PROJECT>",
+  "received_at": "YYYY-MM-DD",
+  "category": "real_estate",
+  "market": {
+    "slug": "istanbul"
+  },
+  "provided_by_role": "Sales manager",
+  "sources": [
+    {
+      "key": "S1",
+      "name": "",
+      "publisher": "",
+      "url": null,
+      "tier": 1,
+      "source_type": "REGISTRY",
+      "accessed_at": "YYYY-MM-DD",
+      "notes": null
+    }
+  ],
+  "developer": {
+    "name": "",
+    "summary": null
+  },
+  "district": {
+    "name": "",
+    "slug": null,
+    "admin_level": "DISTRICT"
+  },
+  "area": null,
+  "project": {
+    "name": "",
+    "slug": null,
+    "asset_types": [
+      "APARTMENT"
+    ],
+    "description": null
+  },
+  "assets": [
+    {
+      "key": "A1",
+      "unit_ref": null
+    }
+  ],
+  "opportunity": {
+    "title": {
+      "en": ""
+    },
+    "summary": {
+      "en": ""
+    },
+    "asset_key": "A1",
+    "investor_objective_tags": []
+  },
+  "facts": [
+    {
+      "key": "F-NAME",
+      "subject": "project",
+      "field": "name",
+      "value": "",
+      "unit": "text",
+      "claim": {
+        "en": ""
+      },
+      "source": "S1",
+      "evidence_class": "FACT",
+      "verification_status": "VERIFIED",
+      "geography": "",
+      "period": null,
+      "locator": null,
+      "limitations": null
+    }
+  ],
+  "unknowns": [
+    {
+      "subject": "project",
+      "field": "expected_delivery",
+      "state": "ACCESSIBLE BUT NOT YET COLLECTED",
+      "note": ""
+    }
+  ],
+  "research_blocks": [
+    {
+      "subject": "project",
+      "domain": "PROJECT_ASSET",
+      "research_closure": "NO",
+      "data_completeness": "NO",
+      "note": null
+    }
+  ],
+  "risks": [
+    {
+      "risk_type": "LEGAL_TITLE",
+      "title": {
+        "en": ""
+      },
+      "cause": null,
+      "evidence_facts": [],
+      "horizon": null,
+      "controllability": null,
+      "mitigation": null,
+      "residual_uncertainty": null
+    }
+  ],
+  "disclosures": [
+    {
+      "kind": "COMMISSION",
+      "text": {
+        "en": ""
+      }
+    }
+  ],
+  "documents": [
+    {
+      "key": "D1",
+      "title": "",
+      "kind": "brochure",
+      "confidential": true
+    }
+  ],
+  "media": [
+    {
+      "file": "raw/<file>.jpg",
+      "source": "S2",
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "role": "cover",
+      "order": 0,
+      "depicted_date": null,
+      "caption": {
+        "en": ""
+      },
+      "alt": {
+        "en": ""
+      },
+      "permission": {
+        "status": "REQUESTED",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": null,
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      }
+    }
+  ]
+}
