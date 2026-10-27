@@ -10,7 +10,9 @@ SITE = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else '_site')
 fails = []
 def check(cond, msg):
     print(('✓ ' if cond else '✗ ') + msg)
-    if not cond: fails.append(msg)
+    if not cond:
+        fails.append(msg)
+        if os.environ.get('GITHUB_ACTIONS'): print('::error::' + msg.replace('\n', ' ')[:900])
 
 # 1. underscore folders and tooling never published
 for d in ['desk/_fixtures', 'desk/_tools', 'desk/_tests', 'desk/_schema']:

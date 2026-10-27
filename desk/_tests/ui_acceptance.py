@@ -12,7 +12,9 @@ FIX_A, FIX_B, FIX_C = (f'FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-{x}' for x in 'ABC')
 fails = []
 def check(cond, msg):
     print(('✓ ' if cond else '✗ ') + msg)
-    if not cond: fails.append(msg)
+    if not cond:
+        fails.append(msg)
+        if os.environ.get('GITHUB_ACTIONS'): print('::error::' + msg.replace('\n', ' ')[:900])
 
 ROUTES = sorted('/' + os.path.relpath(p, ROOT).replace(os.sep, '/').replace('index.html', '') for p in glob.glob(ROOT + '/desk/**/index.html', recursive=True) if '/_' not in p) + ['/desk/404.html']
 FIXTURE_ROUTES = [] if PAGES_MODE else [f'/desk/?fixtures=1', f'/desk/opportunities/preview/?id={FIX_A}&fixtures=1', f'/desk/opportunities/preview/?id={FIX_B}&fixtures=1',
