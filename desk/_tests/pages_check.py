@@ -25,6 +25,7 @@ check(os.path.exists(os.path.join(os.path.dirname(SITE), 'CNAME')) or os.path.ex
 ROUTES = ['desk/', 'desk/markets/', 'desk/markets/istanbul/', 'desk/markets/dubai/', 'desk/markets/abu-dhabi/', 'desk/opportunities/',
           'desk/opportunities/preview/', 'desk/compare/', 'desk/consultation/', 'desk/disclosures/', 'desk/intelligence/', 'desk/404.html'] + \
          [f'desk/intelligence/{s}/' for s in ['evaluation', 'evidence-sources', 'pricing', 'risk', 'liquidity', 'data-gaps']]
+ROUTES = ROUTES + [r.replace('desk/', 'desk/' + l + '/', 1) for l in ('tr', 'ar') for r in ROUTES]
 def resolve(url):
     p = url.split('#')[0].split('?')[0]
     if not p.startswith('/'): return True

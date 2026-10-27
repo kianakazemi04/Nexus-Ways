@@ -57,6 +57,29 @@ async def run():
         check('not published' in (await pg.inner_text('main')).lower(), 'fixture id without fixture mode renders "not published"')
         await pg.goto(B + '/desk/', wait_until='networkidle')
         check('No opportunity has passed publication review yet' in await pg.inner_text('main'), 'production Explore shows the honest empty state')
+        # theme chosen once stays across Desk navigation (carried in the address, no storage)
+        tp = await (await b.new_context(viewport={'width': 1440, 'height': 900}, color_scheme='light')).new_page()
+        await tp.goto(B + '/desk/', wait_until='networkidle'); await tp.click('.thm')
+        seq = []
+        for sel in ['.nv a[href^="/desk/markets/"]', '.mkts a >> nth=0', '.nv a[href^="/desk/intelligence/"]', '.nv a.nl >> nth=0']:
+            await tp.click(sel); await tp.wait_for_load_state('networkidle'); seq.append(await tp.evaluate("document.documentElement.dataset.theme"))
+        check(seq == ['dark'] * 4, f'dark theme kept across 4 navigations ({seq})')
+        # language menu: switches language, keeps theme, Arabic is RTL
+        await tp.click('.lgb'); await tp.click('.lgm a[hreflang="ar"]'); await tp.wait_for_load_state('networkidle')
+        st = await tp.evaluate("[document.documentElement.lang, document.documentElement.dir, document.documentElement.dataset.theme, location.pathname]")
+        check(st == ['ar', 'rtl', 'dark', '/desk/ar/'], f'language menu → Arabic, RTL, theme kept ({st})')
+        await tp.click('.lgb'); await tp.click('.lgm a[hreflang="tr"]'); await tp.wait_for_load_state('networkidle')
+        st = await tp.evaluate("[document.documentElement.lang, location.pathname, document.documentElement.dataset.theme]")
+        check(st == ['tr', '/desk/tr/', 'dark'], f'language menu → Turkish, theme kept ({st})')
+        # every page in TR/AR: no untranslated English UI left in the visible chrome
+        for l, word in [('tr', 'Keşfet'), ('ar', 'استكشاف')]:
+            await tp.goto(B + f'/desk/{l}/', wait_until='networkidle')
+            nav = await tp.evaluate("[...document.querySelectorAll('.nv a.nl')].map(a => a.textContent.trim())")
+            check(nav and nav[0] == word and not any(x in ' '.join(nav) for x in ['Explore', 'Markets', 'Intelligence']), f'{l} navigation translated ({nav})')
+        if not PAGES_MODE:
+            await tp.goto(B + f'/desk/ar/opportunities/preview/?id={FIX_C}&fixtures=1', wait_until='networkidle')
+            body = await tp.inner_text('#opp')
+            check(all(w not in body for w in ['Project gallery', 'Documented risks', 'Facts and their evidence', 'Request a consultation']), 'Arabic profile has no untranslated section headings')
         if PAGES_MODE:
             for u in ['/desk/_fixtures/data/opportunities.json', '/desk/_fixtures/gate.json', '/desk/_tools/validate.mjs']:
                 r = await pg.goto(B + u); check(r.status == 404, f'{u} is not served (404) in the Pages build')
