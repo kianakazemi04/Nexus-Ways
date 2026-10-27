@@ -18,7 +18,8 @@ def check(cond, msg):
 for d in ['desk/_fixtures', 'desk/_tools', 'desk/_tests', 'desk/_schema']:
     check(not os.path.exists(os.path.join(SITE, d)), f'{d} is not published')
 check(not os.path.exists(os.path.join(SITE, '.github')), '.github is not published')
-check(os.path.exists(os.path.join(SITE, 'CNAME')), 'CNAME present (custom domain root, so root-absolute paths are valid)')
+# the Pages builder does not copy CNAME into its output; the custom domain is set from the repository (CNAME at the source root)
+check(os.path.exists(os.path.join(os.path.dirname(SITE), 'CNAME')) or os.path.exists(os.path.join(SITE, 'CNAME')), 'CNAME present in the source root (site served at the custom-domain root, so root-absolute /desk/ paths are valid)')
 
 # 2. routes
 ROUTES = ['desk/', 'desk/markets/', 'desk/markets/istanbul/', 'desk/markets/dubai/', 'desk/markets/abu-dhabi/', 'desk/opportunities/',
