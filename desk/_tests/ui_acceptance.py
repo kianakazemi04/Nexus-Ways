@@ -5,7 +5,8 @@ Starts a local static server, checks every Desk route in production and fixture 
 import asyncio, glob, os, re, subprocess, sys, time
 from playwright.async_api import async_playwright
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+ROOT = os.path.abspath(os.environ.get('SITE_DIR') or os.path.join(os.path.dirname(__file__), '..', '..'))
+PAGES_MODE = os.environ.get('PAGES_MODE') == '1'  # testing the real GitHub Pages build output: fixtures must be absent
 PORT = 8791; B = f'http://localhost:{PORT}'
 FIX_A, FIX_B, FIX_C = (f'FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-{x}' for x in 'ABC')
 fails = []
@@ -14,7 +15,7 @@ def check(cond, msg):
     if not cond: fails.append(msg)
 
 ROUTES = sorted('/' + os.path.relpath(p, ROOT).replace(os.sep, '/').replace('index.html', '') for p in glob.glob(ROOT + '/desk/**/index.html', recursive=True) if '/_' not in p) + ['/desk/404.html']
-FIXTURE_ROUTES = [f'/desk/?fixtures=1', f'/desk/opportunities/preview/?id={FIX_A}&fixtures=1', f'/desk/opportunities/preview/?id={FIX_B}&fixtures=1',
+FIXTURE_ROUTES = [] if PAGES_MODE else [f'/desk/?fixtures=1', f'/desk/opportunities/preview/?id={FIX_A}&fixtures=1', f'/desk/opportunities/preview/?id={FIX_B}&fixtures=1',
                   f'/desk/opportunities/preview/?id={FIX_C}&fixtures=1', f'/desk/compare/?ids={FIX_A},{FIX_C}&fixtures=1']
 BANNED = re.compile(r'\b(scores?|ranking|yield|roi|fair value|forecasts?|return scenarios?|upside|downside)\b', re.I)
 
@@ -54,6 +55,19 @@ async def run():
         check('not published' in (await pg.inner_text('main')).lower(), 'fixture id without fixture mode renders "not published"')
         await pg.goto(B + '/desk/', wait_until='networkidle')
         check('No opportunity has passed publication review yet' in await pg.inner_text('main'), 'production Explore shows the honest empty state')
+        if PAGES_MODE:
+            for u in ['/desk/_fixtures/data/opportunities.json', '/desk/_fixtures/gate.json', '/desk/_tools/validate.mjs']:
+                r = await pg.goto(B + u); check(r.status == 404, f'{u} is not served (404) in the Pages build')
+            await pg.goto(B + f'/desk/?fixtures=1', wait_until='networkidle')
+            check('No opportunity has passed publication review yet' in await pg.inner_text('main'), '?fixtures=1 has no effect on the Pages build')
+            await pg.goto(B + '/desk/consultation/', wait_until='networkidle')
+            check(await pg.evaluate("document.querySelector('#cf fieldset').disabled"), 'consultation unconfigured in the Pages build')
+            await pg.goto(B + '/', wait_until='networkidle')
+            links = await pg.evaluate("[...document.querySelectorAll('a[href=\"/desk/\"]')].map(a => a.textContent.trim().slice(0, 4))")
+            check('Desk' in links and any(l.startswith('Expl') for l in links), f'homepage menu "Desk" and section CTA link to /desk/ ({links})')
+            txt = await pg.inner_text('#desk')
+            check(not re.search(r'Score \d|Yield profile|Entry cost|Upside|Downside', txt), 'homepage Desk section has no scores, yield, entry cost or return chart')
+            await b.close(); return
         # evidence drawers
         await pg.goto(B + f'/desk/opportunities/preview/?id={FIX_A}&fixtures=1', wait_until='networkidle')
         n = await pg.locator('[data-ev]').count(); ok = 0
