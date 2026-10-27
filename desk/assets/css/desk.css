@@ -4,7 +4,7 @@
 
 :root {
   --bg: #09090a; --bg2: #0e0e10; --panel: #121214; --panel2: #17171a;
-  --fg: #f2f2f3; --fg2: #d6d8dc; --mut: #9a9ca3; --dim: #63666d;
+  --fg: #f2f2f3; --fg2: #d6d8dc; --mut: #9a9ca3; --dim: #7f828a;
   --line: #ffffff17; --line2: #ffffff2e; --chip: #ffffff0b;
   --red: #cc0000; --red-tx: #ff5a5a; --red-bg: #cc00001a;
   --ill: #cc0000; --focus: #ff5a5a;
@@ -19,7 +19,7 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --bg: #f9f9fa; --bg2: #ffffff; --panel: #ffffff; --panel2: #f3f3f4;
-    --fg: #0a0a0a; --fg2: #26272b; --mut: #5c5f64; --dim: #8a8d93;
+    --fg: #0a0a0a; --fg2: #26272b; --mut: #5c5f64; --dim: #6b6e74;
     --line: #e4e4e6; --line2: #cfd0d4; --chip: #0000000a;
     --red: #cc0000; --red-tx: #b30000; --red-bg: #cc00000f; --focus: #cc0000; --grid: #0000000a;
     color-scheme: light;
@@ -27,7 +27,7 @@
 }
 :root[data-theme="light"] {
   --bg: #f9f9fa; --bg2: #ffffff; --panel: #ffffff; --panel2: #f3f3f4;
-  --fg: #0a0a0a; --fg2: #26272b; --mut: #5c5f64; --dim: #8a8d93;
+  --fg: #0a0a0a; --fg2: #26272b; --mut: #5c5f64; --dim: #6b6e74;
   --line: #e4e4e6; --line2: #cfd0d4; --chip: #0000000a;
   --red: #cc0000; --red-tx: #b30000; --red-bg: #cc00000f; --focus: #cc0000; --grid: #0000000a;
   color-scheme: light;
@@ -172,7 +172,7 @@ main { display: block; min-height: 60vh }
 @media (max-width: 980px) { .flt { position: static } }
 .flt label { display: flex; flex-direction: column; gap: 8px }
 .flt select, .flt input[type="search"], .fld input, .fld select, .fld textarea { font: 400 14.5px Inter; color: var(--fg); background: var(--bg2); border: 1px solid var(--line2); border-radius: 10px; padding: 11px 12px; width: 100%; min-width: 0 }
-.flt select:focus, .flt input:focus { border-color: var(--fg); outline: none }
+.flt select:focus-visible, .flt input:focus-visible, .fld :focus-visible { border-color: var(--fg); outline: 2px solid var(--focus); outline-offset: 2px }
 .flt .ft { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 6px; border-top: 1px solid var(--line) }
 .lnk { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); background: none; border: 0; cursor: pointer; padding: 6px 0; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--line2) }
 .lnk:hover { color: var(--fg); text-decoration-color: currentColor }

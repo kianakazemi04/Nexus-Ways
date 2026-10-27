@@ -9,7 +9,7 @@ const o = id ? D.opportunity(id) : null;
 
 if (!o) {
   document.title = 'Opportunity not available | Nexus Desk';
-  host.innerHTML = `<div class="sec"><div class="empty"><span class="lab">Not available</span><h3>This opportunity is not published.</h3><p>It may not exist, may still be under research, or may have been withheld pending review. Only reviewed opportunities are shown.</p><div><a class="btn o sm" href="${D.withFixtureFlag('/desk/')}">Back to Explore <i>→</i></a></div></div></div>`;
+  host.innerHTML = `<section class="pi"><div class="eb">Opportunity</div><h1 style="margin-top:20px">Not available.</h1></section><div class="sec"><div class="empty"><span class="lab">Not available</span><h3>This opportunity is not published.</h3><p>It may not exist, may still be under research, or may have been withheld pending review. Only reviewed opportunities are shown.</p><div><a class="btn o sm" href="${D.withFixtureFlag('/desk/')}">Back to Explore <i>→</i></a></div></div></div>`;
 } else {
   const p = D.project(o); const dev = D.developer(p); const dist = D.district(p); const area = D.area(p); const a = D.asset(o); const m = D.market(o.market_id);
   const gate = D.fixture ? D.gateFor(o.id) : null;
