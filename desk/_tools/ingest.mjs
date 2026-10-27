@@ -14,9 +14,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
+import { withTxn, recover, fault } from './txn.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -72,6 +74,7 @@ export function assertStorePath(storeDir, repoRoot, { fixture = false } = {}) {
 
 // ------------------------------------------------------------ store
 export function loadStore(dir) {
+  const recovered = recover(dir); // roll back an interrupted write before reading anything
   const collections = {}; const files = {};
   for (const c of Object.keys(COLLECTIONS)) {
     const f = path.join(dir, 'data', `${c}.json`);
@@ -81,16 +84,87 @@ export function loadStore(dir) {
     const f = path.join(dir, 'private', `${n}.json`);
     files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (n === 'media_index' ? {} : []);
   }
-  return { dir, collections, private: files };
+  return { dir, collections, private: files, recovered };
 }
-export function saveStore(store) {
-  fs.mkdirSync(path.join(store.dir, 'data'), { recursive: true });
-  fs.mkdirSync(path.join(store.dir, 'private'), { recursive: true });
+// Writes the store through a transaction: either every file is replaced, or none is (Phase 2).
+export function storeFiles(store) {
+  const out = [];
   for (const [c, recs] of Object.entries(store.collections)) {
     recs.sort((a, b) => a.id.localeCompare(b.id));
-    fs.writeFileSync(path.join(store.dir, 'data', `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: recs }, null, 2) + '\n');
+    out.push([path.join(store.dir, 'data', `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: recs }, null, 2) + '\n']);
   }
-  for (const [n, v] of Object.entries(store.private)) fs.writeFileSync(path.join(store.dir, 'private', `${n}.json`), JSON.stringify(v, null, 2) + '\n');
+  for (const [n, v] of Object.entries(store.private)) out.push([path.join(store.dir, 'private', `${n}.json`), JSON.stringify(v, null, 2) + '\n']);
+  return out;
+}
+export function saveStore(store, txn = null) {
+  const write = (t) => { for (const [f, text] of storeFiles(store)) if (!fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== text) t.write(f, text); };
+  if (txn) write(txn); else withTxn(store.dir, 'store', write);
+}
+
+// ------------------------------------------------------------ package validation (before anything is built or written)
+const ENUM = (k) => DEFS[k].enum;
+const isText = (v) => v && typeof v === 'object' && typeof v.en === 'string' && v.en.trim().length > 0;
+export function validatePackage(pkg, pkgDir) {
+  const errs = []; const E = (m) => errs.push(m);
+  const inEnum = (where, v, k, optional = false) => { if (v === undefined || v === null) { if (!optional) E(`${where}: missing ${k}`); return; } if (!ENUM(k).includes(v)) E(`${where}: ${JSON.stringify(v)} is not a valid ${k} (${ENUM(k).join(', ')})`); };
+  if (!pkg || typeof pkg !== 'object') return ['intake.json is not an object'];
+  if (!/^[A-Z0-9-]+$/.test(pkg.package_id || '')) E('package_id must be uppercase letters, digits and hyphens');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(pkg.received_at || '')) E('received_at (YYYY-MM-DD) required');
+  inEnum('package', pkg.category, 'category');
+  if (!pkg.market || !pkg.market.slug) E('market.slug required');
+  if (!pkg.project || !pkg.project.name) E('project.name required');
+  const srcKeys = new Set();
+  for (const [i, x] of (pkg.sources || []).entries()) {
+    const w = `sources[${i}]${x && x.key ? ` (${x.key})` : ''}`;
+    if (!x || !x.key) { E(`${w}: key required`); continue; }
+    if (srcKeys.has(x.key)) E(`${w}: duplicate source key`); srcKeys.add(x.key);
+    if (!x.name || !x.publisher) E(`${w}: name and publisher required`);
+    inEnum(w, x.tier, 'source_tier'); inEnum(w, x.source_type, 'source_type');
+  }
+  const factKeys = new Set();
+  for (const [i, f] of (pkg.facts || []).entries()) {
+    const w = `facts[${i}]${f && f.key ? ` (${f.key})` : ''}`;
+    if (!f || typeof f !== 'object') { E(`${w}: not an object`); continue; }
+    if (f.key) { if (factKeys.has(f.key)) E(`${w}: duplicate fact key`); factKeys.add(f.key); }
+    inEnum(w, f.domain, 'domain', true);
+    if (f.unit !== undefined && f.unit !== null) inEnum(w, f.unit, 'unit');
+    if (f.area_basis !== undefined && f.area_basis !== null) inEnum(w, f.area_basis, 'area_basis');
+    const priv = ['PRICING', 'RENTAL', 'LIQUIDITY', 'MACRO_FX'].includes(f.domain) || !!f.currency;
+    if (priv) continue; // routed to the private store; never becomes public evidence
+    if (!f.subject) E(`${w}: subject required`);
+    if (!f.source || !srcKeys.has(f.source)) E(`${w}: source "${f.source}" is not a declared source key`);
+    if (!isText(f.claim)) E(`${w}: claim text (en) required`);
+    inEnum(w, f.evidence_class, 'evidence_class'); inEnum(w, f.verification_status, 'verification_status');
+  }
+  for (const [i, u] of (pkg.unknowns || []).entries()) { const w = `unknowns[${i}]`; if (!u || !u.subject || !u.field) E(`${w}: subject and field required`); else inEnum(w, u.state, 'missing_data_status'); }
+  for (const [i, b] of (pkg.research_blocks || []).entries()) { const w = `research_blocks[${i}]`; inEnum(w, b && b.domain, 'domain'); inEnum(w, b && b.research_closure, 'research_closure'); inEnum(w, b && b.data_completeness, 'data_completeness'); }
+  for (const [i, k] of (pkg.risks || []).entries()) {
+    const w = `risks[${i}]`; inEnum(w, k && k.risk_type, 'risk_type'); if (!k || !isText(k.title)) E(`${w}: title text (en) required`);
+    for (const f of (k && k.evidence_facts) || []) if (!factKeys.has(f)) E(`${w}: evidence fact "${f}" is not a declared fact key`);
+  }
+  for (const [i, d] of (pkg.disclosures || []).entries()) { const w = `disclosures[${i}]`; inEnum(w, d && d.kind, 'disclosure_kind'); if (!d || !isText(d.text)) E(`${w}: text (en) required`); }
+  for (const [i, m] of (pkg.media || []).entries()) {
+    const w = `media[${i}]${m && m.file ? ` (${m.file})` : ''}`;
+    if (!m || !m.file) { E(`${w}: file required`); continue; }
+    const raw = path.resolve(pkgDir, m.file);
+    if (path.relative(path.resolve(pkgDir), raw).startsWith('..')) E(`${w}: file must be inside the package folder`);
+    else if (!fs.existsSync(raw)) E(`${w}: file not found`);
+    const ext = path.extname(m.file).toLowerCase();
+    if (['.heic', '.heif'].includes(ext)) E(`${w}: HEIC/HEIF is not supported — export the image as JPEG or PNG first`);
+    else if (ext === '.pdf') E(`${w}: PDF is not supported as media — export the page as an image (floor plans) or list the PDF under documents`);
+    else if (!['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext)) E(`${w}: unsupported file type ${ext || '(none)'}`);
+    if (!m.source || !srcKeys.has(m.source)) E(`${w}: source "${m.source}" is not a declared source key`);
+    inEnum(w, m.media_type, 'media_type'); inEnum(w, m.content_category, 'content_category'); inEnum(w, m.role, 'media_role', true);
+    if (!isText(m.caption) || !isText(m.alt)) E(`${w}: caption and alt text (en) required`);
+    if (!m.permission || typeof m.permission !== 'object') E(`${w}: permission is missing — record {status, scope, evidence_ref, granted_at, expires_at}; use status NOT_REQUESTED if no permission has been sought`);
+    else {
+      inEnum(`${w} permission`, m.permission.status, 'permission_status');
+      if (!Array.isArray(m.permission.scope)) E(`${w}: permission.scope must be a list (e.g. ["desk_web"]); use [] when no scope is granted`);
+      else for (const sc of m.permission.scope) inEnum(`${w} permission`, sc, 'permission_scope');
+      if (m.permission.status === 'GRANTED_WRITTEN' && !m.permission.evidence_ref) E(`${w}: GRANTED_WRITTEN needs permission.evidence_ref (pointer to the private permission record)`);
+    }
+  }
+  return errs;
 }
 const find = (store, coll, pred) => store.collections[coll].find(pred);
 const byId = (store, id) => { for (const c of Object.keys(COLLECTIONS)) { const r = store.collections[c].find(x => x.id === id); if (r) return r; } return null; };
@@ -103,7 +177,7 @@ function nextSeq(store, coll, prefix, width) {
 // ------------------------------------------------------------ gate
 function storeOrigin(store, fixture) { const o = {}; for (const [c, recs] of Object.entries(store.collections)) for (const r of recs) o[r.id] = c === 'categories' && !r.id.startsWith('FIX-') ? 'public' : fixture ? 'fixtures' : 'private'; return o; }
 function methods() { const m = {}; for (const x of JSON.parse(fs.readFileSync(path.join(HERE, '../data/methods.json'), 'utf8')).methods) m[x.id] = x; return m; }
-export function runGate(store, { fixture, today, repoRoot }) {
+export function runGate(store, { fixture, today, repoRoot, staged = null }) {
   // categories are public configuration; use the public file when the store has none
   if (!store.collections.categories.length) {
     const f = path.join(repoRoot, 'desk/data/public/categories.json');
@@ -112,7 +186,7 @@ export function runGate(store, { fixture, today, repoRoot }) {
   const mediaCheck = (r) => {
     if (/^0+$/.test(r.file.sha256)) return [];
     const rel = fixture ? r.file.public_path : r.file.public_path.replace(/^desk\/media\//, 'media/');
-    const p = fixture ? path.join(repoRoot, rel) : path.join(store.dir, rel);
+    const p = (staged && staged[r.file.public_path]) || (fixture ? path.join(repoRoot, rel) : path.join(store.dir, rel));
     if (!fs.existsSync(p)) return [`file missing in store: ${rel}`];
     const buf = fs.readFileSync(p); const out = [];
     if (sha256(buf) !== r.file.sha256) out.push('sha256 mismatch');
@@ -128,7 +202,12 @@ export function runGate(store, { fixture, today, repoRoot }) {
 export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today, repoRoot }) {
   storeDir = assertStorePath(storeDir, repoRoot, { fixture });
   const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'intake.json'), 'utf8'));
-  const store = loadStore(storeDir);
+  const pkgErrors = validatePackage(pkg, pkgDir);
+  if (pkgErrors.length) {
+    const report = `# Ingestion report · ${pkg && pkg.package_id || '(unknown package)'}\n\n**REFUSED — the package is invalid; nothing was written.**\n\n${pkgErrors.map(e => `- ${e}`).join('\n')}\n`;
+    return { report, opp: null, project: null, blocked: [], errors: pkgErrors, disputed: [], privateFacts: [], gateErrors: [], written: false };
+  }
+  const store = loadStore(storeDir); const recovered = store.recovered;
   const fx = fixture ? 'FIX-' : '';
   const R = { pkg: pkg.package_id, created: [], reused: [], updated: [], facts: [], privateFacts: [], disputed: [], corroborated: [], media: [], documents: [], notes: [], errors: [] };
   const note = (s) => R.notes.push(s);
@@ -338,19 +417,25 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
     store.private.media_index[rawHash] = { id, subject: project.id, file: m.file };
     R.created.push(id);
   }
-  // process media files (only with --apply, because it writes derivatives)
-  for (const x of mediaPlan) {
-    const rec = store.collections.media.find(r => r.id === x.id);
-    let info = { had_exif: false, had_gps: false };
-    if (apply) {
-      fs.mkdirSync(path.dirname(x.dest), { recursive: true });
-      if (x.vector) fs.copyFileSync(x.raw, x.dest);
-      else info = JSON.parse(execFileSync('python3', [path.join(HERE, 'media_derive.py'), x.raw, x.dest]).toString());
-      const out = fs.readFileSync(x.dest); const sz = imageSize(out);
-      rec.file = { public_path: x.pub, width: sz.w, height: sz.h, sha256: sha256(out) };
+  // process media into a staging folder outside the store and the repository; nothing reaches the store until commit
+  const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-ingest-stage-'));
+  const staged = {};
+  try {
+    for (const x of mediaPlan) {
+      const rec = store.collections.media.find(r => r.id === x.id);
+      let info = { had_exif: false, had_gps: false };
+      const tmpOut = path.join(staging, `${x.id}${path.extname(x.dest)}`);
+      try {
+        if (x.vector) fs.copyFileSync(x.raw, tmpOut);
+        else info = JSON.parse(execFileSync('python3', [path.join(HERE, 'media_derive.py'), x.raw, tmpOut], { stdio: ['ignore', 'pipe', 'pipe'] }).toString());
+        const out = fs.readFileSync(tmpOut); const sz = imageSize(out);
+        if (!sz) throw new Error('unrecognised output image');
+        rec.file = { public_path: x.pub, width: sz.w, height: sz.h, sha256: sha256(out) };
+        staged[x.pub] = tmpOut; x.staged = tmpOut;
+      } catch (e) { fail(`media ${x.m.file}: could not be processed (${String(e.message).split('\n')[0]})`); }
+      R.media.push({ file: x.m.file, id: x.id, type: rec.media_type, role: rec.role, permission: rec.permission.status, scope: rec.permission.scope.join(',') || '—', exif: x.vector ? 'n/a (vector)' : x.staged ? (info.had_exif ? `stripped${info.had_gps ? ' (incl. GPS)' : ''}` : 'none found') : 'failed' });
     }
-    R.media.push({ file: x.m.file, id: x.id, type: rec.media_type, role: rec.role, permission: rec.permission.status, scope: rec.permission.scope.join(',') || '—', exif: x.vector ? 'n/a (vector)' : apply ? (info.had_exif ? `stripped${info.had_gps ? ' (incl. GPS)' : ''}` : 'none found') : 'pending (dry run)' });
-  }
+    fault('ingest:after-media');
 
   // derived checks for the report
   const subjects = [project, developer, district, area, opp, ...Object.values(assetId).map(i => byId(store, i))].filter(Boolean);
@@ -369,17 +454,21 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
     }
   }
   const ddRequired = subjects.flatMap(s => (s.field_states || []).filter(x => x.state === 'PROFESSIONAL DD REQUIRED').map(x => `${s.id}.${x.field}`));
-  let gate = runGate(store, { fixture, today, repoRoot });
+  let gate = runGate(store, { fixture, today, repoRoot, staged });
   if (opp.record_status === 'PUBLISHED' && gate.eligibility.opportunities[opp.id].length) {
     opp.record_status = 'WITHHELD';
     note(`${opp.id} was PUBLISHED and no longer passes the gate after this package — set to WITHHELD pending owner review`);
-    gate = runGate(store, { fixture, today, repoRoot });
+    gate = runGate(store, { fixture, today, repoRoot, staged });
   }
   const mreg = methods();
 
   // report
   const md = [];
-  md.push(`# Ingestion report · ${pkg.package_id}`, '', `Received ${received} · processed ${today} · store: ${fixture ? 'ILLUSTRATIVE FIXTURES' : 'private research store'} · ${apply ? 'APPLIED' : 'DRY RUN (nothing written)'}`, '');
+  const relevant = gate.errors.filter(e => sids.has(e.id) || store.collections.evidence.some(x => x.id === e.id && sids.has(x.subject.id)) || store.collections.media.some(x => x.id === e.id && x.subject.id === project.id) || store.collections.risks.some(x => x.id === e.id && sids.has(x.subject.id)));
+  const blocking = [...R.errors, ...relevant.map(e => `[${e.code}] ${e.id}: ${e.msg}`)];
+  const willWrite = apply && !blocking.length;
+  md.push(`# Ingestion report · ${pkg.package_id}`, '', `Received ${received} · processed ${today} · store: ${fixture ? 'ILLUSTRATIVE FIXTURES' : 'private research store'} · ${willWrite ? 'APPLIED' : apply ? `NOT APPLIED — ${blocking.length} blocking error(s); nothing was written` : 'DRY RUN (nothing written)'}`, '');
+  if (recovered) md.push(`Recovered an interrupted earlier write before this run: ${recovered} file(s) restored to their previous state.`, '');
   md.push(`**Opportunity:** ${opp.id} · **Project:** ${project.id} · **Developer:** ${developer ? developer.id : '—'} · **Market:** ${market.id} (${market.activation})`, '');
   md.push('**Publication:** not published. Ingestion never publishes; publication requires a passing gate, the owner\'s explicit approval and an export.', '');
   md.push('## 1. Records', '', `Created (${R.created.length}): ${R.created.join(', ') || '—'}`, '', `Reused (${[...new Set(R.reused)].length}): ${[...new Set(R.reused)].join(', ') || '—'}`, '', `Values set: ${R.updated.join(', ') || '—'}`, '');
@@ -402,7 +491,6 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
   md.push('## 5. Methods', '', '| Method | Status | Result |', '|---|---|---|');
   for (const m of Object.values(mreg)) md.push(`| ${m.name} | ${m.status} | ${m.status === 'ACTIVE' ? 'run' : `not run — ${m.validation_status.toLowerCase().replace(/_/g, ' ')}`} |`);
   md.push('', '## 6. Validation and publication gate', '');
-  const relevant = gate.errors.filter(e => sids.has(e.id) || store.collections.evidence.some(x => x.id === e.id && sids.has(x.subject.id)) || store.collections.media.some(x => x.id === e.id && x.subject.id === project.id) || store.collections.risks.some(x => x.id === e.id && sids.has(x.subject.id)));
   md.push(`Validation errors (${relevant.length}): ${relevant.map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ') || 'none'}`, '');
   const why = gate.eligibility.opportunities[opp.id] || [];
   md.push(`**Gate ${GATE_VERSION} for ${opp.id}: ${why.length ? 'BLOCKED' : 'PASSES GATE RULES — awaiting owner approval'}**`, '');
@@ -411,12 +499,15 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
   for (const m of store.collections.media.filter(x => x.subject.id === project.id)) md.push(`- ${m.id} (${m.media_type}, ${m.role}): ${gate.eligibility.media[m.id].length ? 'not publishable — ' + gate.eligibility.media[m.id].join('; ') : 'publishable after approval'}`);
   const report = md.join('\n') + '\n';
 
-  if (apply) {
-    fs.mkdirSync(path.join(storeDir, 'reports'), { recursive: true });
-    fs.writeFileSync(path.join(storeDir, 'reports', `${pkg.package_id}.md`), report);
-    saveStore(store);
-  }
-  return { report, opp: opp.id, project: project.id, blocked: why, errors: R.errors, disputed: R.disputed, privateFacts: R.privateFacts, gateErrors: relevant };
+  // all-or-nothing commit: media derivatives, records, private files and the report in one transaction
+  if (willWrite) withTxn(storeDir, 'ingest', (t) => {
+    for (const x of mediaPlan) t.copy(x.staged, x.dest);
+    saveStore(store, t);
+    t.write(path.join(storeDir, 'reports', `${pkg.package_id}.md`), report);
+    fault('ingest:before-commit');
+  });
+  return { report, opp: opp.id, project: project.id, blocked: why, errors: blocking, disputed: R.disputed, privateFacts: R.privateFacts, gateErrors: relevant, written: willWrite };
+  } finally { fs.rmSync(staging, { recursive: true, force: true }); }
 }
 
 // ------------------------------------------------------------ approve (owner action only)
@@ -455,6 +546,7 @@ export function approveDisclosure({ storeDir, id, by, today, fixture = false, re
 export function exportPublic({ storeDir, id, repoRoot, today }) {
   if (id.startsWith('FIX-')) throw new Error('illustrative fixtures can never be exported');
   storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
+  recover(path.join(repoRoot, 'desk')); // a crashed earlier export is rolled back before anything is compared
   const store = loadStore(storeDir);
   const gate = runGate(store, { fixture: false, today, repoRoot });
   const opp = store.collections.opportunities.find(o => o.id === id);
@@ -492,15 +584,40 @@ export function exportPublic({ storeDir, id, repoRoot, today }) {
   for (const [c, recs] of Object.entries(out)) {
     for (const r of recs) { const i = pub[c].findIndex(x => x.id === r.id); if (i >= 0) pub[c][i] = r; else pub[c].push(r); }
     pub[c].sort((a, b) => a.id.localeCompare(b.id));
-    fs.writeFileSync(path.join(pubDir, `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: pub[c] }, null, 2) + '\n');
   }
-  for (const m of out.media) {
-    const src = path.join(storeDir, 'media', m.subject.id, path.basename(m.file.public_path));
-    const dst = path.join(repoRoot, m.file.public_path); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst);
-  }
-  const v = validateRepo(repoRoot, { today, writeIndex: true });
-  execFileSync('node', [path.join(repoRoot, 'desk/_tools/build.mjs')]); // generate the opportunity page from the same template
-  return { exported: [...exported].sort(), skipped, errors: v.errors };
+
+  // Phase 2: build and validate the complete result in a throw-away copy of the repository first. The real tree is
+  // changed only if the staged result validates with zero errors, and then through one transaction that is rolled
+  // back if any write or the final validation fails. A crash mid-commit is rolled back by the next command.
+  const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-export-stage-'));
+  try {
+    fs.cpSync(repoRoot, stage, { recursive: true, filter: (src) => { const r = path.relative(repoRoot, src).split(path.sep); return !['.git', 'node_modules'].includes(r[0]) && !(r[0] === 'desk' && r[1] === '_txn') && !src.endsWith('.desk-tmp'); } });
+    fault('export:stage');
+    for (const [c, recs] of Object.entries(pub)) fs.writeFileSync(path.join(stage, 'desk/data/public', `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: recs }, null, 2) + '\n');
+    for (const m of out.media) {
+      const src = path.join(storeDir, 'media', m.subject.id, path.basename(m.file.public_path));
+      const dst = path.join(stage, m.file.public_path); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst);
+    }
+    validateRepo(stage, { today, writeIndex: true });
+    execFileSync('node', [path.join(stage, 'desk/_tools/build.mjs')], { stdio: ['ignore', 'pipe', 'pipe'] }); // the opportunity page from the shared template
+    fault('export:staged-build');
+    const staged = validateRepo(stage, { today });
+    if (staged.errors.length) throw new Error(`export refused — the staged result does not validate; nothing was changed: ${staged.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
+    // the change set: every file under desk/ that differs between the staged copy and the real tree
+    const list = (root) => { const outF = new Set(); const walk = (d) => { if (!fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); const rel = path.relative(root, p); if (rel.split(path.sep)[0] === '_txn' || e.name.endsWith('.desk-tmp')) continue; if (e.isDirectory()) walk(p); else outF.add(rel); } }; walk(root); return outF; };
+    const sDesk = path.join(stage, 'desk'); const rDesk = path.join(repoRoot, 'desk');
+    const sFiles = list(sDesk); const rFiles = list(rDesk);
+    const writes = [...sFiles].filter(f => !rFiles.has(f) || !fs.readFileSync(path.join(sDesk, f)).equals(fs.readFileSync(path.join(rDesk, f)))).sort();
+    const removes = [...rFiles].filter(f => !sFiles.has(f)).sort();
+    withTxn(rDesk, 'export', (t) => {
+      for (const f of writes) t.copy(path.join(sDesk, f), path.join(rDesk, f));
+      for (const f of removes) t.remove(path.join(rDesk, f));
+      fault('export:applied');
+      const post = validateRepo(repoRoot, { today, inTransaction: true });
+      if (post.errors.length) throw new Error(`export rolled back — the public tree did not validate after applying: ${post.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
+    });
+    return { exported: [...exported].sort(), skipped, errors: [], changed: writes.map(f => `desk/${f}`), removed: removes.map(f => `desk/${f}`) };
+  } finally { fs.rmSync(stage, { recursive: true, force: true }); }
 }
 
 // ------------------------------------------------------------ CLI
@@ -510,18 +627,20 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10);
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  if (['ingest', 'gate', 'approve', 'approve-disclosure', 'export'].includes(cmd)) {
+  if (['ingest', 'gate', 'approve', 'approve-disclosure', 'export', 'recover'].includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
   }
   const refreshFixtureGate = () => { if (fixture) validateRepo(repoRoot, { today, writeIndex: true }); };
-  process.on('exit', () => { if (['ingest', 'approve', 'approve-disclosure'].includes(cmd) && (a.apply || cmd !== 'ingest')) refreshFixtureGate(); });
+  let wrote = false; // the fixture gate report is refreshed only after a command actually changed the fixture store
+  process.on('exit', () => { if (wrote) refreshFixtureGate(); });
   try {
-    if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: path.resolve(a.store), fixture, apply: !!a.apply, today, repoRoot }); console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
+    if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: path.resolve(a.store), fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(path.resolve(a.store)); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
-    else if (cmd === 'approve') { const r = approve({ storeDir: path.resolve(a.store), id: a.id, by: a.by, fixture, today, repoRoot }); console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported)` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
-    else if (cmd === 'approve-disclosure') { approveDisclosure({ storeDir: a.store, id: a.id, by: a.by, today, fixture, repoRoot }); console.log(`${a.id} legal review recorded as APPROVED`); }
+    else if (cmd === 'approve') { const r = approve({ storeDir: path.resolve(a.store), id: a.id, by: a.by, fixture, today, repoRoot }); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported)` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
+    else if (cmd === 'approve-disclosure') { approveDisclosure({ storeDir: a.store, id: a.id, by: a.by, today, fixture, repoRoot }); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
     else if (cmd === 'export') { const r = exportPublic({ storeDir: path.resolve(a.store), id: a.id, repoRoot, today }); console.log(`exported ${r.exported.length} records; skipped: ${r.skipped.join(', ') || 'none'}`); for (const e of r.errors) console.error(`✗ [${e.code}] ${e.id}: ${e.msg}`); process.exit(r.errors.length ? 1 : 0); }
-    else { console.log('commands: ingest | gate | approve-disclosure | approve | export'); process.exit(2); }
+    else if (cmd === 'recover') { const n = recover(a.store); const m = recover(path.join(repoRoot, 'desk')); console.log(`recovered: store ${n} file(s), public tree ${m} file(s)`); }
+    else { console.log('commands: ingest | gate | approve-disclosure | approve | export | recover'); process.exit(2); }
   } catch (e) { console.error(`✗ ${e.message}`); process.exit(1); }
 }

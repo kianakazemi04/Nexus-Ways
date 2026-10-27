@@ -438,7 +438,7 @@ function readCollections(dir, origin, errors) {
   return { collections: out, origin: originMap };
 }
 
-export function validateRepo(root, { today = new Date().toISOString().slice(0, 10), writeIndex = false, updateParentManifest = false } = {}) {
+export function validateRepo(root, { today = new Date().toISOString().slice(0, 10), writeIndex = false, updateParentManifest = false, inTransaction = false } = {}) {
   const errors = []; const report = {};
   const desk = path.join(root, 'desk');
   const pubDir = path.join(desk, 'data/public'); const fixDir = path.join(desk, '_fixtures/data');
@@ -447,11 +447,15 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
   if (fs.existsSync(path.join(root, '.nojekyll'))) errors.push({ code: 'F04', id: '.nojekyll', msg: '.nojekyll would publish desk/_fixtures and desk/_tools; remove it or move fixtures out of the site tree' });
   if (fs.existsSync(path.join(root, '_config.yml')) && /include\s*:/.test(fs.readFileSync(path.join(root, '_config.yml'), 'utf8'))) errors.push({ code: 'F04', id: '_config.yml', msg: 'Jekyll include: list could publish underscore folders' });
 
+  // F07 — no interrupted write may be committed: a transaction journal or a temporary file means a write did not finish
+  // (inTransaction: the export's own final check runs while its journal is still open; the journal itself is expected)
+  for (const f of listFiles(desk, desk)) if (!(inTransaction && f.startsWith('_txn/')) && (f.split('/').includes('_txn') || f.endsWith('.desk-tmp'))) errors.push({ code: 'F07', id: `desk/${f}`, msg: 'interrupted write left behind; run `node desk/_tools/ingest.mjs recover --store <store>` before validating or committing' });
+
   // F06 — only web-safe file types in the deployed part of desk/
   const deployed = listFiles(desk, desk, (rel) => rel.split('/')[0].startsWith('_'));
   for (const f of deployed) {
     const ext = path.extname(f).toLowerCase();
-    if (!PUBLIC_EXT.has(ext) && path.basename(f) !== '.gitkeep') errors.push({ code: 'F06', id: `desk/${f}`, msg: `file type ${ext || '(none)'} not allowed in the published tree (contracts, sheets, docs belong in the private store)` });
+    if (!PUBLIC_EXT.has(ext) && !['.gitkeep', '.gitignore'].includes(path.basename(f))) errors.push({ code: 'F06', id: `desk/${f}`, msg: `file type ${ext || '(none)'} not allowed in the published tree (contracts, sheets, docs belong in the private store)` });
     if (/\.(html|json|svg|css)$/.test(f) && !f.startsWith('assets/js/')) {
       const t = fs.readFileSync(path.join(desk, f), 'utf8');
       if (/\bFIX-[A-Z]{2,3}-/.test(t)) errors.push({ code: 'F03', id: `desk/${f}`, msg: 'fixture id found in the published tree' });

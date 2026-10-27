@@ -40,33 +40,5 @@
       "geography": "Illustrative District North",
       "period": "2026-10"
     }
-  ],
-  "media": [
-    {
-      "file": "raw/borrowed.jpg",
-      "source": "S4",
-      "media_type": "RENDERING",
-      "content_category": "exterior",
-      "role": "gallery",
-      "caption": {
-        "en": "Should be rejected: belongs to another project"
-      },
-      "alt": {
-        "en": "Placeholder"
-      },
-      "permission": {
-        "status": "GRANTED_WRITTEN",
-        "scope": [
-          "desk_web"
-        ],
-        "evidence_ref": "PRIV-PERM-FIX-3",
-        "granted_at": "2026-10-26",
-        "expires_at": null
-      },
-      "attribution": {
-        "required": false,
-        "text": null
-      }
-    }
   ]
 }

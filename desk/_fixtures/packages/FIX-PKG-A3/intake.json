@@ -1,0 +1,56 @@
+{
+  "package_id": "FIX-PKG-A3",
+  "received_at": "2026-10-26",
+  "category": "real_estate",
+  "market": {
+    "slug": "illustrative-market"
+  },
+  "provided_by_role": "Analyst (fictional)",
+  "sources": [
+    {
+      "key": "S4",
+      "name": "Illustrative news report (fictional)",
+      "publisher": "Illustrative News (fictional)",
+      "url": null,
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-26",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      }
+    }
+  ],
+  "project": {
+    "name": "Illustrative Residence A",
+    "slug": "illustrative-residence-a"
+  },
+  "facts": [],
+  "media": [
+    {
+      "file": "raw/borrowed.jpg",
+      "source": "S4",
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "role": "gallery",
+      "caption": {
+        "en": "Should be rejected: belongs to another project"
+      },
+      "alt": {
+        "en": "Placeholder"
+      },
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-3",
+        "granted_at": "2026-10-26",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      }
+    }
+  ]
+}

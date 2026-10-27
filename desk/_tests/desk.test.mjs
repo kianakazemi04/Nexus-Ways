@@ -163,9 +163,19 @@ test('lifecycle: ingest → gate → approve → conflict re-blocks → cross-pr
     assert.match(r.out, /no written permission/);
     // 4: contradicting update opens a conflict, does not overwrite, and withholds the published fixture
     r = ingestCli(repo, ['ingest', '--package', path.join(fx, 'packages/FIX-PKG-A2'), ...S, '--apply']);
+    assert.equal(r.code, 0, r.out);
     assert.match(r.out, /"2028-06" vs "2029-03"/);
     assert.match(r.out, /set to WITHHELD/);
+    assert.equal(readJson(path.join(fx, 'data/opportunities.json')).records.find(o => o.id === A).record_status, 'WITHHELD');
+    assert.ok(readJson(path.join(fx, 'data/conflicts.json')).records.some(c => c.status === 'OPEN' && c.field === 'expected_delivery'));
+    // 7: a package re-using another project's image is refused as a whole — nothing at all is written (Phase 2)
+    const snap = (d) => Object.fromEntries(fs.readdirSync(d, { recursive: true }).filter(f => fs.statSync(path.join(d, f)).isFile()).map(f => [f, fs.readFileSync(path.join(d, f)).toString('base64')]));
+    const before = snap(fx);
+    r = ingestCli(repo, ['ingest', '--package', path.join(fx, 'packages/FIX-PKG-A3'), ...S, '--apply']);
+    assert.equal(r.code, 1, r.out);
     assert.match(r.out, /identical file already attached to FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B/);
+    assert.match(r.out, /NOT APPLIED — \d+ blocking error\(s\); nothing was written/);
+    assert.deepEqual(snap(fx), before, 'refused package must leave the store byte-identical');
     const proj = readJson(path.join(fx, 'data/projects.json')).records.find(p => p.id === 'FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A');
     assert.equal(proj.expected_delivery, '2028-06', 'existing value must not be overwritten');
     // 10: whole repository still validates and production has nothing published

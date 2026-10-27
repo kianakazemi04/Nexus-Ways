@@ -1,0 +1,3 @@
+# interrupted-write journals and temporary files from desk/_tools (never commit these)
+_txn/
+*.desk-tmp

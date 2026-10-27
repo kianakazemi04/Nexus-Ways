@@ -48,3 +48,23 @@ Field rules: `evidence_class` ∈ FACT, LEGAL FACT, ESTIMATE, PROJECTION, INTERP
   settings when the source changes.
   Exact owner steps, how to verify the setting, and the first-deployment check: `desk/_tools/PAGES-DEPLOYMENT.md`.
   All workflow actions are pinned to full commit SHAs (policy enforced by `desk/_tests/p0.test.mjs`).
+
+## Data-integrity controls (Phase 2)
+
+- **Package validation first.** `ingest` checks the whole package (`validatePackage`) before building anything:
+  required fields, enumerations, declared source/fact keys, media files inside the package, supported image types
+  (JPEG, PNG, WebP; SVG for fixtures only — HEIC/HEIF and PDF are refused with an explicit message), and a complete
+  permission block for every image. An invalid package is refused and nothing is written.
+- **All-or-nothing ingestion.** Media derivatives are produced in a temporary staging folder outside the store and the
+  repository. Records, private files, media and the report are written only if there are no ingestion or validation
+  errors for the package, and then through one transaction (`desk/_tools/txn.mjs`). A refused package leaves the
+  store byte-identical.
+- **Atomic export.** `export` builds the complete result (public data, media, `published.json`, generated pages) in a
+  throw-away copy of the repository, validates it, and only then applies the difference to `desk/` in one
+  transaction, re-validating the real tree before committing. Any failure rolls everything back.
+- **Crash recovery.** A transaction keeps a journal (`_txn/`) with the previous version of every file it touches. If a
+  command is interrupted, the next command on that store (or the next export) rolls the journal back first;
+  `node desk/_tools/ingest.mjs recover --store <store>` does it explicitly. A leftover journal or temporary file under
+  `desk/` is a validation error (F07), so it can never pass CI; `desk/.gitignore` keeps them out of commits.
+- **Fault injection (tests only).** `DESK_FAULT=<label>:write:<n>|<named point>|crash:<…>` makes a command fail or exit
+  at that point; `desk/_tests/phase2.test.mjs` exercises every write stage. Nothing in normal use sets it.

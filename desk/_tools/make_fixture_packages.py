@@ -140,21 +140,32 @@ def incomplete_package():
     })
 
 def update_package():
-    """Second package for Residence A from another source: contradicts delivery date and re-uses B's image file."""
-    pid = 'FIX-PKG-A2'; d = os.path.join(ROOT, pid); shutil.rmtree(d, ignore_errors=True); os.makedirs(os.path.join(d, 'raw'))
-    shutil.copyfile(os.path.join(ROOT, 'FIX-PKG-B', 'raw', 'cover.jpg'), os.path.join(d, 'raw', 'borrowed.jpg'))
+    """Second package for Residence A from another source: contradicts the delivery date (opens a conflict)."""
+    pid = 'FIX-PKG-A2'; d = os.path.join(ROOT, pid); shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
     write(d, {
         'package_id': pid, 'received_at': '2026-10-26', 'category': 'real_estate', 'market': {'slug': 'illustrative-market'},
         'provided_by_role': 'Analyst (fictional)',
-        'sources': [{'key': 'S4', 'name': 'Illustrative news report (fictional)', 'publisher': 'Illustrative News (fictional)', 'url': None, 'tier': 2, 'source_type': 'MEDIA', 'accessed_at': '2026-10-26', 'notes': {'en': NOTE}}],
+        'sources': [S4],
         'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a'},
         'facts': [
             {'key': 'F-DELIVERY2', 'subject': 'project', 'field': 'expected_delivery', 'value': '2029-03', 'unit': 'date', 'claim': {'en': 'Report states a later expected delivery.'}, 'source': 'S4', 'evidence_class': 'FACT', 'verification_status': 'SOURCE-REPORTED', 'geography': 'Illustrative District North', 'period': '2026-10'},
         ],
+    })
+
+def borrowed_image_package():
+    """Third package for Residence A that re-uses B's image file: must be refused as a whole (nothing written)."""
+    pid = 'FIX-PKG-A3'; d = os.path.join(ROOT, pid); shutil.rmtree(d, ignore_errors=True); os.makedirs(os.path.join(d, 'raw'))
+    shutil.copyfile(os.path.join(ROOT, 'FIX-PKG-B', 'raw', 'cover.jpg'), os.path.join(d, 'raw', 'borrowed.jpg'))
+    write(d, {
+        'package_id': pid, 'received_at': '2026-10-26', 'category': 'real_estate', 'market': {'slug': 'illustrative-market'},
+        'provided_by_role': 'Analyst (fictional)', 'sources': [S4],
+        'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a'}, 'facts': [],
         'media': [
             {'file': 'raw/borrowed.jpg', 'source': 'S4', 'media_type': 'RENDERING', 'content_category': 'exterior', 'role': 'gallery', 'caption': {'en': 'Should be rejected: belongs to another project'}, 'alt': {'en': 'Placeholder'}, 'permission': {'status': 'GRANTED_WRITTEN', 'scope': ['desk_web'], 'evidence_ref': 'PRIV-PERM-FIX-3', 'granted_at': '2026-10-26', 'expires_at': None}, 'attribution': {'required': False, 'text': None}},
         ],
     })
+
+S4 = {'key': 'S4', 'name': 'Illustrative news report (fictional)', 'publisher': 'Illustrative News (fictional)', 'url': None, 'tier': 2, 'source_type': 'MEDIA', 'accessed_at': '2026-10-26', 'notes': {'en': NOTE}}
 
 if __name__ == '__main__':
     os.makedirs(ROOT, exist_ok=True)
@@ -162,4 +173,5 @@ if __name__ == '__main__':
     complete_package('FIX-PKG-C', 'C', (52, 56, 64))
     incomplete_package()
     update_package()
+    borrowed_image_package()
     print('fixture packages written to', ROOT)
