@@ -213,11 +213,50 @@ test('B4: the gated deployment workflow deploys only main, only after validation
   assert.match(job('build'), /needs: validate/); assert.match(job('build'), /if: github\.ref == 'refs\/heads\/main'/);
   assert.match(job('build'), /pages_check\.py _site/);
   assert.match(job('deploy'), /needs: \[validate, build\]/); assert.match(job('deploy'), /if: github\.ref == 'refs\/heads\/main'/);
-  assert.match(job('deploy'), /actions\/deploy-pages@v4/);
+  assert.match(job('deploy'), /actions\/deploy-pages@[0-9a-f]{40} # v4\.0\.5/);
   assert.ok(!/deploy-pages/.test(job('validate') + job('build')), 'only the deploy job deploys');
-  for (const u of wf.match(/uses: [^\s]+/g)) assert.match(u, /@v[\d.]+$|desk-validate\.yml$/, `pinned: ${u}`);
   // the validation workflow itself still runs every check the deployment depends on, and the P0 tests
   for (const step of ['node desk/_tools/validate.mjs', 'node desk/_tools/build.mjs --check', 'desk/_tests/p0.test.mjs', 'pages_check.py _site', 'ui_acceptance.py']) assert.ok(val.includes(step), step);
+});
+// Pinning policy: every third-party action in every workflow is pinned to a full 40-character commit SHA, with the
+// release it corresponds to in a trailing comment. The approved pins are listed here, so any change to an action
+// (or a new action) needs a deliberate update of this list after checking the SHA against the official repository.
+// SHAs verified 2026-10-28 with `git ls-remote --tags https://github.com/actions/<name>` (lightweight tags, i.e. commit
+// SHAs) and by fetching each commit from the official repository.
+const APPROVED_ACTION_PINS = {
+  'actions/checkout': ['11d5960a326750d5838078e36cf38b85af677262', 'v4.4.0'],
+  'actions/setup-node': ['49933ea5288caeca8642d1e84afbd3f7d6820020', 'v4.4.0'],
+  'actions/setup-python': ['a26af69be951a213d495a4c3e4e4022e16d87065', 'v5.6.0'],
+  'actions/jekyll-build-pages': ['44a6e6beabd48582f863aeeb6cb2151cc1716697', 'v1.0.13'],
+  'actions/upload-pages-artifact': ['56afc609e74202658d3ffba0e8f6dda462b719fa', 'v3.0.1'],
+  'actions/deploy-pages': ['d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e', 'v4.0.5']
+};
+function pinProblem(ref, rest) {
+  if (ref.startsWith('./.github/workflows/')) return null; // local reusable workflow from the same commit
+  const p = ref.match(/^([\w.-]+\/[\w.-]+)@([0-9a-f]{40})$/);
+  if (!p) return `"${ref}" is not pinned to a full commit SHA`;
+  const want = APPROVED_ACTION_PINS[p[1]];
+  if (!want) return `${p[1]} is not an approved action`;
+  if (p[2] !== want[0]) return `${p[1]} SHA differs from the approved pin`;
+  if (!new RegExp(`^\\s+#\\s*${want[1].replace(/\./g, '\\.')}\\s*$`).test(rest)) return `${p[1]} needs the comment "# ${want[1]}"`;
+  return null;
+}
+test('B4: every workflow action is pinned to an approved full commit SHA with a version comment', () => {
+  const dir = path.join(ROOT, '.github/workflows'); let seen = 0;
+  for (const f of fs.readdirSync(dir).filter(f => /\.ya?ml$/.test(f))) {
+    for (const line of fs.readFileSync(path.join(dir, f), 'utf8').split('\n')) {
+      const m = line.match(/^\s*(?:-\s+)?uses:\s*(\S+)(.*)$/); if (!m) continue;
+      if (!m[1].startsWith('./')) seen++;
+      const why = pinProblem(m[1], m[2]); assert.equal(why, null, `${f}: ${why}`);
+    }
+  }
+  assert.equal(seen, 11, 'expected the 11 known third-party action references');
+  // the policy check rejects what it should
+  const sha = APPROVED_ACTION_PINS['actions/checkout'][0];
+  for (const [ref, rest] of [['actions/checkout@v4', ''], ['actions/checkout@main', ''], ['actions/checkout@11d5960', ' # v4.4.0'], [`evil/checkout@${sha}`, ' # v4.4.0'],
+    [`actions/checkout@${'0'.repeat(40)}`, ' # v4.4.0'], [`actions/checkout@${sha}`, ''], [`actions/checkout@${sha}`, ' # v4']])
+    assert.notEqual(pinProblem(ref, rest), null, `${ref}${rest} must be rejected`);
+  assert.equal(pinProblem(`actions/checkout@${sha}`, ' # v4.4.0'), null);
 });
 test('B4: a failing Desk validation is a non-zero exit (what blocks the gated deploy job)', () => {
   const repo = tmpRepo();

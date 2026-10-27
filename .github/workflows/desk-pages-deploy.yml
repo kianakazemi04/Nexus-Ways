@@ -2,7 +2,7 @@ name: Nexus Desk gated Pages deployment
 # Deploys the site ONLY after the Desk validation workflow (validator, page check, unit + lifecycle tests, real
 # Pages-builder check and browser checks) has passed for the same commit.
 #
-# IMPORTANT — inert until the owner changes one repository setting:
+# IMPORTANT — inert until the owner changes one repository setting (steps: desk/_tools/PAGES-DEPLOYMENT.md):
 #   Settings → Pages → Build and deployment → Source: "GitHub Actions".
 # While the source is "Deploy from a branch", GitHub's own pages-build-deployment keeps publishing every push to
 # main regardless of this workflow, so validation does NOT yet block deployment. See desk/_tools/README.md.
@@ -22,19 +22,19 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Build with the GitHub Pages builder
-        uses: actions/jekyll-build-pages@v1.0.13
+        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
         with:
           source: ./
           destination: ./_site
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Re-check the exact tree that will be deployed
         run: python3 desk/_tests/pages_check.py _site
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: ./_site
   deploy:
@@ -50,4 +50,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

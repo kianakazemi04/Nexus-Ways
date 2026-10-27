@@ -46,3 +46,5 @@ Field rules: `evidence_class` ∈ FACT, LEGAL FACT, ESTIMATE, PROJECTION, INTERP
   source to GitHub Actions; (2) additionally protect `main` with a ruleset requiring the `validate` and
   `pages-build-check` status checks and pull requests, with no bypass. The custom domain stays configured in the Pages
   settings when the source changes.
+  Exact owner steps, how to verify the setting, and the first-deployment check: `desk/_tools/PAGES-DEPLOYMENT.md`.
+  All workflow actions are pinned to full commit SHAs (policy enforced by `desk/_tests/p0.test.mjs`).
