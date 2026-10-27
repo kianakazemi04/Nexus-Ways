@@ -1,0 +1,147 @@
+{
+  "package_id": "FIX-PKG-B",
+  "received_at": "2026-10-22",
+  "category": "real_estate",
+  "market": {
+    "slug": "illustrative-market"
+  },
+  "provided_by_role": "Sales office (fictional)",
+  "sources": [
+    {
+      "key": "S2",
+      "name": "Illustrative Residence B developer media kit (fictional)",
+      "publisher": "Illustrative Residence B developer (fictional)",
+      "url": null,
+      "tier": 3,
+      "source_type": "DEVELOPER_MATERIAL",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      }
+    },
+    {
+      "key": "S3",
+      "name": "Illustrative Residence B listing page (fictional)",
+      "publisher": "Illustrative Listings (fictional)",
+      "url": null,
+      "tier": 4,
+      "source_type": "BROKER_LISTING",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      }
+    }
+  ],
+  "developer": {
+    "name": "Illustrative Developer B"
+  },
+  "project": {
+    "name": "Illustrative Residence B",
+    "asset_types": [
+      "APARTMENT"
+    ]
+  },
+  "opportunity": {
+    "title": {
+      "en": "Illustrative Residence B (illustrative, incomplete)"
+    }
+  },
+  "facts": [
+    {
+      "key": "F-NAME",
+      "subject": "project",
+      "field": "name",
+      "value": "Illustrative Residence B",
+      "unit": "text",
+      "claim": {
+        "en": "Name as shown in the media kit."
+      },
+      "source": "S2",
+      "evidence_class": "FACT",
+      "verification_status": "DEVELOPER-CLAIM",
+      "geography": "Illustrative Market",
+      "period": null
+    },
+    {
+      "key": "F-STATUS",
+      "subject": "project",
+      "field": "delivery_status",
+      "value": "OFF_PLAN",
+      "unit": "text",
+      "claim": {
+        "en": "Listing describes the project as off-plan."
+      },
+      "source": "S3",
+      "evidence_class": "FACT",
+      "verification_status": "UNVERIFIED",
+      "geography": "Illustrative Market",
+      "period": "2026-10"
+    },
+    {
+      "key": "F-OLD",
+      "subject": "project",
+      "field": null,
+      "value": null,
+      "unit": null,
+      "claim": {
+        "en": "Old brochure statement about the site."
+      },
+      "source": "S2",
+      "evidence_class": "OPINION",
+      "verification_status": "DEVELOPER-CLAIM",
+      "geography": "Illustrative Market",
+      "period": "2024",
+      "retrieved_at": "2024-05-01"
+    }
+  ],
+  "unknowns": [
+    {
+      "subject": "developer",
+      "field": "legal_entity_name",
+      "state": "PROFESSIONAL DD REQUIRED",
+      "note": "Registry check not yet performed."
+    },
+    {
+      "subject": "project",
+      "field": "district_id",
+      "state": "ACCESSIBLE BUT NOT YET COLLECTED",
+      "note": "Address not yet confirmed."
+    }
+  ],
+  "research_blocks": [
+    {
+      "subject": "project",
+      "domain": "PROJECT_ASSET",
+      "research_closure": "NO",
+      "data_completeness": "NO"
+    }
+  ],
+  "media": [
+    {
+      "file": "raw/cover.jpg",
+      "source": "S2",
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "role": "cover",
+      "caption": {
+        "en": "Exterior — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled illustrative exterior rendering"
+      },
+      "permission": {
+        "status": "GRANTED_VERBAL",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": null,
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      }
+    }
+  ]
+}

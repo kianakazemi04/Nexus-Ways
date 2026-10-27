@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.1",
+  "collection": "markets",
+  "records": [
+    {
+      "id": "FIX-MKT-ILL",
+      "slug": "illustrative-market",
+      "name": "Illustrative Market",
+      "country": "ZZ",
+      "currency": "XXX",
+      "category": "real_estate",
+      "activation": "ACTIVE",
+      "record_status": "PUBLISHED",
+      "summary": {
+        "en": "Fictional market used only for local fixtures. Not a real place."
+      },
+      "research_block_ids": [],
+      "evidence_ids": [],
+      "field_states": [],
+      "last_reviewed": "2026-10-21",
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-21",
+        "gate_version": "G3-v1"
+      }
+    }
+  ]
+}

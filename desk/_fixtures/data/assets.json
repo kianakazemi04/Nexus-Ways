@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.1",
+  "collection": "assets",
+  "records": [
+    {
+      "id": "FIX-AST-ILL-ILLUSTRATIVE-RESIDENCE-A-A1",
+      "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+      "unit_type": "2+1",
+      "unit_ref": null,
+      "gross_area_m2": 110,
+      "net_area_m2": 82,
+      "delivery_status": "UNDER_CONSTRUCTION",
+      "evidence_ids": [
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0005",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0006",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0007",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0008"
+      ],
+      "field_states": [],
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-AST-ILL-ILLUSTRATIVE-RESIDENCE-C-A1",
+      "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+      "unit_type": "2+1",
+      "unit_ref": null,
+      "gross_area_m2": 110,
+      "net_area_m2": 82,
+      "delivery_status": "UNDER_CONSTRUCTION",
+      "evidence_ids": [
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0005",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0006",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0007",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0008"
+      ],
+      "field_states": [],
+      "is_illustrative": true
+    }
+  ]
+}

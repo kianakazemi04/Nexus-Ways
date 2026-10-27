@@ -1,0 +1,32 @@
+[
+  {
+    "package_id": "FIX-PKG-A",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "domain": "PRICING",
+    "key": "F-PRICE",
+    "subject": "asset:A1",
+    "field": "price_list",
+    "value": 1,
+    "currency": "TRY",
+    "claim": {
+      "en": "Fictional price-list line — must stay private."
+    },
+    "source": "S2",
+    "received_at": "2026-10-21"
+  },
+  {
+    "package_id": "FIX-PKG-C",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "domain": "PRICING",
+    "key": "F-PRICE",
+    "subject": "asset:A1",
+    "field": "price_list",
+    "value": 1,
+    "currency": "TRY",
+    "claim": {
+      "en": "Fictional price-list line — must stay private."
+    },
+    "source": "S2",
+    "received_at": "2026-10-21"
+  }
+]

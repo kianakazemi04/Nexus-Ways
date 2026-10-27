@@ -15,5 +15,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Pillow (media derivatives in lifecycle tests)
+        run: pip install pillow==11.0.0
       - name: Validate Desk data, fixtures, media, method registry and parent-site manifest
         run: node desk/_tools/validate.mjs
+      - name: Run Desk test suite (unit rules + full ingestion lifecycle)
+        run: node --test desk/_tests/desk.test.mjs

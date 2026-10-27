@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+<rect width="1200" height="800" fill="#f4f4f5"/><g fill="none" stroke="#3a3b40" stroke-width="6">
+<rect x="120" y="140" width="960" height="560"/><path d="M520 140v300M520 520v180M120 440h400M760 140v560M760 420h320"/></g>
+<g font-family="DejaVu Sans,Arial,sans-serif" fill="#3a3b40"><text x="120" y="80" font-size="34" font-weight="700">ILLUSTRATIVE PLACEHOLDER · INDICATIVE FLOOR PLAN</text>
+<text x="120" y="118" font-size="22" fill="#cc0000">NOT A REAL PROJECT · NOT REAL MARKET DATA</text>
+<text x="300" y="300" font-size="26">Room</text><text x="610" y="300" font-size="26">Room</text><text x="880" y="300" font-size="26">Room</text>
+<text x="120" y="760" font-size="22">Illustrative Residence C · 2+1 · fictional</text></g></svg>

@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.1",
+  "collection": "sources",
+  "records": [
+    {
+      "id": "FIX-SRC-PKG-A-S1",
+      "name": "Illustrative Residence A title-registry extract (fictional)",
+      "publisher": "Illustrative Registry (fictional)",
+      "url": null,
+      "tier": 1,
+      "source_type": "REGISTRY",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-A-S2",
+      "name": "Illustrative Residence A developer media kit (fictional)",
+      "publisher": "Illustrative Residence A developer (fictional)",
+      "url": null,
+      "tier": 3,
+      "source_type": "DEVELOPER_MATERIAL",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-A-S3",
+      "name": "Illustrative Residence A listing page (fictional)",
+      "publisher": "Illustrative Listings (fictional)",
+      "url": null,
+      "tier": 4,
+      "source_type": "BROKER_LISTING",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-A2-S4",
+      "name": "Illustrative news report (fictional)",
+      "publisher": "Illustrative News (fictional)",
+      "url": null,
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-26",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-B-S2",
+      "name": "Illustrative Residence B developer media kit (fictional)",
+      "publisher": "Illustrative Residence B developer (fictional)",
+      "url": null,
+      "tier": 3,
+      "source_type": "DEVELOPER_MATERIAL",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-B-S3",
+      "name": "Illustrative Residence B listing page (fictional)",
+      "publisher": "Illustrative Listings (fictional)",
+      "url": null,
+      "tier": 4,
+      "source_type": "BROKER_LISTING",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-C-S1",
+      "name": "Illustrative Residence C title-registry extract (fictional)",
+      "publisher": "Illustrative Registry (fictional)",
+      "url": null,
+      "tier": 1,
+      "source_type": "REGISTRY",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-C-S2",
+      "name": "Illustrative Residence C developer media kit (fictional)",
+      "publisher": "Illustrative Residence C developer (fictional)",
+      "url": null,
+      "tier": 3,
+      "source_type": "DEVELOPER_MATERIAL",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-SRC-PKG-C-S3",
+      "name": "Illustrative Residence C listing page (fictional)",
+      "publisher": "Illustrative Listings (fictional)",
+      "url": null,
+      "tier": 4,
+      "source_type": "BROKER_LISTING",
+      "accessed_at": "2026-10-20",
+      "notes": {
+        "en": "Fictional fixture source for testing only."
+      },
+      "is_illustrative": true
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.1",
+  "collection": "developers",
+  "records": [
+    {
+      "id": "FIX-DEV-ILLUSTRATIVE-DEVELOPER-A",
+      "name": "Illustrative Developer A",
+      "legal_entity_name": "Illustrative Developer A Ltd (fictional)",
+      "verification_status": "VERIFIED",
+      "record_status": "PUBLISHED",
+      "summary": {
+        "en": "Fictional developer used for testing."
+      },
+      "evidence_ids": [
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0002"
+      ],
+      "field_states": [],
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-DEV-ILLUSTRATIVE-DEVELOPER-B",
+      "name": "Illustrative Developer B",
+      "legal_entity_name": null,
+      "verification_status": "UNVERIFIED",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "summary": null,
+      "evidence_ids": [],
+      "field_states": [
+        {
+          "field": "legal_entity_name",
+          "state": "PROFESSIONAL DD REQUIRED",
+          "note": {
+            "en": "Registry check not yet performed."
+          }
+        }
+      ],
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-DEV-ILLUSTRATIVE-DEVELOPER-C",
+      "name": "Illustrative Developer C",
+      "legal_entity_name": "Illustrative Developer C Ltd (fictional)",
+      "verification_status": "VERIFIED",
+      "record_status": "PUBLISHED",
+      "summary": {
+        "en": "Fictional developer used for testing."
+      },
+      "evidence_ids": [
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0002"
+      ],
+      "field_states": [],
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    }
+  ]
+}

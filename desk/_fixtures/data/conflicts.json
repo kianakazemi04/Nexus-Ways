@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.1",
+  "collection": "conflicts",
+  "records": [
+    {
+      "id": "FIX-CNF-ILL-ILLUSTRATIVE-RESIDENCE-A-01",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "field": "expected_delivery",
+      "evidence_ids": [
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0004",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0010"
+      ],
+      "status": "OPEN",
+      "description": {
+        "en": "Sources disagree on expected_delivery: recorded value \"2028-06\" vs \"2029-03\"."
+      },
+      "note": null,
+      "is_illustrative": true
+    }
+  ]
+}

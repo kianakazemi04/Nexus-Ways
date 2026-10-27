@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.1",
+  "collection": "opportunities",
+  "records": [
+    {
+      "id": "FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-A",
+      "category": "real_estate",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "market_id": "FIX-MKT-ILL",
+      "asset_id": "FIX-AST-ILL-ILLUSTRATIVE-RESIDENCE-A-A1",
+      "title": {
+        "en": "Illustrative Residence A — 2+1 apartments (illustrative)"
+      },
+      "summary": {
+        "en": "Illustrative opportunity record. Not a real project and not real market data."
+      },
+      "investor_objective_tags": [
+        "long_term_hold"
+      ],
+      "record_status": "WITHHELD",
+      "disclosure_ids": [
+        "FIX-DSC-ILL-ILLUSTRATIVE-RESIDENCE-A-01"
+      ],
+      "evidence_ids": [],
+      "risk_ids": [],
+      "field_states": [],
+      "last_verified": "2026-10-27",
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-B",
+      "category": "real_estate",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B"
+      },
+      "market_id": "FIX-MKT-ILL",
+      "asset_id": null,
+      "title": {
+        "en": "Illustrative Residence B (illustrative, incomplete)"
+      },
+      "summary": null,
+      "investor_objective_tags": [],
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "disclosure_ids": [],
+      "evidence_ids": [],
+      "risk_ids": [],
+      "field_states": [],
+      "last_verified": null,
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-C",
+      "category": "real_estate",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "market_id": "FIX-MKT-ILL",
+      "asset_id": "FIX-AST-ILL-ILLUSTRATIVE-RESIDENCE-C-A1",
+      "title": {
+        "en": "Illustrative Residence C — 2+1 apartments (illustrative)"
+      },
+      "summary": {
+        "en": "Illustrative opportunity record. Not a real project and not real market data."
+      },
+      "investor_objective_tags": [
+        "long_term_hold"
+      ],
+      "record_status": "PUBLISHED",
+      "disclosure_ids": [
+        "FIX-DSC-ILL-ILLUSTRATIVE-RESIDENCE-C-01"
+      ],
+      "evidence_ids": [],
+      "risk_ids": [],
+      "field_states": [],
+      "last_verified": "2026-10-27",
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    }
+  ]
+}

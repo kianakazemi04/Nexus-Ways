@@ -1,0 +1,67 @@
+{
+  "dd0111b0eef2faef72e116f1fddfc9fd8a68d04ae3a84f673216db1cbb03658d": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-001",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/exterior.jpg"
+  },
+  "bacb202dd730d18b7a683101e787318c5cfda65e0bab6fd70e20de65eeb27d67": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-002",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/interior.png"
+  },
+  "0c92f72232c8e8d8a78572801712419e2e448d30aae2c26ff7ff634ec538cd5f": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-003",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/amenity.jpg"
+  },
+  "298229f32be864ec654cf756ce6a8a24e7b6d7711b5e611486275b830f564d52": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-004",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/plan-2plus1.svg"
+  },
+  "f7b80615fa9e1c71667b326db82025fc12e31597aea0512d4f40674471d1483f": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-005",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/progress.jpg"
+  },
+  "f4a21d4da200be0d9fda93e0be636efad5fd2887242a630391dcdb3ced06daea": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-006",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "file": "raw/siteplan.png"
+  },
+  "7fb1f25c47028e445aaeeb7296484fef4d9a29d399c61eccd4ae136511a9360c": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-001",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/exterior.jpg"
+  },
+  "51ce465b39cad5384dc0d1d99b06b5e03a274d5df4188abac6d565874d6370d5": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-002",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/interior.png"
+  },
+  "2c1f9fd564c24094fe5bb46bd1f5f09840144875708553b6c02fd7481d9a9c0c": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-003",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/amenity.jpg"
+  },
+  "185dd40ced30323c97131b757c74434785a23fe82c0f0bae264791093453602d": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-004",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/plan-2plus1.svg"
+  },
+  "c3660b6323f2f143b1aedc33fcb0a2a0528cf6ec6a3625d0660f63fec85917af": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-005",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/progress.jpg"
+  },
+  "d5aa9ed066eb2701b4e6b5cd8ccaa037c04362021dec30423a93acf28a4f672a": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-006",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "file": "raw/siteplan.png"
+  },
+  "ee76e6ffdf2a863d1ab00c5f588b566f5e3a441df1d863d799aa88778ca4014c": {
+    "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-B-001",
+    "subject": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B",
+    "file": "raw/cover.jpg"
+  }
+}

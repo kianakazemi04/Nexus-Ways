@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.1",
+  "collection": "research_blocks",
+  "records": [
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A-DEVELOPER",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "domain": "DEVELOPER",
+      "research_closure": "YES",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": null,
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A-PROJECT-ASSET",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "domain": "PROJECT_ASSET",
+      "research_closure": "YES",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": {
+        "en": "Identity verified; unit facts are developer claims."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A-RISK",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "domain": "RISK",
+      "research_closure": "CONDITIONAL",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": null,
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B-PROJECT-ASSET",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B"
+      },
+      "domain": "PROJECT_ASSET",
+      "research_closure": "NO",
+      "data_completeness": "NO",
+      "last_reviewed": "2026-10-22",
+      "next_review_trigger": null,
+      "note": null,
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C-DEVELOPER",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "domain": "DEVELOPER",
+      "research_closure": "YES",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": null,
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C-PROJECT-ASSET",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "domain": "PROJECT_ASSET",
+      "research_closure": "YES",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": {
+        "en": "Identity verified; unit facts are developer claims."
+      },
+      "is_illustrative": true
+    },
+    {
+      "id": "FIX-RB-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C-RISK",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "domain": "RISK",
+      "research_closure": "CONDITIONAL",
+      "data_completeness": "PARTIAL",
+      "last_reviewed": "2026-10-21",
+      "next_review_trigger": null,
+      "note": null,
+      "is_illustrative": true
+    }
+  ]
+}

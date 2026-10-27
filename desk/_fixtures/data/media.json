@@ -1,0 +1,632 @@
+{
+  "schema_version": "1.1",
+  "collection": "media",
+  "records": [
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-001",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "caption": {
+        "en": "Exterior — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative exterior rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": true,
+        "text": "© Illustrative Developer A (fictional)"
+      },
+      "role": "cover",
+      "order": 0,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-001.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "83d8bb6ae56d7e4fd617c3a579748908dd812f5f70b6a7e7d1f7e385d98a6b8b"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-002",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "RENDERING",
+      "content_category": "interior",
+      "caption": {
+        "en": "Living room — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative interior rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 1,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-002.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "4993a02ab0c7acda8a7b87c28ea01c94a71bd2bb7def5b9bc3443b7e78c9a1ae"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-003",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "RENDERING",
+      "content_category": "amenity",
+      "caption": {
+        "en": "Amenity area — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative amenity rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 2,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-003.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "5275a1261990ca500f5c20400bae28957734fd8e8810dc398bdad7a6139277e5"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-004",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "FLOOR_PLAN",
+      "content_category": "plan",
+      "caption": {
+        "en": "2+1 — indicative floor plan (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Simple illustrative floor plan with three rooms"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 3,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-004.svg",
+        "width": 1200,
+        "height": 800,
+        "sha256": "298229f32be864ec654cf756ce6a8a24e7b6d7711b5e611486275b830f564d52"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-005",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "CONSTRUCTION_PROGRESS",
+      "content_category": "progress",
+      "caption": {
+        "en": "Construction progress — photo (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled construction progress photo"
+      },
+      "depicted_date": "2026-09",
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_VERBAL",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": null,
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 4,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-005.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "be608848c7e8b5dfb2ffa778bffd3a29be3ea8f2c88bd4abbd917be59daedb6a"
+      },
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-006",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
+      },
+      "media_type": "SITE_PLAN",
+      "content_category": "plan",
+      "caption": {
+        "en": "Site plan (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled site plan"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-A-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "RESTRICTED",
+        "scope": [],
+        "evidence_ref": "PRIV-PERM-FIX-2",
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 5,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-A-006.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "b2345af7cc20f2c6b9e8d92940c3b55a69c94e7b2b0aab2803e69bb3e76d2bc8"
+      },
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-B-001",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B"
+      },
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "caption": {
+        "en": "Exterior — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled illustrative exterior rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-B-S2",
+        "provided_by_role": "Sales office (fictional)",
+        "received_at": "2026-10-22",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_VERBAL",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": null,
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "cover",
+      "order": 0,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-B/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-B-001.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "4e2c96833f757dd77dc43e291f10d169d1692acac9caf5aab490eec09d271931"
+      },
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-001",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "RENDERING",
+      "content_category": "exterior",
+      "caption": {
+        "en": "Exterior — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative exterior rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": true,
+        "text": "© Illustrative Developer C (fictional)"
+      },
+      "role": "cover",
+      "order": 0,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-001.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "88c4db15981a9c775410118a045d4dcf1cf99e8c2c7d0fa26e170e4211f2d66d"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-002",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "RENDERING",
+      "content_category": "interior",
+      "caption": {
+        "en": "Living room — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative interior rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 1,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-002.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "4ea1861f7ba7cff2c23f7bd10b4c335123d7fcc66a2a0f6fb7d5755bfc942641"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-003",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "RENDERING",
+      "content_category": "amenity",
+      "caption": {
+        "en": "Amenity area — architectural rendering (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Grey placeholder labelled illustrative amenity rendering"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 2,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-003.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "d432a276701c147ce0ee903841619f78479f8a3c2f4ae3b97ff7062903ddab09"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-004",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "FLOOR_PLAN",
+      "content_category": "plan",
+      "caption": {
+        "en": "2+1 — indicative floor plan (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Simple illustrative floor plan with three rooms"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_WRITTEN",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": "PRIV-PERM-FIX-1",
+        "granted_at": "2026-10-21",
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 3,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-004.svg",
+        "width": 1200,
+        "height": 800,
+        "sha256": "185dd40ced30323c97131b757c74434785a23fe82c0f0bae264791093453602d"
+      },
+      "is_illustrative": true,
+      "review": {
+        "approved_by": "owner",
+        "approved_at": "2026-10-27",
+        "gate_version": "G3-v1"
+      }
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-005",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "CONSTRUCTION_PROGRESS",
+      "content_category": "progress",
+      "caption": {
+        "en": "Construction progress — photo (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled construction progress photo"
+      },
+      "depicted_date": "2026-09",
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "GRANTED_VERBAL",
+        "scope": [
+          "desk_web"
+        ],
+        "evidence_ref": null,
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 4,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-005.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "8d1735574b513fac9f28a6febe90fc63ccbb029c3c041dbd8cb1ea87b35ec999"
+      },
+      "is_illustrative": true,
+      "review": null
+    },
+    {
+      "id": "FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-006",
+      "subject": {
+        "type": "project",
+        "id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C"
+      },
+      "media_type": "SITE_PLAN",
+      "content_category": "plan",
+      "caption": {
+        "en": "Site plan (illustrative placeholder)"
+      },
+      "alt": {
+        "en": "Placeholder labelled site plan"
+      },
+      "depicted_date": null,
+      "provenance": {
+        "source_id": "FIX-SRC-PKG-C-S2",
+        "provided_by_role": "Sales manager (fictional)",
+        "received_at": "2026-10-21",
+        "media_kit_ref": null
+      },
+      "verification_status": "DEVELOPER-CLAIM",
+      "permission": {
+        "status": "RESTRICTED",
+        "scope": [],
+        "evidence_ref": "PRIV-PERM-FIX-2",
+        "granted_at": null,
+        "expires_at": null
+      },
+      "attribution": {
+        "required": false,
+        "text": null
+      },
+      "role": "gallery",
+      "order": 5,
+      "file": {
+        "public_path": "desk/_fixtures/media/FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C/FIX-MED-ILL-ILLUSTRATIVE-RESIDENCE-C-006.webp",
+        "width": 1600,
+        "height": 1000,
+        "sha256": "86e4473b09123c58e66d9edb0e09eb58f622d78f401ddb6d55adcfe5c1608595"
+      },
+      "is_illustrative": true,
+      "review": null
+    }
+  ]
+}

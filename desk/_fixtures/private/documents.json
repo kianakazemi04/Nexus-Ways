@@ -1,0 +1,34 @@
+[
+  {
+    "package_id": "FIX-PKG-A",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "key": "D1",
+    "title": "Brochure (fictional)",
+    "kind": "brochure",
+    "confidential": false
+  },
+  {
+    "package_id": "FIX-PKG-A",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A",
+    "key": "D2",
+    "title": "Price list (fictional)",
+    "kind": "price_list",
+    "confidential": true
+  },
+  {
+    "package_id": "FIX-PKG-C",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "key": "D1",
+    "title": "Brochure (fictional)",
+    "kind": "brochure",
+    "confidential": false
+  },
+  {
+    "package_id": "FIX-PKG-C",
+    "project_id": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-C",
+    "key": "D2",
+    "title": "Price list (fictional)",
+    "kind": "price_list",
+    "confidential": true
+  }
+]
