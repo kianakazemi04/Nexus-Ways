@@ -17,6 +17,7 @@ Nexus Ways Group works with a limited number of clients and delivers advisory wo
 - [Content](https://nexus-ways.com/solutions/digital-engine/content/): Editorial content and social media across LinkedIn, Instagram and YouTube, built on a brand tone guide and a value-first content mix.
 - [AI Infrastructure](https://nexus-ways.com/solutions/digital-engine/ai-infrastructure/): CRM implementation, workflow and lead automation, and AI-assisted content and reporting with human review.
 - [Investment Arm](https://nexus-ways.com/solutions/investment-arm/): Investor deal flow, startup and business screening, commercial and strategic due diligence, investor matching and introductions, and deal structuring support for angels, family offices, VC funds and corporate investors.
+- [Nexus Desk](https://nexus-ways.com/#desk): Investment intelligence product from the Investment Arm for discovering, evaluating and comparing opportunities, starting with real estate in Istanbul, Dubai and Abu Dhabi. Research and analysis only, not investment advice.
 
 ## Company
 
