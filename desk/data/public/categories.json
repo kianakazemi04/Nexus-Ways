@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.1",
+  "collection": "categories",
+  "records": [
+    {
+      "id": "CAT-RE",
+      "key": "real_estate",
+      "slug": "real-estate",
+      "name": {
+        "en": "Real Estate"
+      },
+      "activation": "ACTIVE",
+      "description": {
+        "en": "Residential real estate. Istanbul is the first market under research."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "CAT-SPC",
+      "key": "startup_private",
+      "slug": "startups-private-companies",
+      "name": {
+        "en": "Startups & Private Companies"
+      },
+      "activation": "INACTIVE",
+      "description": {
+        "en": "Future category. Not yet operational."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "CAT-FRA",
+      "key": "franchise",
+      "slug": "franchise",
+      "name": {
+        "en": "Franchise Opportunities"
+      },
+      "activation": "INACTIVE",
+      "description": {
+        "en": "Future category. Not yet operational."
+      },
+      "is_illustrative": false
+    }
+  ]
+}

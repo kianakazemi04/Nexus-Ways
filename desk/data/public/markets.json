@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.1",
+  "collection": "markets",
+  "records": [
+    {
+      "id": "MKT-IST",
+      "slug": "istanbul",
+      "name": "Istanbul",
+      "country": "TR",
+      "currency": "TRY",
+      "activation": "INACTIVE",
+      "summary": {
+        "en": "Initial market. Research in progress; no market claims are published until verified."
+      },
+      "category": "real_estate",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [],
+      "evidence_ids": [],
+      "field_states": [],
+      "last_reviewed": null,
+      "is_illustrative": false,
+      "review": null
+    },
+    {
+      "id": "MKT-DXB",
+      "slug": "dubai",
+      "name": "Dubai",
+      "country": "AE",
+      "currency": "AED",
+      "activation": "INACTIVE",
+      "summary": {
+        "en": "Anticipated market. Inactive until its separate evidence gate passes."
+      },
+      "category": "real_estate",
+      "record_status": "DRAFT",
+      "research_block_ids": [],
+      "evidence_ids": [],
+      "field_states": [],
+      "last_reviewed": null,
+      "is_illustrative": false,
+      "review": null
+    },
+    {
+      "id": "MKT-AUH",
+      "slug": "abu-dhabi",
+      "name": "Abu Dhabi",
+      "country": "AE",
+      "currency": "AED",
+      "activation": "INACTIVE",
+      "summary": {
+        "en": "Anticipated market. Inactive until its separate evidence gate passes."
+      },
+      "category": "real_estate",
+      "record_status": "DRAFT",
+      "research_block_ids": [],
+      "evidence_ids": [],
+      "field_states": [],
+      "last_reviewed": null,
+      "is_illustrative": false,
+      "review": null
+    }
+  ]
+}

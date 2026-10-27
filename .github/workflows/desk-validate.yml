@@ -1,0 +1,19 @@
+name: Nexus Desk validation
+# Runs the Desk data validator and test suite. Free on public repositories.
+# Validation does not deploy anything; GitHub Pages deployment from main is unchanged.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate Desk data, fixtures, media, method registry and parent-site manifest
+        run: node desk/_tools/validate.mjs
