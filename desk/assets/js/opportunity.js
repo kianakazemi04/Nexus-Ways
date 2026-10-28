@@ -73,6 +73,7 @@ ${ctxEv.length ? `<div style="margin-top:22px">${ctxEv.map((e, i) => `<div class
 
 <section class="sec" aria-labelledby="d-t"><div class="sh"><div><span class="lab">${esc(t('dscLab'))}</span><h2 id="d-t">${esc(t('dscH'))}</h2></div></div>
 ${dsc.length ? dsc.map(d => `<div class="dsc" style="margin-bottom:14px"><span class="lab">${lab('disclosure', d.kind)}${d.legal_review !== 'APPROVED' ? esc(t('pendingLegal')) : ''}</span><p style="margin-top:6px">${tx(d.text)}</p></div>`).join('') : `<p class="mut">${esc(t('noDsc'))}</p>`}
+${o.advertising_permit ? `<p class="mut" data-ad-permit style="margin-top:14px">${esc(t('adPermit'))}: <span dir="ltr">${esc(o.advertising_permit)}</span></p>` : ''}
 <p class="gnote" style="margin-top:18px">${esc(t('adviceNote'))} <a href="${D.withFixtureFlag('/desk/disclosures/')}" style="text-decoration:underline">${esc(t('dscLink'))}</a>.</p>
 <div class="op-cta"><a class="btn" href="${esc(consult)}">${esc(t('reqConsultThis'))} <i>→</i></a><a class="btn o" href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener">${esc(t('oppCall'))} <i>↗</i></a></div></section>`;
 

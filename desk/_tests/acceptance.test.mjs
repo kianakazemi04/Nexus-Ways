@@ -98,14 +98,11 @@ describe('acceptance: one synthetic project through the whole pipeline', () => {
   });
 });
 
-test('A4 — missing statutory records (each market) and a missing sales-office permission block publication', () => {
+test('A4 — no statutory record is needed for a market (owner decision 28 Oct 2026); a missing sales-office permission still blocks publication', () => {
   for (const id of MARKETS) {
     const d = gateDataset(CFG, id, TODAY);
-    assert.equal(evaluateMarketGate(CFG, id, d.collections, { today: TODAY, reviews: d.reviews, provenance: d.provenance }).pass, true, `${id}: complete synthetic dataset passes`);
     const g = evaluateMarketGate(CFG, id, d.collections, { today: TODAY, reviews: [], provenance: d.provenance });
-    assert.equal(g.pass, false); assert.ok(g.reasons.some(r => r.code === 'MG_REVIEW_MISSING'), `${id}: no statutory record → fails`);
-    const other = MARKETS.find(x => x !== id); const foreign = gateDataset(CFG, other, TODAY).reviews;
-    assert.equal(evaluateMarketGate(CFG, id, d.collections, { today: TODAY, reviews: foreign, provenance: d.provenance }).pass, false, `${id}: another market's reviews never count`);
+    assert.equal(g.pass, true, `${id}: a complete dataset passes without any legal-review record`); assert.deepEqual(g.reviews, []);
   }
   const s = realSetup({ mutate: (i) => { i.permissions = []; } });
   try {

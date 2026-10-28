@@ -68,7 +68,7 @@ const PRICE_PATTERNS = [
   ['price word and amount', new RegExp(String.raw`${PRICEWORD}\W{0,3}(?:\S+\s){0,3}?(?:\d{1,3}(?:[.,   ]\d{3})+|\d+(?:[.,]\d+)?\s?(?:k|K|m|M|mn|mln|bn|million|billion|thousand|milyon|milyar|bin)\b)`, 'iu')]
 ];
 // paths whose strings are identifiers, links or hashes rather than prose (they are checked by other rules)
-const NON_PROSE_PATH = /(\.(id|slug|sha256|public_path|source_url|url|evidence_ref|geo_code|series_id|base_period|period|retrieved_at|published_at|last_verified|accessed_at|approved_at|expires_at|depicted_date|expected_delivery|field|state|status|kind|type|role|unit|currency|area_basis|activation|record_status|category|key|legal_review|verification_status|evidence_class|tier|source_type|domain|topic|scope|media_type|content_category|risk_type|horizon|controllability|severity|probability|admin_level|delivery_status|research_closure|data_completeness|gate_version|approved_by|country)|_id|_ids\[\d+\]|_types?\[\d+\]|scope\[\d+\])$/;
+const NON_PROSE_PATH = /(\.(id|slug|sha256|public_path|source_url|url|evidence_ref|geo_code|series_id|base_period|period|retrieved_at|published_at|last_verified|accessed_at|approved_at|expires_at|depicted_date|expected_delivery|field|state|status|kind|type|role|unit|currency|area_basis|activation|record_status|category|key|legal_review|verification_status|evidence_class|tier|source_type|domain|topic|scope|media_type|content_category|risk_type|horizon|controllability|severity|probability|admin_level|delivery_status|research_closure|data_completeness|gate_version|approved_by|country|advertising_permit)|_id|_ids\[\d+\]|_types?\[\d+\]|scope\[\d+\])$/;
 export function commercialTextHits(text) {
   if (typeof text !== 'string' || !text) return [];
   const hits = [];

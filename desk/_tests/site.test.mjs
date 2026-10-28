@@ -115,3 +115,18 @@ test('diagram labels are translated on TR/AR pages; the label list has no stale 
   for (const rel of PAGES) assert.match(read(`ar/${rel}`), /svg text\{letter-spacing:0!important;font-family:'IBM Plex Sans Arabic'/, `ar/${rel}`);
   assert.match(read('index.html'), /\.ic\{direction:ltr;unicode-bidi:isolate\}/, 'home diagrams keep their left-to-right geometry under RTL');
 });
+
+test('legal: Privacy Notice (KVKK) and Terms of Use exist in EN/TR/AR; every company and Desk page links them with the footer disclaimer', () => {
+  for (const [p, must] of [['privacy/', /KVKK/], ['terms/', /Türkiye|Turkish|Türkiye Cumhuriyeti/]]) for (const l of L) {
+    const h = read(`${l === 'en' ? '' : l + '/'}${p}index.html`);
+    assert.match(h, must, `${l} ${p}`); assert.match(h, /info@nexus-ways\.com/, `${l} ${p} contact`);
+    assert.doesNotMatch(h, /<form /, `${l} ${p}: no form on a legal page`);
+  }
+  assert.match(read('privacy/index.html'), /Article 11 of KVKK/); assert.match(read('tr/privacy/index.html'), /KVKK'nın 11\. maddesi/);
+  for (const rel of PAGES) for (const l of L) {
+    const h = read(l === 'en' ? rel : `${l}/${rel}`); const pre = l === 'en' ? '' : `/${l}`;
+    assert.ok(h.includes(`href="${pre}/privacy/"`) && h.includes(`href="${pre}/terms/"`), `${l}:${rel} footer links`);
+    assert.match(h, /data-i="ft\.dis"/, `${l}:${rel} footer disclaimer`);
+  }
+  for (const l of ['', 'tr/', 'ar/']) { const h = read(`desk/${l}markets/index.html`); const pre = l ? '/' + l.slice(0, 2) : ''; assert.ok(h.includes(`href="${pre}/privacy/"`) && h.includes(`href="${pre}/terms/"`), `desk ${l}`); }
+});

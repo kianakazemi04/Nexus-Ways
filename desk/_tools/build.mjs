@@ -17,7 +17,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESK = path.resolve(HERE, '..');
 const read = (p) => JSON.parse(fs.readFileSync(path.join(DESK, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ASSET_V = '7';
+const ASSET_V = '8';
 
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
@@ -101,7 +101,7 @@ ${body}
 <div><a class="br" href="${u('/desk/')}" aria-label="${esc(t('home'))}"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">${esc(t('by'))}</span></span></a><p>${esc(t('notAdvice'))}</p></div>
 <div><h4 translate="no">Desk</h4><nav aria-label="Desk"><a href="${u('/desk/')}">${esc(t('explore'))}</a><a href="${u('/desk/markets/')}">${esc(t('markets'))}</a><a href="${u('/desk/intelligence/')}">${esc(t('intel'))}</a><a href="${u('/desk/consultation/')}">${esc(t('consult'))}</a><a href="${u('/desk/disclosures/')}">${esc(t('disclosures'))}</a></nav></div>
 <div><h4>${esc(t('ft.contact'))}</h4><nav aria-label="${esc(t('ft.contact'))}"><a href="mailto:${DESK_CONTACT.email}" dir="ltr" translate="no">${DESK_CONTACT.email}</a><a href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener">${esc(t('ft.call'))} ↗</a><a href="${u('/desk/consultation/')}">${esc(t('ft.form'))}</a></nav></div>
-<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="${co('/')}" translate="no">nexus-ways.com</a><a href="${co('/solutions/investment-arm/')}">${esc(t('footIA'))}</a><a href="${co('/about/')}">${esc(t('footAbout'))}</a></nav></div>
+<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="${co('/')}" translate="no">nexus-ways.com</a><a href="${co('/solutions/investment-arm/')}">${esc(t('footIA'))}</a><a href="${co('/about/')}">${esc(t('footAbout'))}</a><a href="${co('/privacy/')}">${esc(t('footPv'))}</a><a href="${co('/terms/')}">${esc(t('footTm'))}</a></nav></div>
 </div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>${esc(t('footCp'))}</span></div></div></footer>
 <script type="module" src="/desk/assets/js/${script || 'core'}.js?v=${ASSET_V}"></script>
 <noscript><style>.rv{opacity:1;transform:none}</style></noscript>

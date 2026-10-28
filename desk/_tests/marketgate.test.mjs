@@ -27,14 +27,29 @@ const failsWith = (g, code, item = null) => {
 };
 const ev = (d, key) => d.collections.evidence.find(e => e.topic === key);
 const blk = (d, domain) => d.collections.research_blocks.find(b => b.subject.type === 'market' && b.domain === domain);
+// MG-1 has no legal-review topics (owner decision, 28 Oct 2026: the owner handles authorisation directly). The review and
+// waiver mechanism stays in the engine; it is tested with this TEST-ONLY configuration: one review topic per market, and a
+// waivable per-opportunity permit for Dubai and Abu Dhabi.
+const withReviews = (cfg) => {
+  const c = clone(cfg);
+  for (const [id, m] of Object.entries(c.markets)) {
+    const p = id.slice(4); const roles = m.regulatory_review.reviewer_roles;
+    m.regulatory_review.topics = [{ key: `${p}-TEST-REVIEW`, question: 'TEST-ONLY review topic', restriction: 'TEST-ONLY', owner_record: 'TEST-ONLY', accepted_roles: ['OWNER_OFFICIAL_REFERENCE', ...roles] }];
+    if (id !== 'MKT-IST') m.publication.opportunity_requirements.push({ key: `${p}-TEST-PERMIT`, name: 'TEST-ONLY permit', why: 'TEST-ONLY', subject: 'project', claim_status: 'ESTABLISHED', accepted_sources: { source_types: ['REGISTRY', 'REGULATOR'], max_tier: 1, publishers: id === 'MKT-DXB' ? ['Dubai Land Department', 'DLD'] : ['Abu Dhabi Real Estate Centre', 'ADREC'] }, mode: 'REQUIRED', basis_review: `${p}-TEST-REVIEW` });
+  }
+  return c;
+};
+const RCFG = withReviews(CFG);
+const useReviewConfig = (repo) => writeJson(path.join(repo, 'desk/_tools/market-gates/MG-1.json'), RCFG);
 
 // ------------------------------------------------------------------ configuration
-test('configuration: legal topics are limited to statutory requirements on Nexus Ways\' own activity', () => {
-  for (const id of MARKETS) for (const tp of CFG.markets[id].regulatory_review.topics) {
-    assert.ok(tp.restriction && tp.owner_record && tp.accepted_roles.includes('OWNER_OFFICIAL_REFERENCE'), `${id} ${tp.key}`);
-    assert.doesNotMatch(tp.key, /DATA-PROTECTION|NOT-ADVICE|FOREIGN-OWNERSHIP/, 'site-wide and per-project items are not market gates');
+test('configuration: no legal-review topics and no advertising/listing permit requirement (owner decision, 28 Oct 2026)', () => {
+  for (const id of MARKETS) {
+    assert.deepEqual(CFG.markets[id].regulatory_review.topics, [], id);
+    assert.ok(!CFG.markets[id].publication.opportunity_requirements.some(q => /PERMIT$/.test(q.key) && /ADVERTISING|LISTING/.test(q.key) || q.basis_review), `${id}: no permit requirement`);
+    assert.deepEqual(configProblems(RCFG, id), [], `${id}: the review mechanism remains configurable`);
   }
-  assert.match(CFG.scope_note, /sales office/);
+  assert.match(CFG.revision_2026_10_28b, /freelance sales agent/);
 });
 
 test('configuration: one shared version, three separate market configurations, every rule documented', () => {
@@ -92,7 +107,8 @@ for (const id of MARKETS) {
   test(`${id}: fails closed when evidence is absent (market record only)`, () => {
     const d = gateDataset(CFG, id, TODAY);
     const g = evaluateMarketGate(CFG, id, { markets: d.collections.markets }, { today: TODAY, reviews: [] });
-    for (const c of ['MG_BLOCK_MISSING', 'MG_DISTRICTS', 'MG_STAT_MISSING', 'MG_FX', 'MG_REVIEW_MISSING']) failsWith(g, c);
+    for (const c of ['MG_BLOCK_MISSING', 'MG_DISTRICTS', 'MG_STAT_MISSING', 'MG_FX']) failsWith(g, c);
+    failsWith(evaluateMarketGate(RCFG, id, { markets: d.collections.markets }, { today: TODAY, reviews: [] }), 'MG_REVIEW_MISSING');
     assert.equal(g.reasons.filter(r => r.code === 'MG_BLOCK_MISSING').length, 5);
     assert.equal(g.reasons.filter(r => r.code === 'MG_REVIEW_MISSING').length, CFG.markets[id].regulatory_review.topics.length);
     failsWith(evaluateMarketGate(CFG, id, {}, { today: TODAY, reviews: [] }), 'MG_SCOPE');
@@ -164,23 +180,23 @@ for (const id of MARKETS) {
   });
 
   test(`${id}: legal review must be COMPLETE, current, by an accepted reviewer and recorded by the owner — evidence never substitutes`, () => {
-    const t = CFG.markets[id].regulatory_review.topics[0].key;
+    const t = RCFG.markets[id].regulatory_review.topics[0].key; const R = { cfg: RCFG };
     const r0 = (d) => d.reviews.find(r => r.topic === t);
-    failsWith(run(id, (d) => { r0(d).status = 'PENDING'; r0(d).outcome = null; }), 'MG_REVIEW_INCOMPLETE', t);
-    failsWith(run(id, (d) => { r0(d).status = 'IN_REVIEW'; r0(d).outcome = null; }), 'MG_REVIEW_INCOMPLETE', t);
-    failsWith(run(id, (d) => { r0(d).reviewed_at = sub(TODAY, 400); }), 'MG_REVIEW_EXPIRED', t);
-    failsWith(run(id, (d) => { r0(d).valid_until = sub(TODAY, 1); }), 'MG_REVIEW_EXPIRED', t);
-    failsWith(run(id, (d) => { r0(d).reviewer_role = 'RESEARCH_ANALYST'; }), 'MG_REVIEWER', t);
-    assert.equal(run(id, (d) => { for (const r of d.reviews) r.reviewer_role = 'OWNER_OFFICIAL_REFERENCE'; }).pass, true, 'statutory topics accept the owner\'s official permit/certificate reference');
-    failsWith(run(id, (d) => { r0(d).recorded_by = 'claude'; }), 'MG_REVIEW_INVALID', t);
-    failsWith(run(id, (d) => { r0(d).reference = ''; }), 'MG_REVIEW_INVALID', t);
-    failsWith(run(id, (d) => { r0(d).outcome = 'BLOCKING'; }), 'MG_REVIEW_BLOCKING', t);
+    failsWith(run(id, (d) => { r0(d).status = 'PENDING'; r0(d).outcome = null; }, R), 'MG_REVIEW_INCOMPLETE', t);
+    failsWith(run(id, (d) => { r0(d).status = 'IN_REVIEW'; r0(d).outcome = null; }, R), 'MG_REVIEW_INCOMPLETE', t);
+    failsWith(run(id, (d) => { r0(d).reviewed_at = sub(TODAY, 400); }, R), 'MG_REVIEW_EXPIRED', t);
+    failsWith(run(id, (d) => { r0(d).valid_until = sub(TODAY, 1); }, R), 'MG_REVIEW_EXPIRED', t);
+    failsWith(run(id, (d) => { r0(d).reviewer_role = 'RESEARCH_ANALYST'; }, R), 'MG_REVIEWER', t);
+    assert.equal(run(id, (d) => { for (const r of d.reviews) r.reviewer_role = 'OWNER_OFFICIAL_REFERENCE'; }, R).pass, true, 'statutory topics accept the owner\'s official permit/certificate reference');
+    failsWith(run(id, (d) => { r0(d).recorded_by = 'claude'; }, R), 'MG_REVIEW_INVALID', t);
+    failsWith(run(id, (d) => { r0(d).reference = ''; }, R), 'MG_REVIEW_INVALID', t);
+    failsWith(run(id, (d) => { r0(d).outcome = 'BLOCKING'; }, R), 'MG_REVIEW_BLOCKING', t);
     // a later record supersedes an earlier COMPLETE one (append-only history)
-    failsWith(run(id, (d) => { d.reviews.push({ ...clone(r0(d)), id: 'REG-LATER', seq: 99, status: 'WITHDRAWN', outcome: null, reviewed_at: sub(TODAY, 1) }); }), 'MG_REVIEW_INCOMPLETE', t);
+    failsWith(run(id, (d) => { d.reviews.push({ ...clone(r0(d)), id: 'REG-LATER', seq: 99, status: 'WITHDRAWN', outcome: null, reviewed_at: sub(TODAY, 1) }); }, R), 'MG_REVIEW_INCOMPLETE', t);
     // a LEGAL FACT evidence record about the topic is research, not legal approval
-    failsWith(run(id, (d) => { d.reviews = d.reviews.filter(r => r.topic !== t); d.collections.evidence.push({ ...clone(d.collections.evidence[0]), id: 'EVD-LEGAL', topic: t, evidence_class: 'LEGAL FACT', unit: 'text', value: 'counsel memo says permitted' }); }), 'MG_REVIEW_MISSING', t);
+    failsWith(run(id, (d) => { d.reviews = d.reviews.filter(r => r.topic !== t); d.collections.evidence.push({ ...clone(d.collections.evidence[0]), id: 'EVD-LEGAL', topic: t, evidence_class: 'LEGAL FACT', unit: 'text', value: 'counsel memo says permitted' }); }, R), 'MG_REVIEW_MISSING', t);
     // conditions from counsel are surfaced as publication restrictions
-    const g = run(id, (d) => { r0(d).outcome = 'CONDITIONS'; r0(d).conditions = ['TEST-ONLY condition']; });
+    const g = run(id, (d) => { r0(d).outcome = 'CONDITIONS'; r0(d).conditions = ['TEST-ONLY condition']; }, R);
     assert.equal(g.pass, true); assert.deepEqual(g.publication.conditions, [{ topic: t, conditions: ['TEST-ONLY condition'] }]);
   });
 
@@ -201,8 +217,8 @@ test('Dubai and Abu Dhabi are separate: Dubai sources and Dubai reviews do not s
   const g = run('MKT-AUH', (d) => { d.collections.evidence = dxb.collections.evidence.map(e => ({ ...clone(e), subject: { type: 'market', id: 'MKT-AUH' } })); d.collections.sources = clone(dxb.collections.sources); });
   failsWith(g, 'MG_STAT_MISSING', 'AUH-SALES-TX');
   // Dubai's legal reviews never count for Abu Dhabi (and vice versa)
-  failsWith(run('MKT-AUH', (d) => { d.reviews = dxb.reviews; }), 'MG_REVIEW_MISSING');
-  failsWith(run('MKT-DXB', (d) => { d.reviews = gateDataset(CFG, 'MKT-AUH', TODAY).reviews; }), 'MG_REVIEW_MISSING');
+  failsWith(run('MKT-AUH', (d) => { d.reviews = gateDataset(RCFG, 'MKT-DXB', TODAY).reviews; }, { cfg: RCFG }), 'MG_REVIEW_MISSING');
+  failsWith(run('MKT-DXB', (d) => { d.reviews = gateDataset(RCFG, 'MKT-AUH', TODAY).reviews; }, { cfg: RCFG }), 'MG_REVIEW_MISSING');
   // the shared federal FX evidence is recorded per market: Dubai's peg evidence is not Abu Dhabi's
   failsWith(run('MKT-AUH', (d) => { ev(d, 'AE-FX-PEG').subject = { type: 'market', id: 'MKT-DXB' }; }), 'MG_FX', 'AE-FX-PEG');
 });
@@ -248,16 +264,16 @@ test('requirements: off-plan conditions apply by delivery status; unknown status
   const ist = PRJ('MKT-IST', 'UNDER_CONSTRUCTION');
   assert.ok(opportunityRequirementReasons(CFG, 'MKT-IST', ist, without(ev0('MKT-IST', ist), 'IST-BUILDING-PERMIT'), { today: TODAY }).some(w => w.includes('IST-BUILDING-PERMIT')));
 });
-test('requirements: an advertising / listing permit is waived only by a COMPLETE NOT_APPLICABLE review — never in public validation', () => {
-  for (const [id, key] of [['MKT-DXB', 'DXB-ADVERTISING-PERMIT'], ['MKT-AUH', 'AUH-LISTING-PERMIT']]) {
-    const p = PRJ(id, 'COMPLETED'); const d = requirementEvidence(CFG, id, p.id, TODAY); d.evidence = d.evidence.filter(e => e.topic !== key);
-    const reviews = clone(gateDataset(CFG, id, TODAY).reviews); const r = reviews.find(x => x.topic === key);
-    assert.ok(opportunityRequirementReasons(CFG, id, p, d, { today: TODAY, reviews }).some(w => w.includes(key)), `${key}: CLEAR review does not waive the permit`);
+test('requirements (TEST-ONLY permit): a permit with a basis review is waived only by a COMPLETE NOT_APPLICABLE review — never in public validation', () => {
+  for (const [id, key] of [['MKT-DXB', 'DXB-TEST-PERMIT'], ['MKT-AUH', 'AUH-TEST-PERMIT']]) {
+    const p = PRJ(id, 'COMPLETED'); const d = requirementEvidence(RCFG, id, p.id, TODAY); d.evidence = d.evidence.filter(e => e.topic !== key);
+    const reviews = clone(gateDataset(RCFG, id, TODAY).reviews); const r = reviews.find(x => x.topic === key.replace('PERMIT', 'REVIEW'));
+    assert.ok(opportunityRequirementReasons(RCFG, id, p, d, { today: TODAY, reviews }).some(w => w.includes(key)), `${key}: CLEAR review does not waive the permit`);
     r.outcome = 'NOT_APPLICABLE';
-    assert.deepEqual(opportunityRequirementReasons(CFG, id, p, d, { today: TODAY, reviews }), [], `${key}: waived by counsel`);
-    assert.ok(opportunityRequirementReasons(CFG, id, p, d, { today: TODAY, reviews: null }).some(w => w.includes(key)), `${key}: public validation cannot see the review → required`);
+    assert.deepEqual(opportunityRequirementReasons(RCFG, id, p, d, { today: TODAY, reviews }), [], `${key}: waived by counsel`);
+    assert.ok(opportunityRequirementReasons(RCFG, id, p, d, { today: TODAY, reviews: null }).some(w => w.includes(key)), `${key}: public validation cannot see the review → required`);
     r.status = 'PENDING'; r.outcome = null;
-    assert.ok(opportunityRequirementReasons(CFG, id, p, d, { today: TODAY, reviews }).some(w => w.includes(key)), `${key}: a pending review waives nothing`);
+    assert.ok(opportunityRequirementReasons(RCFG, id, p, d, { today: TODAY, reviews }).some(w => w.includes(key)), `${key}: a pending review waives nothing`);
   }
   // Abu Dhabi registration evidenced by the Dubai Land Department is refused
   const p = PRJ('MKT-AUH', 'COMPLETED'); const d = requirementEvidence(CFG, 'MKT-AUH', p.id, TODAY);
@@ -275,7 +291,7 @@ for (const id of MARKETS) {
     assert.deepEqual(v(d, d.reviews), [], 'passing gate + stamp: no V21');
     const stale = clone(d); stale.collections.evidence = stale.collections.evidence.filter(e => e.topic !== CFG.markets[id].fx.reference);
     assert.ok(v(stale, d.reviews).some(e => /computed gate MG-1 fails/.test(e.msg)), 'missing FX evidence');
-    assert.ok(v(d, []).some(e => /MG_REVIEW_MISSING/.test(e.msg)), 'unapproved: no legal review');
+    assert.ok(validateDataset({ collections: d.collections }, { mode: 'private', today: TODAY, methods: ON, marketGates: { config: RCFG, reviews: [], provenance: d.provenance } }).errors.some(e => e.code === 'V21' && /MG_REVIEW_MISSING/.test(e.msg)), 'a configured review topic without a record blocks');
     const nostamp = clone(d); nostamp.collections.markets[0].review.gate_version = 'G3-v1';
     assert.ok(v(nostamp, d.reviews).some(e => /activation stamp/.test(e.msg)));
     // public tree (PUB-2): the market record, its certificate and district names only — the research stays private
@@ -345,7 +361,7 @@ test('real repository: gate rules approved (owner, 28 Oct 2026); all three marke
   for (const id of MARKETS) {
     const m = pubC.markets.find(x => x.id === id); assert.equal(m.activation, 'INACTIVE'); assert.notEqual(m.record_status, 'PUBLISHED');
     const g = evaluateMarketGate(CFG, id, pubC, { today: TODAY, reviews: [] });
-    assert.equal(g.pass, false); for (const c of ['MG_STAT_MISSING', 'MG_FX', 'MG_REVIEW_MISSING']) failsWith(g, c);
+    assert.equal(g.pass, false); for (const c of ['MG_STAT_MISSING', 'MG_FX']) failsWith(g, c);
   }
   assert.deepEqual(validateRepo(ROOT, { today: TODAY }).report.index.markets, []);
   assert.equal(CONFIG_PATH, path.join(ROOT, 'desk/_tools/market-gates/MG-1.json'));
@@ -388,14 +404,14 @@ test('commands: market-intake + record-review + market-gate; activate-market is 
 });
 
 test('commands (simulated owner approval of the rules): each market is activated only if its own gate passes', () => {
-  const repo = tmpRepo(); enableTestMarketGate(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
+  const repo = tmpRepo(); enableTestMarketGate(repo); useReviewConfig(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
   try {
     // Istanbul: complete. Dubai: complete except legal review. Abu Dhabi: nothing.
-    for (const id of ['MKT-IST', 'MKT-DXB']) { const f = path.join(pkgDir, `${id}.json`); writeJson(f, gateDataset(CFG, id, TODAY).intake); assert.equal(cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']).code, 0); }
-    for (const t of CFG.markets['MKT-IST'].regulatory_review.topics) review(repo, S, 'MKT-IST', t);
-    for (const t of CFG.markets['MKT-DXB'].regulatory_review.topics.slice(1)) review(repo, S, 'MKT-DXB', t); // first topic missing
+    for (const id of ['MKT-IST', 'MKT-DXB']) { const f = path.join(pkgDir, `${id}.json`); writeJson(f, gateDataset(RCFG, id, TODAY).intake); assert.equal(cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']).code, 0); }
+    for (const t of RCFG.markets['MKT-IST'].regulatory_review.topics) review(repo, S, 'MKT-IST', t);
+    for (const t of RCFG.markets['MKT-DXB'].regulatory_review.topics.slice(1)) review(repo, S, 'MKT-DXB', t); // first topic missing
     assert.notEqual(cli(repo, ['activate-market', ...S, '--id', 'MKT-IST']).code, 0, 'needs --by owner');
-    let r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_REVIEW_MISSING DXB-AGENT-AUTHORIZATION/);
+    let r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_REVIEW_MISSING DXB-TEST-REVIEW/);
     r = cli(repo, ['activate-market', ...S, '--id', 'MKT-AUH', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_STAT_MISSING AUH-SALES-TX/);
     r = cli(repo, ['activate-market', ...S, '--id', 'MKT-IST', '--by', 'owner']); assert.equal(r.code, 0, r.out); assert.match(r.out, /MKT-IST ACTIVE in the store \(gate MG-1/);
     const mk = readJson(path.join(store, 'data/markets.json')).records;
@@ -406,7 +422,7 @@ test('commands (simulated owner approval of the rules): each market is activated
     const mp = path.join(store, 'data/markets.json'); const j = readJson(mp); Object.assign(j.records.find(m => m.id === 'MKT-DXB'), { activation: 'ACTIVE', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' } }); writeJson(mp, j);
     r = cli(repo, ['gate', ...S]); assert.match(r.out, /✗ \[V21\] MKT-DXB: .*computed gate MG-1 fails/);
     // Istanbul later loses a review (withdrawn): the store gate flags the active market immediately
-    const t0 = CFG.markets['MKT-IST'].regulatory_review.topics[0].key;
+    const t0 = RCFG.markets['MKT-IST'].regulatory_review.topics[0].key;
     assert.equal(cli(repo, ['record-review', ...S, '--market', 'MKT-IST', '--topic', t0, '--status', 'WITHDRAWN', '--reviewer', 'TEST-ONLY counsel', '--role', 'LICENSED_COUNSEL_TR', '--reference', 'TEST-ONLY withdrawal', '--reviewed-at', TODAY, '--by', 'owner']).code, 0);
     r = cli(repo, ['gate', ...S]); assert.match(r.out, /✗ \[V21\] MKT-IST: .*MG_REVIEW_INCOMPLETE/);
   } finally { for (const x of [repo, store, pkgDir]) fs.rmSync(x, { recursive: true, force: true }); }
@@ -437,23 +453,23 @@ test('market intake refuses records outside the market, currency amounts and uno
 // ------------------------------------------------------------------ public market activation (D11/D12)
 test('certificate: a counsel waiver reaches the public check only through the gate certificate of the same version', () => {
   const p = { id: 'PRJ-DXB-T', market_id: 'MKT-DXB', delivery_status: 'COMPLETED' };
-  const d = requirementEvidence(CFG, 'MKT-DXB', p.id, TODAY); d.evidence = d.evidence.filter(e => e.topic !== 'DXB-ADVERTISING-PERMIT');
-  const cert = { gate_version: 'MG-1', waived_requirements: ['DXB-ADVERTISING-PERMIT'] };
-  assert.deepEqual(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: cert }), []);
-  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, gate_version: 'MG-0' } }).some(w => w.includes('DXB-ADVERTISING-PERMIT')), 'other gate version: not honoured');
-  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-ADVERTISING-PERMIT')));
+  const d = requirementEvidence(RCFG, 'MKT-DXB', p.id, TODAY); d.evidence = d.evidence.filter(e => e.topic !== 'DXB-TEST-PERMIT');
+  const cert = { gate_version: 'MG-1', waived_requirements: ['DXB-TEST-PERMIT'] };
+  assert.deepEqual(opportunityRequirementReasons(RCFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: cert }), []);
+  assert.ok(opportunityRequirementReasons(RCFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, gate_version: 'MG-0' } }).some(w => w.includes('DXB-TEST-PERMIT')), 'other gate version: not honoured');
+  assert.ok(opportunityRequirementReasons(RCFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-TEST-PERMIT')));
   // a requirement without a basis review can never be waived, even if a certificate lists it
-  const e2 = requirementEvidence(CFG, 'MKT-DXB', p.id, TODAY); e2.evidence = e2.evidence.filter(e => e.topic !== 'DXB-PROJECT-REGISTRATION');
-  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, e2, { today: TODAY, reviews: null, certificate: { gate_version: 'MG-1', waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-PROJECT-REGISTRATION')));
+  const e2 = requirementEvidence(RCFG, 'MKT-DXB', p.id, TODAY); e2.evidence = e2.evidence.filter(e => e.topic !== 'DXB-PROJECT-REGISTRATION');
+  assert.ok(opportunityRequirementReasons(RCFG, 'MKT-DXB', p, e2, { today: TODAY, reviews: null, certificate: { gate_version: 'MG-1', waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-PROJECT-REGISTRATION')));
 });
 
 test('commands (simulated owner approval): activate → export-market publishes the market with its certificate; deactivate-market rolls back', () => {
-  const repo = tmpRepo(); enableTestMarketGate(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
+  const repo = tmpRepo(); enableTestMarketGate(repo); useReviewConfig(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
   try {
-    const f = path.join(pkgDir, 'dxb.json'); writeJson(f, gateDataset(CFG, 'MKT-DXB', TODAY).intake);
+    const f = path.join(pkgDir, 'dxb.json'); writeJson(f, gateDataset(RCFG, 'MKT-DXB', TODAY).intake);
     assert.equal(cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']).code, 0);
-    for (const t of CFG.markets['MKT-DXB'].regulatory_review.topics) {
-      const extra = t.key === 'DXB-ADVERTISING-PERMIT' ? ['--outcome', 'NOT_APPLICABLE'] : ['--outcome', 'CLEAR'];
+    for (const t of RCFG.markets['MKT-DXB'].regulatory_review.topics) {
+      const extra = t.key === 'DXB-TEST-REVIEW' ? ['--outcome', 'NOT_APPLICABLE'] : ['--outcome', 'CLEAR'];
       const r = cli(repo, ['record-review', ...S, '--market', 'MKT-DXB', '--topic', t.key, '--status', 'COMPLETE', ...extra, '--reviewer', 'TEST-ONLY counsel', '--role', 'LICENSED_COUNSEL_UAE', '--reference', `TEST-ONLY memo ${t.key}`, '--reviewed-at', sub(TODAY, 5), '--by', 'owner']);
       assert.equal(r.code, 0, r.out);
     }
@@ -464,7 +480,7 @@ test('commands (simulated owner approval): activate → export-market publishes 
     assert.equal(fs.readFileSync(path.join(repo, 'desk/data/public/markets.json'), 'utf8'), before);
     r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 0, r.out);
     const sm = readJson(path.join(store, 'data/markets.json')).records.find(m => m.id === 'MKT-DXB');
-    assert.deepEqual(sm.gate_certificate.waived_requirements, ['DXB-ADVERTISING-PERMIT']);
+    assert.deepEqual(sm.gate_certificate.waived_requirements, ['DXB-TEST-PERMIT']);
     assert.ok(!JSON.stringify(sm.gate_certificate).includes('TEST-ONLY memo'), 'the certificate carries no review text');
     r = cli(repo, ['export-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 0, r.out);
     const pm = readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === 'MKT-DXB');

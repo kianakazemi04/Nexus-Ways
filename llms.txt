@@ -45,3 +45,7 @@ Every page is available in English, Turkish (`/tr/…`) and Arabic (`/ar/…`); 
 - Book a call: https://calendly.com/nwg6346/30min
 - Nexus Desk (investment intelligence): desk@nexus-ways.com · book a Desk call: https://calendly.com/nexus-ways/desk · consultation request: https://nexus-ways.com/desk/consultation/
 - LinkedIn: https://www.linkedin.com/company/nexus-ways
+
+## Legal
+- [Privacy Notice (KVKK)](https://nexus-ways.com/privacy/)
+- [Terms of Use](https://nexus-ways.com/terms/)

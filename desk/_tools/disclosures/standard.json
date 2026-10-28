@@ -1,5 +1,5 @@
 {
-  "note": "Standard disclosure texts (owner decision K-3, 28 Oct 2026). A template is reused for every opportunity once the owner records its approval with `approve-disclosure-template --by owner` (after their own or counsel's review). The approval binds the exact text (SHA-256): any change to a template text needs a new approval. Until approved, disclosures created from a template stay PENDING and block publication.",
+  "note": "Standard disclosure texts. Owner decision (28 Oct 2026, evening): both texts are adopted as the site-wide standard wording with no separate approval step; disclosures created from them are APPROVED at ingestion. The adoption binds the exact text (SHA-256): if a text changes, new disclosures from it are PENDING until the owner adopts or approves the new text (approve-disclosure-template --by owner). Non-standard disclosure texts still need approve-disclosure --by owner.",
   "templates": [
     {
       "id": "DT-COMMISSION-1",
@@ -8,6 +8,12 @@
         "en": "Nexus Ways may receive a commission or fee from the developer or its sales office if a purchase follows an introduction made through Nexus Desk. We disclose this relationship so that you can take it into account; details are available on request.",
         "tr": "Nexus Desk aracılığıyla yapılan bir tanıştırmanın ardından satın alma gerçekleşirse Nexus Ways, geliştiriciden veya satış ofisinden komisyon ya da ücret alabilir. Bu ilişkiyi değerlendirmenize katabilmeniz için açıklıyoruz; ayrıntılar talep üzerine paylaşılır.",
         "ar": "قد تتقاضى Nexus Ways عمولة أو أتعاباً من المطوّر أو من مكتب مبيعاته إذا تمّ الشراء بعد تعريف جرى عبر Nexus Desk. نُفصح عن هذه العلاقة لكي تأخذها في الاعتبار؛ والتفاصيل متاحة عند الطلب."
+      },
+      "adopted": {
+        "by": "owner",
+        "at": "2026-10-28",
+        "basis": "Owner decision 28 Oct 2026: standard wording, no separate approval step",
+        "text_sha256": "526c61272cfb4927f24e611f4e7ef92d315b202c38124d79cee49b50e3ccf6f1"
       }
     },
     {
@@ -17,6 +23,12 @@
         "en": "This page presents researched information about the project, with its sources and verification status. It is not investment, legal or tax advice and not an offer to sell. Statements made by the developer are labelled as such. Verify the information independently and take professional advice before making a decision.",
         "tr": "Bu sayfa proje hakkında araştırılmış bilgileri, kaynakları ve doğrulama durumlarıyla birlikte sunar. Yatırım, hukuk veya vergi tavsiyesi ya da satış teklifi değildir. Geliştiriciye ait beyanlar bu şekilde belirtilir. Karar vermeden önce bilgileri bağımsız olarak doğrulayın ve profesyonel danışmanlık alın.",
         "ar": "تعرض هذه الصفحة معلومات مدروسة عن المشروع مع مصادرها وحالة التحقق منها. وهي ليست استشارة استثمارية أو قانونية أو ضريبية ولا عرضاً للبيع. تُميَّز البيانات الصادرة عن المطوّر بوضوح. تحقّق من المعلومات بشكل مستقل واطلب مشورة مهنية قبل اتخاذ أي قرار."
+      },
+      "adopted": {
+        "by": "owner",
+        "at": "2026-10-28",
+        "basis": "Owner decision 28 Oct 2026: standard wording, no separate approval step",
+        "text_sha256": "00be4572ce7ee2729ecc1ef7b226f4d5d6464afc199a003455d743582d54e5c7"
       }
     }
   ]
