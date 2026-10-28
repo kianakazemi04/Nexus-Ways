@@ -399,3 +399,15 @@ noscript .notice { margin-top: 16px }
 .hws p { color: var(--mut); font-size: 14px }
 @media (max-width: 1180px) { .hws { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 @media (max-width: 640px) { .hws { grid-template-columns: 1fr } }
+
+/* ---------- method status list (Intelligence · Decision engines) ---------- */
+.mlist { display: grid; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); margin: 18px 0 10px }
+.mrow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; padding: 16px 20px; border-top: 1px solid var(--line) }
+.mrow:first-child { border-top: 0 }
+.mrow .mn { display: grid; gap: 4px; min-width: 0 }
+.mrow .mn b { font: 500 15px/1.35 Inter, 'IBM Plex Sans Arabic', sans-serif; color: var(--fg) }
+.mrow .mn .mono { font: 500 10.5px var(--mono); letter-spacing: .06em; color: var(--mut) }
+.mrow .me { display: grid; gap: 2px; font-size: 13.5px; color: var(--fg2); min-width: 0 }
+.mrow .ms { justify-self: start; min-width: 0 }
+.mrow .ms .chip { white-space: normal; text-align: start }
+@media (max-width: 720px) { .mrow { grid-template-columns: 1fr; gap: 8px } .mrow .ms { justify-self: start } }

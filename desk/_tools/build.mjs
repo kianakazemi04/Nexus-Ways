@@ -162,7 +162,12 @@ ${nojs}
       body: `${pi({ eb: t('ds.eb'), h1: esc(t('ds.h1')), lead: esc(t('ds.lead')), crumbs: [desk, [t('disclosures')]] })}
 <section class="sec"><div class="w"><div class="prose">${['a', 'b', 'c', 'd', 'e'].map(k => `<h2>${esc(t('ds.h2' + k))}</h2><p>${esc(t('ds.p' + k))}</p>`).join('\n')}</div></div></section>` });
 
-    const intel = INTEL[lang] || INTEL.en;
+    // Decision-engines page: the status table is generated from the method registry, so the public methodology cannot
+    // drift from the implementation (closure test "decision-engines page matches the registry").
+    const registry = read('data/methods.json').methods;
+    const msState = (m) => m.status === 'ACTIVE' ? 'public' : m.internal === 'ACTIVE' ? 'internal' : 'inactive';
+    const engines = `<div class="mlist" role="list">${[...registry].sort((a, b) => a.engines[0] - b.engines[0] || a.id.localeCompare(b.id)).map(m => { const st = msState(m); const nm = lang === 'en' ? m.name : t('mn.' + m.id); return `<div class="mrow" role="listitem" data-method="${esc(m.id)}" data-state="${st}"><div class="mn"><b>${esc(nm)}</b><span class="mono">${esc(m.id)}${m.contract ? ' · ' + esc(m.contract) : ''}</span></div><div class="me">${m.engines.map(e => `<span>${e} · ${esc(t('eng.' + e))}</span>`).join('')}</div><div class="ms"><span class="chip${st === 'public' ? ' on' : st === 'inactive' ? ' dim' : ''}">${esc(t('ms.' + st))}</span></div></div>`; }).join('')}</div><p class="gnote">${esc(t('ms.note'))}</p>`;
+    const intel = (INTEL[lang] || INTEL.en).map(p => p.body.includes('{{ENGINES}}') ? { ...p, body: p.body.replace('{{ENGINES}}', engines) } : p);
     page('intelligence/', { title: t('in.title'), description: t('in.desc'), current: 'intel',
       body: `${pi({ eb: t('intel'), h1: t('in.h1'), lead: esc(t('in.lead')), crumbs: [desk, [t('intel')]] })}
 <section class="sec"><div class="w"><div class="ilinks">${intel.map(p => `<article class="il rv"><span class="lab">${esc(t('in.method'))}</span><h3><a href="${u('/desk/intelligence/' + p.slug + '/')}">${esc(p.title)}</a></h3><p>${esc(p.short)}</p></article>`).join('')}</div></div></section>` });

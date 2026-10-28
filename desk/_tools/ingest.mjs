@@ -4,6 +4,7 @@
 //
 //   node desk/_tools/ingest.mjs ingest  --package <dir> --store <dir> [--fixture] [--apply] [--today YYYY-MM-DD]
 //   node desk/_tools/ingest.mjs gate    --store <dir> [--fixture]
+//   node desk/_tools/ingest.mjs report  --store <dir> --id <OPP-…> [--analysis <file>]   (internal decision report; private)
 //   node desk/_tools/ingest.mjs approve-disclosure --store <dir> --id <DSC-…> --by owner  (after counsel approves the text)
 //   node desk/_tools/ingest.mjs approve --store <dir> --id <OPP-…> --by owner      (only on the owner's explicit instruction)
 //   node desk/_tools/ingest.mjs export  --store <dir> --id <OPP-…> --repo <root>   (only after approval; writes public projection)
@@ -26,6 +27,8 @@ import { fileURLToPath } from 'node:url';
 import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
 import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
 import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness } from '../assets/js/policy.js';
+import { checkAnalysis } from './engines/analysis.mjs';
+import { decisionReport, reportMarkdown } from './engines/report.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -840,6 +843,28 @@ export function withdraw({ storeDir, id, by, reason, today, repoRoot }) {
   });
 }
 
+// ------------------------------------------------------------ decision report (Engine 8, internal)
+// Reads the private analysis file (default <store>/private/analysis/<OPP>.json), validates every input's provenance,
+// runs the internal engines and writes <store>/reports/decision-<OPP>.md and .json. Nothing is written to the public
+// tree; nothing here changes publication state.
+export function decisionReportFor({ storeDir, id, analysisPath = null, fixture = false, today, repoRoot, write = true }) {
+  const run = () => {
+    const store = loadStore(storeDir);
+    if (!store.collections.opportunities.some(o => o.id === id)) throw new Error(`${id} not found in the store`);
+    const ap = analysisPath || path.join(storeDir, 'private', 'analysis', `${id}.json`);
+    let checked = { ok: true, errors: [], analysis: null, provenance: [] };
+    if (fs.existsSync(ap)) checked = checkAnalysis(JSON.parse(fs.readFileSync(ap, 'utf8')), store, id);
+    else if (analysisPath) throw new Error(`analysis file not found: ${analysisPath}`);
+    if (!checked.ok) return { ok: false, errors: checked.errors };
+    const gate = runGate(store, { fixture, today, repoRoot });
+    const r = decisionReport(store, id, { gateWhy: gate.eligibility.opportunities[id] || [], analysis: checked.analysis, provenance: checked.provenance, today });
+    const md = reportMarkdown(r);
+    if (write) withTxn(storeDir, 'report', (t) => { t.write(path.join(storeDir, 'reports', `decision-${id}.md`), md); t.write(path.join(storeDir, 'reports', `decision-${id}.json`), JSON.stringify(r, null, 2) + '\n'); });
+    return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null };
+  };
+  return write ? withLock(storeDir, 'report', run) : run();
+}
+
 // ------------------------------------------------------------ CLI
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const [cmd, ...rest] = process.argv.slice(2);
@@ -847,7 +872,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  const STORE_CMDS = ['ingest', 'gate', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  const STORE_CMDS = ['ingest', 'gate', 'report', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
   if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
@@ -859,6 +884,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   try {
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: a.store, fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(a.store); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const w of g.warnings || []) console.log(`! [${w.code}] ${w.id}: ${w.msg}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
+    else if (cmd === 'report') { const r = decisionReportFor({ ...O, analysisPath: a.analysis && a.analysis !== true ? path.resolve(a.analysis) : null }); if (!r.ok) { console.error(`✗ analysis refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(r.markdown); console.log(`\n(written to ${path.join(a.store, 'reports', `decision-${a.id}.md`)}; analysis: ${r.analysisUsed || 'none'})`); }
     else if (cmd === 'approve') { const r = approve(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported); last verified: ${r.last_verified || 'not recorded in the evidence'}` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
     else if (cmd === 'approve-disclosure') { approveDisclosure(O); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
     else if (cmd === 'approve-media') { const r = approveMedia(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved for public use` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }

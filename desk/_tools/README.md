@@ -129,3 +129,11 @@ Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingest
   validator then reports the possible duplicate, W03). A source matching an existing one but with another tier or type
   is refused. The report starts with an "Identity" section listing every decision.
 
+
+## Decision engines and research workflow (28 Oct 2026)
+
+Architecture, engine dependency map and method contracts: `ARCHITECTURE.md`. Owner → Claude handoff: `RESEARCH-HANDOFF.md`.
+Engines live in `engines/` (finance FIN-1, comparables CMP-1, units CNV-1, fit FIT-1, analysis ANL-1, report RPT-1); they
+run only on the private store (`ingest.mjs report`) and their results are never exported. The method registry
+(`data/methods.json`) records each method's engines, public `status`, `internal` status, contract and tests; the
+Intelligence page "Decision engines" is generated from it. Tests: `desk/_tests/engines.test.mjs`.

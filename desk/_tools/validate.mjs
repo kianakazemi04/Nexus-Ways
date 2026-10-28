@@ -549,6 +549,10 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
       if (m.status === 'ACTIVE' && (!m.documented || !['RULES_APPROVED', 'VALIDATED'].includes(m.validation_status))) errors.push({ code: 'M01', id: m.id, msg: 'active method must be documented and approved/validated' });
       if (m.status === 'ACTIVE' && m.publication === 'PROHIBITED_IN_MVP') errors.push({ code: 'M01', id: m.id, msg: 'method prohibited in the MVP cannot be active' });
       if (m.status === 'ACTIVE' && m.implemented === false) errors.push({ code: 'M01', id: m.id, msg: 'method has no implementation (framework only) and cannot be active' });
+      // internal research engines: implemented, documented and tested; never public through this flag
+      if (m.internal !== undefined && !['ACTIVE', 'INACTIVE'].includes(m.internal)) errors.push({ code: 'M01', id: m.id, msg: 'internal must be ACTIVE or INACTIVE' });
+      if (m.internal === 'ACTIVE' && (m.implemented !== true || !m.documented || !m.contract || !m.tests)) errors.push({ code: 'M01', id: m.id, msg: 'an internal engine needs implemented: true, documentation, a contract version and named tests' });
+      if (!Array.isArray(m.engines) || !m.engines.length || m.engines.some(e => !Number.isInteger(e) || e < 1 || e > 8)) errors.push({ code: 'M01', id: m.id, msg: 'engines must list the decision engines (1–8) the method belongs to' });
     }
   } catch (e) { errors.push({ code: 'M01', id: 'methods.json', msg: `method registry unreadable: ${e.message}` }); }
   report.methods = methods;

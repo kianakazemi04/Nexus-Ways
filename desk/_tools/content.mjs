@@ -8,10 +8,22 @@ const INTEL_EN = [
 <li><strong>Project and unit facts.</strong> Delivery status, expected delivery, layout and area, each with its source, period and verification status. Developer statements are labelled as developer claims.</li>
 <li><strong>Documented risks.</strong> Cause, evidence, horizon, controllability, mitigation and residual uncertainty.</li>
 <li><strong>Research status.</strong> Research Closure and Data Completeness, recorded separately for each intelligence domain.</li></ul>
-<h2>What is not calculated in the MVP</h2>
-<p>There is no composite score, ranking, fair value, yield or return projection, growth forecast, numeric risk probability or investment-fit result. Asset Quality and Investment Fit are separate concepts and stay inactive until their methodologies are documented, tested and approved. Their absence is shown explicitly rather than implied.</p>
+<h2>What is not published</h2>
+<p>No composite score, ranking, fair value, yield or return figure, growth forecast, numeric risk probability or investment-fit result is published. For research and consultation, cash-flow, ROI and NPV scenarios, unadjusted comparable summaries and qualitative fit checks are calculated internally under documented, tested method contracts; their results stay private (see <a href="../decision-engines/" style="text-decoration:underline">Decision engines</a>). Ranking, fair value, numeric risk scores and asset-quality ratings are not calculated at all. Asset Quality and Investment Fit are separate concepts and stay inactive until their methodologies are documented, tested and approved. Their absence is shown explicitly rather than implied.</p>
 <h2>Publication</h2>
 <p>An opportunity is published only when a computed gate passes and the owner records an explicit review. The gate checks identity, developer, required fields, open conflicts, research blocks, documented risks, approved disclosures, a written-permission cover image and gallery. New evidence that breaks the gate withdraws the opportunity until it is reviewed again.</p>`
+  },
+  {
+    slug: 'decision-engines', title: 'Decision engines', short: 'How research, calculation and publication are separated, and the actual status of every method.',
+    body: `<p>Nexus Desk separates research, calculation and publication. Eight decision engines work on the same evidence records. The status table below is generated from the method registry when the site is built, so it changes only when the implementation changes.</p>
+<h2>How the engines connect</h2>
+<ol><li><strong>Evidence and data quality</strong> checks every input: source, tier, dates, verification, conflicts and freshness.</li><li><strong>Market and location</strong> and <strong>project, developer and brand</strong> organise the evidence by intelligence domain, with Research Closure and Data Completeness recorded separately.</li><li><strong>Pricing and comparables</strong> and <strong>rental and financial scenarios</strong> run on private inputs, each with recorded provenance.</li><li><strong>Risk and exit</strong> documents risks qualitatively, including resale and exit uncertainty.</li><li><strong>Comparison and investment fit</strong> checks explicit criteria. There is no score and no ranking.</li><li>The <strong>decision report</strong> assembles supported findings, gaps and limitations, citing every record it relies on.</li></ol>
+<h2>Method status</h2>
+{{ENGINES}}
+<h2>Financial modelling boundaries</h2>
+<p>ROI and NPV are separate calculations with written definitions. ROI is total, unlevered and undiscounted over a stated horizon; net rental yield is reported separately. NPV discounts end-of-year cash flows at a rate whose basis must be written down, never a default, a mortgage rate or inflation. Every input cites its evidence or is recorded as an explicit assumption; a missing input produces no number. Results are scenarios conditional on their inputs, not forecasts. They are not published and support consultation.</p>
+<h2>What stays inactive</h2>
+<p>Ranking, numeric risk scores, fair value, asset-quality and liquidity ratings stay inactive until their method contracts, minimum evidence requirements and tests are complete.</p>`
   },
   {
     slug: 'evidence-sources', title: 'Evidence and sources', short: 'Evidence classes, source tiers and verification labels.',
@@ -30,7 +42,7 @@ const INTEL_EN = [
 <h2>Interpretation rules used in research</h2>
 <ul><li>An asking price is not an achieved transaction price.</li><li>A price index is not an absolute price level.</li><li>Gross area is not net area; every area-based figure states its basis.</li><li>Currency, period, geography and definitions are preserved with every observation.</li><li>Missing prices are never filled, estimated silently or treated as zero.</li></ul>
 <h2>What is not published</h2>
-<p>No price filter or price sort, no fair value, no yield or return calculation. Internal price research is kept in a private store, separate from public content.</p>`
+<p>No price filter or price sort, no fair value, no published yield or return figure. Internal price research and comparable analysis are kept in a private store, separate from public content; comparables are summarised without adjustments and never turned into a fair value.</p>`
   },
   {
     slug: 'risk', title: 'Risk', short: 'Documented risks without scores or probabilities.',
@@ -66,10 +78,22 @@ const INTEL_TR = [
 <li><strong>Proje ve birim bilgileri.</strong> Teslim durumu, beklenen teslim, daire tipi ve alan; her biri kaynağı, dönemi ve doğrulama durumuyla. Geliştirici açıklamaları geliştirici beyanı olarak etiketlenir.</li>
 <li><strong>Belgelenmiş riskler.</strong> Neden, kanıt, vade, kontrol edilebilirlik, azaltım ve kalan belirsizlik.</li>
 <li><strong>Araştırma durumu.</strong> Araştırma Kapanışı ve Veri Bütünlüğü, her istihbarat alanı için ayrı kaydedilir.</li></ul>
-<h2>MVP’de hesaplanmayanlar</h2>
-<p>Bileşik puan, sıralama, gerçeğe uygun değer, getiri projeksiyonu, büyüme tahmini, sayısal risk olasılığı veya yatırım uygunluğu sonucu yoktur. Varlık Kalitesi ve Yatırım Uygunluğu ayrı kavramlardır ve metodolojileri belgelenip test edilip onaylanana kadar pasif kalır. Yoklukları ima edilmez, açıkça gösterilir.</p>
+<h2>Yayımlanmayanlar</h2>
+<p>Bileşik puan, sıralama, gerçeğe uygun değer, getiri veya kazanç rakamı, büyüme tahmini, sayısal risk olasılığı ya da yatırım uygunluğu sonucu yayımlanmaz. Araştırma ve danışmanlık için nakit akışı, ROI ve NPV senaryoları, düzeltme yapılmamış emsal özetleri ve nitel uygunluk kontrolleri, belgelenmiş ve test edilmiş yöntem sözleşmeleriyle şirket içinde hesaplanır; sonuçları gizli kalır (bkz. <a href="../decision-engines/" style="text-decoration:underline">Karar motorları</a>). Sıralama, gerçeğe uygun değer, sayısal risk puanı ve varlık kalitesi derecesi hiç hesaplanmaz. Varlık Kalitesi ve Yatırım Uygunluğu ayrı kavramlardır ve metodolojileri belgelenip test edilip onaylanana kadar pasif kalır. Yoklukları ima edilmez, açıkça gösterilir.</p>
 <h2>Yayın</h2>
 <p>Bir fırsat yalnızca hesaplanan kapı geçildiğinde ve sahibi açık bir inceleme kaydettiğinde yayımlanır. Kapı; kimliği, geliştiriciyi, zorunlu alanları, açık çelişkileri, araştırma bloklarını, belgelenmiş riskleri, onaylı açıklamaları, yazılı izinli kapak görselini ve galeriyi kontrol eder. Kapıyı bozan yeni kanıt, fırsatı yeniden incelenene kadar yayından kaldırır.</p>`
+  },
+  {
+    slug: 'decision-engines', title: 'Karar motorları', short: 'Araştırma, hesaplama ve yayının nasıl ayrıldığı ve her yöntemin gerçek durumu.',
+    body: `<p>Nexus Desk araştırmayı, hesaplamayı ve yayını birbirinden ayırır. Sekiz karar motoru aynı kanıt kayıtları üzerinde çalışır. Aşağıdaki durum tablosu site oluşturulurken yöntem kaydından üretilir; yalnızca uygulama değiştiğinde değişir.</p>
+<h2>Motorlar nasıl bağlanır</h2>
+<ol><li><strong>Kanıt ve veri kalitesi</strong> her girdiyi denetler: kaynak, kademe, tarihler, doğrulama, çelişkiler ve güncellik.</li><li><strong>Pazar ve konum</strong> ile <strong>proje, geliştirici ve marka</strong> kanıtları istihbarat alanlarına göre düzenler; Araştırma Kapanışı ve Veri Bütünlüğü ayrı kaydedilir.</li><li><strong>Fiyatlama ve emsaller</strong> ile <strong>kira ve finansal senaryolar</strong>, her biri kaydedilmiş kaynağıyla birlikte gizli girdiler üzerinde çalışır.</li><li><strong>Risk ve çıkış</strong> riskleri, yeniden satış ve çıkış belirsizliği dahil, nitel olarak belgeler.</li><li><strong>Karşılaştırma ve yatırım uygunluğu</strong> açık kriterleri kontrol eder. Puan ve sıralama yoktur.</li><li><strong>Karar raporu</strong> desteklenen bulguları, boşlukları ve sınırlamaları, dayandığı her kaydı göstererek bir araya getirir.</li></ol>
+<h2>Yöntem durumu</h2>
+{{ENGINES}}
+<h2>Finansal modelleme sınırları</h2>
+<p>ROI ve NPV, yazılı tanımları olan ayrı hesaplardır. ROI, belirtilen süre boyunca toplam, kaldıraçsız ve iskontosuzdur; net kira getirisi ayrıca raporlanır. NPV yıl sonu nakit akışlarını, dayanağı yazılı olarak belirtilmesi gereken bir oranla iskonto eder; bu oran asla varsayılan değer, konut kredisi faizi veya enflasyon değildir. Her girdi kanıtına atıf yapar ya da açık bir varsayım olarak kaydedilir; eksik girdi hiçbir sayı üretmez. Sonuçlar, girdilerine bağlı senaryolardır, tahmin değildir. Yayımlanmazlar ve danışmanlığı destekler.</p>
+<h2>Pasif kalanlar</h2>
+<p>Sıralama, sayısal risk puanları, gerçeğe uygun değer, varlık kalitesi ve likidite dereceleri, yöntem sözleşmeleri, asgari kanıt gereklilikleri ve testleri tamamlanana kadar pasif kalır.</p>`
   },
   {
     slug: 'evidence-sources', title: 'Kanıt ve kaynaklar', short: 'Kanıt sınıfları, kaynak kademeleri ve doğrulama etiketleri.',
@@ -88,7 +112,7 @@ const INTEL_TR = [
 <h2>Araştırmada kullanılan yorumlama kuralları</h2>
 <ul><li>İstenen fiyat, gerçekleşen satış fiyatı değildir.</li><li>Fiyat endeksi, mutlak fiyat düzeyi değildir.</li><li>Brüt alan net alan değildir; alana dayalı her rakam esasını belirtir.</li><li>Para birimi, dönem, coğrafya ve tanımlar her gözlemle birlikte korunur.</li><li>Eksik fiyatlar asla doldurulmaz, sessizce tahmin edilmez veya sıfır sayılmaz.</li></ul>
 <h2>Yayımlanmayanlar</h2>
-<p>Fiyat filtresi veya fiyata göre sıralama, gerçeğe uygun değer, getiri hesabı yoktur. İç fiyat araştırması, kamuya açık içerikten ayrı, özel bir depoda tutulur.</p>`
+<p>Fiyat filtresi veya fiyata göre sıralama, gerçeğe uygun değer ya da yayımlanan bir getiri rakamı yoktur. İç fiyat araştırması ve emsal analizi, kamuya açık içerikten ayrı, özel bir depoda tutulur; emsaller düzeltme yapılmadan özetlenir ve hiçbir zaman gerçeğe uygun değere dönüştürülmez.</p>`
   },
   {
     slug: 'risk', title: 'Risk', short: 'Puan veya olasılık içermeyen belgelenmiş riskler.',
@@ -124,10 +148,22 @@ const INTEL_AR = [
 <li><strong>معلومات المشروع والوحدة.</strong> حالة التسليم، والتسليم المتوقع، والتصميم، والمساحة؛ كلٌّ منها مع مصدره وفترته وحالة التحقق منه. تُوسَم تصريحات المطوّر بوصفها ادعاءات للمطوّر.</li>
 <li><strong>المخاطر الموثّقة.</strong> السبب، والدليل، والأفق الزمني، وقابلية التحكم، والتخفيف، وعدم اليقين المتبقي.</li>
 <li><strong>حالة البحث.</strong> إغلاق البحث واكتمال البيانات، ويُسجَّلان بشكل منفصل لكل مجال استخباري.</li></ul>
-<h2>ما الذي لا يُحتسب في النسخة الأولى</h2>
-<p>لا يوجد تقييم مركّب، ولا تصنيف، ولا قيمة عادلة، ولا توقع للعائد، ولا توقع للنمو، ولا احتمال رقمي للمخاطر، ولا نتيجة لملاءمة الاستثمار. جودة الأصل وملاءمة الاستثمار مفهومان منفصلان، ويبقيان غير مفعّلين إلى أن تُوثَّق منهجيتاهما وتُختبرا وتُعتمدا. ويُبيَّن غيابهما صراحةً بدلاً من التلميح إليه.</p>
+<h2>ما الذي لا يُنشر</h2>
+<p>لا يُنشر أي تقييم مركّب أو تصنيف أو قيمة عادلة أو رقم للعائد أو توقع للنمو أو احتمال رقمي للمخاطر أو نتيجة لملاءمة الاستثمار. ولأغراض البحث والاستشارة، تُحتسب داخليًا سيناريوهات التدفق النقدي والعائد على الاستثمار وصافي القيمة الحالية، وملخصات المقارنات غير المعدّلة، وفحوص الملاءمة النوعية، وفق عقود منهجية موثّقة ومختبرة؛ وتبقى نتائجها خاصة (انظر <a href="../decision-engines/" style="text-decoration:underline">محركات القرار</a>). أما التصنيف والقيمة العادلة ودرجات المخاطر الرقمية وتقييمات جودة الأصل فلا تُحتسب إطلاقًا. جودة الأصل وملاءمة الاستثمار مفهومان منفصلان، ويبقيان غير مفعّلين إلى أن تُوثَّق منهجيتاهما وتُختبرا وتُعتمدا. ويُبيَّن غيابهما صراحةً بدلاً من التلميح إليه.</p>
 <h2>النشر</h2>
 <p>لا تُنشر الفرصة إلا عند اجتياز بوابة محتسبة وتسجيل المالك مراجعة صريحة. تتحقق البوابة من الهوية، والمطوّر، والحقول المطلوبة، والتعارضات المفتوحة، وكتل البحث، والمخاطر الموثّقة، والإفصاحات المعتمدة، وصورة الغلاف المأذون بها كتابياً، والمعرض. وأي دليل جديد يُخلّ بالبوابة يسحب الفرصة إلى أن تُراجع مجدداً.</p>`
+  },
+  {
+    slug: 'decision-engines', title: 'محركات القرار', short: 'كيف يُفصل بين البحث والحساب والنشر، والحالة الفعلية لكل منهجية.',
+    body: `<p>يفصل Nexus Desk بين البحث والحساب والنشر. تعمل ثمانية محركات قرار على سجلات الأدلة نفسها. يُولَّد جدول الحالة أدناه من سجل المنهجيات عند بناء الموقع، فلا يتغير إلا عندما يتغير التطبيق.</p>
+<h2>كيف ترتبط المحركات</h2>
+<ol><li><strong>الأدلة وجودة البيانات</strong> يفحص كل مُدخل: المصدر ومستواه والتواريخ والتحقق والتعارضات والحداثة.</li><li><strong>السوق والموقع</strong> و<strong>المشروع والمطوّر والعلامة</strong> ينظّمان الأدلة حسب مجال المعلومات، مع تسجيل إغلاق البحث واكتمال البيانات كلٌّ على حدة.</li><li><strong>التسعير والمقارنات</strong> و<strong>الإيجار والسيناريوهات المالية</strong> تعمل على مدخلات خاصة، لكلٍّ منها مصدر مسجَّل.</li><li><strong>المخاطر والتخارج</strong> يوثّق المخاطر نوعيًا، بما فيها عدم اليقين في إعادة البيع والتخارج.</li><li><strong>المقارنة وملاءمة الاستثمار</strong> يفحص معايير صريحة، من دون تقييم رقمي أو تصنيف.</li><li><strong>تقرير القرار</strong> يجمع النتائج المدعومة والفجوات والقيود، مع الإشارة إلى كل سجل يعتمد عليه.</li></ol>
+<h2>حالة المنهجيات</h2>
+{{ENGINES}}
+<h2>حدود النمذجة المالية</h2>
+<p>العائد على الاستثمار وصافي القيمة الحالية حسابان منفصلان لكلٍّ منهما تعريف مكتوب. العائد على الاستثمار إجمالي، من دون رافعة مالية ومن دون خصم، على مدى أفق محدد؛ ويُذكر صافي عائد الإيجار بشكل منفصل. يخصم صافي القيمة الحالية التدفقات النقدية في نهاية كل سنة بمعدل يجب تدوين أساسه، ولا يكون أبدًا قيمة افتراضية أو سعر رهن عقاري أو معدل تضخم. يستند كل مُدخل إلى دليله أو يُسجَّل افتراضًا صريحًا؛ والمُدخل الناقص لا ينتج أي رقم. النتائج سيناريوهات مشروطة بمدخلاتها وليست توقعات. لا تُنشر، وتدعم الاستشارة.</p>
+<h2>ما يبقى غير مفعّل</h2>
+<p>يبقى التصنيف ودرجات المخاطر الرقمية والقيمة العادلة وتقييمات جودة الأصل والسيولة غير مفعّلة إلى أن تكتمل عقودها المنهجية والحد الأدنى من متطلبات الأدلة والاختبارات.</p>`
   },
   {
     slug: 'evidence-sources', title: 'الأدلة والمصادر', short: 'فئات الأدلة ومستويات المصادر وتسميات التحقق.',
@@ -146,7 +182,7 @@ const INTEL_AR = [
 <h2>قواعد التفسير المعتمدة في البحث</h2>
 <ul><li>السعر المطلوب ليس سعر صفقة منفّذة.</li><li>مؤشر الأسعار ليس مستوى سعرياً مطلقاً.</li><li>المساحة الإجمالية ليست المساحة الصافية؛ ويُذكر أساس كل رقم يعتمد على المساحة.</li><li>تُحفظ العملة والفترة والنطاق الجغرافي والتعريفات مع كل ملاحظة.</li><li>لا تُملأ الأسعار الناقصة أبداً، ولا تُقدَّر بصمت، ولا تُعامل كصفر.</li></ul>
 <h2>ما لا يُنشر</h2>
-<p>لا مرشح للأسعار ولا ترتيب حسب السعر، ولا قيمة عادلة، ولا حساب للعائد. تُحفظ أبحاث الأسعار الداخلية في مستودع خاص، منفصل عن المحتوى العام.</p>`
+<p>لا مرشح للأسعار ولا ترتيب حسب السعر، ولا قيمة عادلة، ولا رقم منشور للعائد. تُحفظ أبحاث الأسعار الداخلية وتحليل المقارنات في مستودع خاص منفصل عن المحتوى العام؛ وتُلخَّص المقارنات من دون تعديلات ولا تتحول أبدًا إلى قيمة عادلة.</p>`
   },
   {
     slug: 'risk', title: 'المخاطر', short: 'مخاطر موثّقة من دون تقييمات أو احتمالات.',

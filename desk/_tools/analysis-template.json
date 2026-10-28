@@ -1,0 +1,172 @@
+{
+  "_how_to_use": "PRIVATE analysis file for one opportunity. Save as <store>/private/analysis/<OPP-id>.json (never in the public repository). Every number is {value, ref}: ref = an evidence ID (EVD-…), PRIVATE:<package_id>/<fact key>, or ASSUMPTION with a note. A value that differs from its referenced record needs a note explaining the derivation. Then run: node desk/_tools/ingest.mjs report --store <store> --id <OPP-id>",
+  "opportunity_id": "OPP-…",
+  "as_of": "YYYY-MM-DD",
+  "fx": [
+    {
+      "base": "EUR",
+      "quote": "TRY",
+      "rate": 0,
+      "date": "YYYY-MM-DD",
+      "source": "central bank table, URL or document"
+    }
+  ],
+  "finance": {
+    "currency": "TRY",
+    "horizon_years": {
+      "value": 5,
+      "ref": "ASSUMPTION",
+      "note": "holding period from the investor brief"
+    },
+    "delivery_year": {
+      "value": 0,
+      "ref": "EVD-…"
+    },
+    "acquisition": {
+      "price": {
+        "value": 0,
+        "ref": "PRIVATE:<package_id>/<fact key>"
+      },
+      "payments": [
+        {
+          "t": 0,
+          "amount": {
+            "value": 0,
+            "ref": "PRIVATE:<package_id>/<fact key>"
+          },
+          "label": "down payment"
+        }
+      ]
+    },
+    "rent": {
+      "gross_annual": {
+        "value": 0,
+        "ref": "EVD-…"
+      },
+      "occupancy": {
+        "value": 0.9,
+        "ref": "ASSUMPTION",
+        "note": "why"
+      },
+      "growth_rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "why"
+      }
+    },
+    "operating": {
+      "fixed_annual": {
+        "value": 0,
+        "ref": "EVD-…"
+      },
+      "pct_of_collected_rent": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "why"
+      }
+    },
+    "tax": {
+      "rental_income_rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "rate and source; counsel to confirm"
+      },
+      "capital_gains_rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "rate and source; counsel to confirm"
+      }
+    },
+    "exit": {
+      "appreciation_rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "why"
+      },
+      "selling_cost_rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "why"
+      }
+    },
+    "discount": {
+      "rate": {
+        "value": 0,
+        "ref": "ASSUMPTION",
+        "note": "investor's required return"
+      },
+      "basis": "written basis for the discount rate"
+    }
+  },
+  "scenarios": {
+    "favourable": {},
+    "adverse": {}
+  },
+  "comparables": {
+    "subject": {
+      "currency": "TRY",
+      "area_basis": "NET",
+      "district_id": "DST-…",
+      "unit_type": "2+1"
+    },
+    "rules": {
+      "price_type": "TRANSACTION",
+      "max_age_days": 365,
+      "min_sample": 5,
+      "same_district": true
+    },
+    "candidates": [
+      {
+        "id": "C1",
+        "evidence_id": "EVD-… or PRIVATE:…",
+        "price_type": "TRANSACTION",
+        "price": {
+          "value": 0,
+          "ref": "PRIVATE:…"
+        },
+        "currency": "TRY",
+        "area": {
+          "value": 0,
+          "ref": "PRIVATE:…"
+        },
+        "area_unit": "m2",
+        "area_basis": "NET",
+        "district_id": "DST-…",
+        "unit_type": "2+1",
+        "observed_at": "YYYY-MM-DD"
+      }
+    ]
+  },
+  "price_evidence": {
+    "min": {
+      "value": 0,
+      "ref": "PRIVATE:…"
+    },
+    "currency": "TRY"
+  },
+  "investor_profile": {
+    "objectives": [
+      "long_term_hold"
+    ],
+    "horizon_years": 5,
+    "delivery_statuses": [
+      "UNDER_CONSTRUCTION",
+      "COMPLETED"
+    ],
+    "excluded_risk_types": [],
+    "budget": {
+      "max": 0,
+      "currency": "TRY"
+    }
+  },
+  "findings": [
+    {
+      "type": "STRENGTH",
+      "class": "FACT",
+      "text": "One sentence, evidence-backed.",
+      "refs": [
+        "EVD-…"
+      ]
+    }
+  ]
+}
