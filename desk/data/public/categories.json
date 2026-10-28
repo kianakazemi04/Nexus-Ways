@@ -52,6 +52,23 @@
         "ar": "فئة مستقبلية. غير مفعّلة بعد."
       },
       "is_illustrative": false
+    },
+    {
+      "id": "CAT-WEB3",
+      "key": "web3_digital_assets",
+      "slug": "web3-digital-assets",
+      "name": {
+        "en": "Web3 & Digital Assets",
+        "tr": "Web3 ve Dijital Varlıklar",
+        "ar": "الويب 3 والأصول الرقمية"
+      },
+      "activation": "INACTIVE",
+      "description": {
+        "en": "Future category. Not yet operational; subject to regulatory review.",
+        "tr": "Gelecek kategori. Henüz faaliyette değil; düzenleyici incelemeye tabidir.",
+        "ar": "فئة مستقبلية. غير مفعّلة بعد، وتخضع لمراجعة تنظيمية."
+      },
+      "is_illustrative": false
     }
   ]
 }

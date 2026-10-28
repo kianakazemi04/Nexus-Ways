@@ -291,3 +291,44 @@ test('CI runs every node test suite in desk/_tests', () => {
   const cmd = (wf.match(/run: node --test ([^\n]+)/) || [])[1] || '';
   for (const f of fs.readdirSync(path.join(ROOT, 'desk/_tests')).filter(f => f.endsWith('.test.mjs'))) assert.ok(cmd.split(/\s+/).includes(`desk/_tests/${f}`), `${f} is not run in CI`);
 });
+
+// ================================================================== owner requests (28 Oct): mobile languages, Web3 category, status bar, Explore intro
+test('every Desk page has the language choices inside the mobile menu, like the company site', () => {
+  const pages = fs.readdirSync(path.join(ROOT, 'desk'), { recursive: true }).map(String).filter(f => f.endsWith('.html') && !f.split(path.sep).some(s => s.startsWith('_')));
+  assert.ok(pages.length >= 50);
+  for (const f of pages) {
+    const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8');
+    const nav = (h.match(/<nav class="nv"[\s\S]*?<\/nav>/) || [''])[0];
+    const row = (nav.match(/<div class="lgr"[\s\S]*?<\/div>/) || [''])[0];
+    assert.equal((row.match(/hreflang="(en|tr|ar)"/g) || []).length, 3, `${f}: EN/TR/AR inside the menu`);
+    assert.equal((row.match(/aria-current="true"/g) || []).length, 1, `${f}: current language marked`);
+    // the status bar no longer reads "… not published" (it was read as "the site is not published")
+    const rail = (h.match(/<div class="rail"[\s\S]*?<\/div><\/div>/) || [''])[0];
+    assert.doesNotMatch(rail, /not published|yayımlanmaz|لا تُنشر/i, f);
+  }
+  const core = fs.readFileSync(path.join(ROOT, 'desk/assets/js/core.js'), 'utf8');
+  assert.match(core, /querySelectorAll\('\.lgr a'\)[\s\S]*?remember\('nw-lang'/, 'menu language links remember the choice for the company site');
+  assert.doesNotMatch(core, /railNotPub/);
+  const css = fs.readFileSync(path.join(ROOT, 'desk/assets/css/desk.css'), 'utf8');
+  assert.match(css, /\.hd \.lgw \{ display: none \}/); assert.match(css, /\.nv \.lgr \{ display: flex/);
+});
+
+test('Web3 & Digital Assets is a fourth, inactive future category — nothing can be published in it', () => {
+  const cats = readJson(path.join(ROOT, 'desk/data/public/categories.json')).records;
+  assert.deepEqual(cats.map(c => [c.key, c.activation]), [['real_estate', 'ACTIVE'], ['startup_private', 'INACTIVE'], ['franchise', 'INACTIVE'], ['web3_digital_assets', 'INACTIVE']]);
+  const w = cats[3]; for (const l of ['en', 'tr', 'ar']) { assert.ok(w.name[l]); assert.ok(w.description[l]); }
+  const ds = base(); ds.collections.categories.push({ id: 'CAT-WEB3', key: 'web3_digital_assets', slug: 'w', name: { en: 'W' }, activation: 'INACTIVE', is_illustrative: false });
+  ds.collections.markets[0].category = 'web3_digital_assets'; ds.collections.projects.forEach(p => { p.category = 'web3_digital_assets'; }); ds.collections.opportunities[0].category = 'web3_digital_assets';
+  assert.ok(why(run(ds)).includes('category inactive'));
+});
+
+test('Explore explains how Desk works before the filters and links to the methodology', () => {
+  for (const [f, href] of [['index.html', '/desk/intelligence/'], ['tr/index.html', '/desk/tr/intelligence/'], ['ar/index.html', '/desk/ar/intelligence/']]) {
+    const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8');
+    const i = h.indexOf('class="sec hw"'); const j = h.indexOf('id="flt"');
+    assert.ok(i > 0 && i < j, `${f}: intro before the filters`);
+    const sec = h.slice(i, j);
+    assert.equal((sec.match(/<li class="rv">/g) || []).length, 4, f);
+    assert.ok(sec.includes(`href="${href}"`), `${f}: links to the methodology`);
+  }
+});

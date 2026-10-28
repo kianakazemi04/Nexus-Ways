@@ -24,7 +24,7 @@
     "source_tier": { "enum": [1, 2, 3, 4] },
     "record_status": { "enum": ["DRAFT", "RESEARCH_IN_PROGRESS", "READY_FOR_REVIEW", "PUBLISHED", "WITHHELD", "ARCHIVED"] },
 
-    "category": { "enum": ["real_estate", "startup_private", "franchise"] },
+    "category": { "enum": ["real_estate", "startup_private", "franchise", "web3_digital_assets"] },
     "activation": { "enum": ["ACTIVE", "INACTIVE"] },
     "domain": { "enum": ["MARKET", "DISTRICT", "AREA", "PROJECT_ASSET", "DEVELOPER", "RISK", "PRICING", "RENTAL", "LIQUIDITY", "MACRO_FX"] },
     "delivery_status": { "enum": ["OFF_PLAN", "UNDER_CONSTRUCTION", "COMPLETED"] },

@@ -35,6 +35,14 @@ if (thm) {
   });
 }
 
+// language links in the mobile menu (same pattern as the company site): remember the choice and keep the same view
+document.querySelectorAll('.lgr a').forEach(a => a.addEventListener('click', () => {
+  remember('nw-lang', a.getAttribute('hreflang'));
+  const u = new URL(a.getAttribute('href'), location.origin);
+  for (const [k, v] of params()) if (k !== 'theme' && k !== 'lang') u.searchParams.set(k, v);
+  u.hash = location.hash; a.setAttribute('href', u.pathname + u.search + u.hash);
+}));
+
 // language menu (same pattern as the company site)
 const lgw = document.querySelector('.lgw');
 if (lgw) {
@@ -78,7 +86,7 @@ export const ready = load().then((D) => {
     rail.innerHTML = `<span><span class="dot"></span><b translate="no">Nexus Desk</b> · MVP</span>`
       + (D.fixture ? `<span class="ill">${esc(t('railIllTag'))}</span>` : '')
       + `<span>${esc(t(D.fixture ? 'railIll' : 'railPub'))} <b>${opps.length}</b></span><span>${esc(t('railActive'))} <b>${active}</b></span>`
-      + `<span>${esc(t('railLast'))} <b>${lv ? fmtDate(lv) : '—'}</b></span><span>${esc(t('railPrices'))} <b>${esc(t('railNotPub'))}</b></span>`;
+      + `<span>${esc(t('railLast'))} <b>${lv ? fmtDate(lv) : '—'}</b></span>`;
   }
   return D;
 });

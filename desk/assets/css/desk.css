@@ -114,8 +114,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .nv .sep { display: none }
   .nv .ext { padding: 18px 0 }
   .nv .btn { margin-top: 18px; align-self: flex-start }
-  .hd .lgw { margin-inline-start: auto }
+  .hd .lgw { display: none }
+  .hd .thm { margin-inline-start: auto }
+  .nv .lgr { display: flex; gap: 8px; margin-top: 22px }
+  .nv .lgr a { padding: 10px 18px; border: 1px solid var(--line2); border-radius: 99px; font: 500 13px var(--mono); letter-spacing: .08em; color: var(--fg2) }
+  .nv .lgr a[aria-current="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
 }
+.lgr { display: none }
 
 /* ---------- illustrative banner ---------- */
 .illb { background: var(--ill); color: #fff; font: 600 11.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; text-align: center; padding: 9px 16px }
@@ -157,7 +162,8 @@ main { display: block; min-height: 60vh }
 .fs::before { content: "∅"; font-family: var(--mono); color: var(--red-tx) }
 
 /* ---------- category tiles ---------- */
-.cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px }
+@media (max-width: 1180px) { .cats { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 .cat { border: 1px solid var(--line); border-radius: var(--r); padding: 22px; background: var(--panel); display: flex; flex-direction: column; gap: 14px; min-height: 150px }
 .cat h3 { font-size: 22px }
 .cat p { color: var(--mut); font-size: 14px }
@@ -384,3 +390,12 @@ noscript .notice { margin-top: 16px }
 [dir="rtl"] .ev dl { grid-template-columns: 110px minmax(0, 1fr) }
 [dir="rtl"] .mk .go, [dir="rtl"] .empty li::before { unicode-bidi: plaintext }
 [dir="rtl"] .br .by { direction: rtl; unicode-bidi: isolate; text-align: start }
+
+/* ---------- how Desk works (Explore intro) ---------- */
+.hws { list-style: none; margin: 0 0 28px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: none }
+.hws li { border: 1px solid var(--line); border-radius: var(--r); padding: 22px; background: var(--panel); display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.hws .n { font: 500 11px var(--mono); letter-spacing: .1em; color: var(--red-tx) }
+.hws h3 { font-size: 19px }
+.hws p { color: var(--mut); font-size: 14px }
+@media (max-width: 1180px) { .hws { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 640px) { .hws { grid-template-columns: 1fr } }

@@ -61,13 +61,14 @@ ${alt}
 <body>
 ${LOGO}
 <a class="sr" href="#main">${esc(t('skip'))}</a>
-<div class="rail" aria-label="${esc(t('deskStatus'))}"><div class="w"><span><span class="dot"></span><b translate="no">Nexus Desk</b> · MVP</span><span>${esc(t('railPrices'))} <b>${esc(t('railNotPub'))}</b></span></div></div>
+<div class="rail" aria-label="${esc(t('deskStatus'))}"><div class="w"><span><span class="dot"></span><b translate="no">Nexus Desk</b> · MVP</span></div></div>
 <header class="hd"><div class="w nb">
 <a class="br" href="${u('/desk/')}" aria-label="${esc(t('home'))}"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">${esc(t('by'))}</span></span></a>
 <nav class="nv" id="nv" aria-label="${esc(t('deskNav'))}">
 ${nav('/desk/', 'explore', t('explore'))}${nav('/desk/markets/', 'markets', t('markets'))}${nav('/desk/intelligence/', 'intel', t('intel'))}
 <span class="sep" aria-hidden="true"></span><a class="ext" href="/${lang === 'en' ? '' : '?lang=' + lang}" translate="no">Nexus Ways ↗</a>
 <a class="btn sm" href="${u('/desk/consultation/')}"${current === 'consult' ? ' aria-current="page"' : ''}><span>${esc(t('consult'))}</span> <i aria-hidden="true">→</i></a>
+<div class="lgr" role="group" aria-label="${esc(t('lang'))}">${Object.entries(LANGS).map(([l, x]) => `<a href="${localize('/desk/' + rest, l)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${x.code}</a>`).join('')}</div>
 </nav>
 ${langMenu}
 <button class="thm" type="button" aria-label="${esc(t('theme'))}" aria-pressed="false"><svg class="su" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg><svg class="mo" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
@@ -106,6 +107,9 @@ export function pages() {
     page('', { title: t('ex.title'), description: t('ex.desc'), current: 'explore', script: 'explore',
       body: `${pi({ eb: t('ex.eb'), h1: t('ex.h1'), lead: esc(t('ex.lead')) })}
 <section class="sec"><div class="w"><div class="sh"><div><span class="lab">${esc(t('ex.catsLab'))}</span><h2>${esc(t('ex.catsH'))}</h2></div></div><div class="cats" id="cats"></div></div></section>
+<section class="sec hw" aria-labelledby="hw-t"><div class="w"><div class="sh"><div><span class="lab">${esc(t('hw.lab'))}</span><h2 id="hw-t">${esc(t('hw.h'))}</h2></div><p>${esc(t('hw.p'))}</p></div>
+<ol class="hws">${[1, 2, 3, 4].map(i => `<li class="rv"><span class="n">0${i}</span><h3>${esc(t('hw.' + i + 't'))}</h3><p>${esc(t('hw.' + i + 'p'))}</p></li>`).join('')}</ol>
+<a class="btn o" href="${u('/desk/intelligence/')}">${esc(t('hw.cta'))} <i aria-hidden="true">→</i></a></div></section>
 <section class="sec" aria-labelledby="ex-t"><div class="w"><div class="sh"><div><span class="lab">${esc(t('ex.oppLab'))}</span><h2 id="ex-t">${esc(t('ex.h'))}</h2></div></div>
 <div class="ex"><form class="flt" id="flt" role="search" aria-label="${esc(t('ex.filterAria'))}" onsubmit="return false">
 <label><span class="lab">${esc(t('f.search'))}</span><input type="search" id="f-q" placeholder="${esc(t('f.searchPh'))}" autocomplete="off"></label>

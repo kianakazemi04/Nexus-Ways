@@ -151,6 +151,12 @@ async def run():
         await m.click('.bg'); await m.wait_for_timeout(450)
         box = await m.locator('.nv').bounding_box()
         check(box and box['height'] > 500, 'mobile menu opens full height')
+        langs = await m.evaluate("[...document.querySelectorAll('.nv .lgr a')].filter(a => a.offsetParent).map(a => a.textContent.trim())")
+        hidden = await m.evaluate("getComputedStyle(document.querySelector('.hd .lgw')).display")
+        check(langs == ['EN', 'TR', 'AR'] and hidden == 'none', f'mobile menu shows EN/TR/AR at the bottom; header language button hidden on mobile ({langs}, {hidden})')
+        await m.click('.nv .lgr a[hreflang=tr]'); await m.wait_for_load_state('networkidle')
+        check(m.url.rstrip('/').endswith('/desk/tr') and await m.evaluate("localStorage.getItem('nw-lang')") == 'tr', f'menu language link opens the Turkish Desk and remembers it ({m.url})')
+        await m.evaluate("localStorage.removeItem('nw-lang')")
         await b.close()
 
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT)], cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
