@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { publishedSetup, cli, readJson, writeJson, OPP, PRJ, TODAY } from '../../_tests/helpers.mjs';
 
-const out = path.resolve(process.argv[process.argv.indexOf('--out') + 1] || 'demo-out');
+const out = path.resolve(process.argv.includes('--out') ? process.argv[process.argv.indexOf('--out') + 1] : 'demo-out');
 fs.mkdirSync(out, { recursive: true });
 const log = []; const step = (t, r) => { log.push(`## ${t}\n\n\`\`\`\n${(r && r.out ? r.out : String(r || '')).trim()}\n\`\`\`\n`); return r; };
 const analysis = {

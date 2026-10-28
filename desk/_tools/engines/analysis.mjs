@@ -53,7 +53,7 @@ export function checkAnalysis(doc, store, oppId) {
   if (doc.opportunity_id !== oppId) errors.push(`opportunity_id ${doc.opportunity_id} ≠ ${oppId}`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(doc.as_of || '')) errors.push('as_of (YYYY-MM-DD) required');
   const resolve = makeResolver(store);
-  const out = { opportunity_id: doc.opportunity_id, as_of: doc.as_of, fx: [], finance: null, scenarios: {}, comparables: null, price_evidence: null, investor_profile: null, findings: [] };
+  const out = { opportunity_id: doc.opportunity_id, as_of: doc.as_of, fx: [], finance: null, scenarios: {}, comparables: null, price_evidence: null, price_position: null, risk_severity: {}, investor_profile: null, findings: [] };
   const provenance = [];
   // FX has one source of truth (audit C-05): every rate in the analysis must reference the evidence or private fact it
   // comes from (e.g. the market's CBRT / CBUAE rate evidence); the rate and date must match that record.
@@ -89,6 +89,15 @@ export function checkAnalysis(doc, store, oppId) {
     }
   }
   if (doc.price_evidence) out.price_evidence = take('price_evidence', doc.price_evidence);
+  // PPO-1: the subject's asking price and area come from evidence or private facts, never from an assumption
+  if (doc.price_position) {
+    const pp = doc.price_position;
+    for (const k of ['price', 'area_m2']) if (!pp[k] || !pp[k].ref || pp[k].ref === 'ASSUMPTION') errors.push(`$.price_position.${k}: ref must be evidence or PRIVATE:… (an assumed price or area is not positioned)`);
+    const v = take('price_position', { price: pp.price, area_m2: pp.area_m2 });
+    out.price_position = v ? { price: { value: v.price, ref: pp.price && pp.price.ref }, area_m2: { value: v.area_m2, ref: pp.area_m2 && pp.area_m2.ref }, currency: pp.currency, area_basis: pp.area_basis } : null;
+  }
+  // RSV-1: severity is the analyst's judgement, recorded with a rationale; checked against the risks in the report
+  if (doc.risk_severity) out.risk_severity = doc.risk_severity;
   // currency consistency (readiness closure): an amount taken from a record in another currency than the analysis
   // currency must be converted with a recorded fx row for that pair and say so in its note — never mixed silently
   const cur = doc.finance && typeof doc.finance.currency === 'string' ? doc.finance.currency : null;

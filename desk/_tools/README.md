@@ -142,3 +142,22 @@ Engines live in `engines/` (finance FIN-1, comparables CMP-1, units CNV-1, fit F
 run only on the private store (`ingest.mjs report`) and their results are never exported. The method registry
 (`data/methods.json`) records each method's engines, public `status`, `internal` status, contract and tests; the
 Intelligence page "Decision engines" is generated from it. Tests: `desk/_tests/engines.test.mjs`.
+
+## Price position, risk severity and client brief (29 Oct 2026; awaiting owner approval, D-20)
+
+Three private methods, implemented and tested (`desk/_tests/analysis2.test.mjs`). They run only once the owner approves
+them and the registry entry is switched to `internal: ACTIVE`; until then reports state "methodology awaiting approval".
+
+- **M-PRICE-POSITION (PPO-1, `engines/pricepos.mjs`).** Places the unit's asking price per m² against the CMP-1
+  comparables: below the range, lower half, upper half or above the range (interquartile range and median), with the
+  difference from the median. Price and area must reference evidence or private facts; an assumption is refused. Same
+  price type, area basis and currency only. It is a comparison, never a valuation (M-FAIR-VALUE stays inactive).
+  Analysis-file block: `"price_position": { "price": {value, ref}, "area_m2": {value, ref}, "currency", "area_basis" }`.
+- **M-RISK-SEVERITY (RSV-1, `engines/severity.mjs`).** HIGH, MEDIUM or LOW per documented risk, each with a written
+  rationale; fixed label meanings (consequence for a buyer after mitigation); unassessed risks stay NOT_ASSESSED; a risk
+  without evidence cannot be LOW. Analysis-file block: `"risk_severity": { "<RSK-id>": { "label", "rationale" } }`.
+- **M-CLIENT-BRIEF (CBR-1, `engines/brief.mjs`).** `node desk/_tools/ingest.mjs brief --store <store> --id <OPP> --lang en|tr|ar`
+  writes `<store>/reports/brief-<OPP>-<lang>.md`: verified facts apart from developer statements, sources by name (no
+  internal IDs), price position, scenario table (nominal, real, home currency) with the assumptions behind it, risks by
+  severity, the official market overview, and the standard commission and not-advice texts. Sent privately with the
+  catalogue; never published.

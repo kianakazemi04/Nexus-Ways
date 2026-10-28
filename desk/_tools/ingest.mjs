@@ -41,6 +41,8 @@ import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness 
 import { checkAnalysis } from './engines/analysis.mjs';
 import { decisionReport, reportMarkdown } from './engines/report.mjs';
 import { compareOpportunities, compareMarkdown } from './engines/oppcompare.mjs';
+import { clientBrief } from './engines/brief.mjs';
+import { internalActive } from './engines/report.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -964,7 +966,7 @@ export function withdraw({ storeDir, id, by, reason, today, repoRoot }) {
 // Reads the private analysis file (default <store>/private/analysis/<OPP>.json), validates every input's provenance,
 // runs the internal engines and writes <store>/reports/decision-<OPP>.md and .json. Nothing is written to the public
 // tree; nothing here changes publication state.
-export function decisionReportFor({ storeDir, id, analysisPath = null, fixture = false, today, repoRoot, write = true }) {
+export function decisionReportFor({ storeDir, id, analysisPath = null, fixture = false, today, repoRoot, write = true, registry }) {
   const run = () => {
     const store = loadStore(storeDir);
     if (!store.collections.opportunities.some(o => o.id === id)) throw new Error(`${id} not found in the store`);
@@ -974,12 +976,31 @@ export function decisionReportFor({ storeDir, id, analysisPath = null, fixture =
     else if (analysisPath) throw new Error(`analysis file not found: ${analysisPath}`);
     if (!checked.ok) return { ok: false, errors: checked.errors };
     const gate = runGate(store, { fixture, today, repoRoot });
-    const r = decisionReport(store, id, { gateWhy: gate.eligibility.opportunities[id] || [], analysis: checked.analysis, provenance: checked.provenance, today });
+    const r = decisionReport(store, id, { gateWhy: gate.eligibility.opportunities[id] || [], analysis: checked.analysis, provenance: checked.provenance, today, ...(registry ? { registry } : {}) });
     const md = reportMarkdown(r);
     if (write) withTxn(storeDir, 'report', (t) => { t.write(path.join(storeDir, 'reports', `decision-${id}.md`), md); t.write(path.join(storeDir, 'reports', `decision-${id}.json`), JSON.stringify(r, null, 2) + '\n'); });
     return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null, gateWhy: gate.eligibility.opportunities[id] || [], gateCodes: (gate.eligibility.reasons || {})[id] || [] };
   };
   return write ? withLock(storeDir, 'report', run) : run();
+}
+
+// ------------------------------------------------------------ client brief (CBR-1, private, one recipient)
+// Builds the decision report first (same validation), then a plain-language brief in EN/TR/AR for one prospective buyer,
+// written to <store>/reports/brief-<OPP>-<lang>.md. Never exported or published. Runs only when M-CLIENT-BRIEF is
+// internally active (D-20).
+export function clientBriefFor({ storeDir, id, lang = 'en', analysisPath = null, fixture = false, today, repoRoot, write = true, registry }) {
+  if (!internalActive('M-CLIENT-BRIEF', registry)) return { ok: false, errors: ['M-CLIENT-BRIEF is not internally active (methodology awaiting approval)'] };
+  if (!['en', 'tr', 'ar'].includes(lang)) return { ok: false, errors: [`--lang must be en, tr or ar (got ${lang})`] };
+  const d = decisionReportFor({ storeDir, id, analysisPath, fixture, today, repoRoot, write: false, registry });
+  if (!d.ok) return d;
+  const store = loadStore(storeDir); const names = {};
+  for (const c of ['developers', 'districts', 'markets', 'projects']) for (const r of store.collections[c] || []) names[r.id] = r.name;
+  const opp = store.collections.opportunities.find(o => o.id === id);
+  const b = clientBrief(d.report, lang, { names, marketId: opp && opp.market_id });
+  if (b.status !== 'OK') return { ok: false, errors: [b.reason] };
+  const out = path.join(storeDir, 'reports', `brief-${id}-${lang}.md`);
+  if (write) withLock(storeDir, 'brief', () => withTxn(storeDir, 'brief', (t) => t.write(out, b.markdown)));
+  return { ok: true, markdown: b.markdown, path: out };
 }
 
 // ------------------------------------------------------------ comparison of several opportunities (OPC-2, internal)
@@ -1197,7 +1218,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  const STORE_CMDS = ['ingest', 'gate', 'report', 'compare', 'record-permission', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'export-market', 'deactivate-market', 'approve', 'approve-disclosure', 'approve-disclosure-template', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  const STORE_CMDS = ['ingest', 'gate', 'report', 'brief', 'compare', 'record-permission', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'export-market', 'deactivate-market', 'approve', 'approve-disclosure', 'approve-disclosure-template', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
   if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
@@ -1209,6 +1230,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   try {
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: a.store, fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(a.store); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const w of g.warnings || []) console.log(`! [${w.code}] ${w.id}: ${w.msg}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
+    else if (cmd === 'brief') { const r = clientBriefFor({ ...O, lang: a.lang && a.lang !== true ? a.lang : 'en', analysisPath: a.analysis && a.analysis !== true ? path.resolve(a.analysis) : null }); if (!r.ok) { console.error(`✗ brief refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(r.markdown); console.log(`\n(written to ${r.path})`); }
     else if (cmd === 'report') { const r = decisionReportFor({ ...O, analysisPath: a.analysis && a.analysis !== true ? path.resolve(a.analysis) : null }); if (!r.ok) { console.error(`✗ analysis refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(r.markdown); console.log(`\n(written to ${path.join(a.store, 'reports', `decision-${a.id}.md`)}; analysis: ${r.analysisUsed || 'none'})`); }
     else if (cmd === 'compare') { const r = compareFor({ ...O, ids: String(a.ids || '').split(',').filter(Boolean) }); console.log(r.markdown); }
     else if (cmd === 'record-permission') { const r = recordPermission({ ...O, file: path.resolve(String(a.file)) }); if (!r.ok) { console.error(`✗ permission not recorded:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(`permission recorded; images given this written permission: ${r.updated.join(', ') || 'none'} (each still needs approve-media)`); }

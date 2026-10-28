@@ -277,7 +277,8 @@ test('decision report (end to end): private, traceable, runs only supported meth
     assert.match(md, /Real terms \(inflation 30\.00% a year/); assert.match(md, /Home-currency view: NOT RUN/);
     assert.equal(js.finance.scenarios.base.views.real.status, 'OK');
     assert.match(md, /M-COMPARABLES:\*\* NOT RUN — UNAVAILABLE: analysis\.comparables/);
-    assert.match(md, /M-FAIR-VALUE, M-AREA-RANKING, M-RISK-SEVERITY, M-ASSET-QUALITY, M-LIQUIDITY:\*\* INACTIVE/);
+    assert.match(md, /M-FAIR-VALUE, M-AREA-RANKING, M-ASSET-QUALITY, M-LIQUIDITY:\*\* INACTIVE/);
+    assert.match(md, /M-RISK-SEVERITY:\*\* INACTIVE — methodology awaiting approval/); assert.match(md, /M-PRICE-POSITION:\*\* INACTIVE — methodology awaiting approval/);
     assert.equal(js.fit.outcome, 'CRITERIA_MET'); assert.equal(js.fit.criteria.length, 2);
     assert.doesNotMatch(md, /\bscore\b(?! or ranking)|\brank(ed|ing)? \d/i);
     for (const f of js.facts) for (const e of f.evidence) assert.ok(e.id && e.label, 'every fact cites its evidence');
