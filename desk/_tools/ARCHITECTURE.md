@@ -31,7 +31,7 @@ findings text; every number, calculation, gate decision and publication step is 
 
 | Domain | Where it lives | Public? |
 |---|---|---|
-| A Market | `markets`, research blocks (MARKET), evidence | context only after a market gate (not implemented → nothing public) |
+| A Market | `markets`, `districts`, research blocks (MARKET, MACRO_FX, DEVELOPER, PROJECT_ASSET, RISK, DISTRICT), named statistics (`evidence.topic`), private `regulatory_reviews` | market gate MG-1 computed per market (`engines/marketgate.mjs`); INACTIVE pending owner approval → nothing public |
 | B Macro & FX | evidence domain MACRO_FX → private facts; FX table in the analysis file | private (D-10) |
 | C District & location | `districts`, `areas`, evidence on district/area, project.district_id | yes, with evidence |
 | D Project & asset | `projects`, `assets`, evidence, media | yes, with evidence |
@@ -58,7 +58,7 @@ findings text; every number, calculation, gate decision and publication step is 
 | Engine | Module | Methods | Status |
 |---|---|---|---|
 | 1 Evidence & data quality | `validate.mjs`, `assets/js/policy.js` | M-EVIDENCE, M-MISSING-DATA, M-RESEARCH-STATUS, M-PUBLICATION-GATE | public, implemented & tested |
-| 2 Market & location | `engines/report.mjs` §3 | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate framework only (D3); ranking inactive |
+| 2 Market & location | `engines/report.mjs` §3; `engines/marketgate.mjs` | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate MG-1 implemented & tested, INACTIVE pending owner approval (D1/D3); ranking inactive |
 | 3 Project, developer & brand | `engines/report.mjs` §3, validator gate | M-DOMAIN-ASSESSMENT; M-ASSET-QUALITY | assessment internal & tested; asset quality inactive |
 | 4 Pricing & comparables | `engines/comparables.mjs`, `engines/units.mjs` | M-COMPARABLES (CMP-1), M-CONVERSION (CNV-1); M-FAIR-VALUE | internal & tested; fair value not implemented |
 | 5 Rental & financial | `engines/finance.mjs` | M-CASHFLOW, M-ROI, M-NPV, M-SCENARIOS (FIN-1); M-YIELD-RETURNS | internal & tested; public figures prohibited |
@@ -96,6 +96,6 @@ Public: project/developer facts with evidence (ESTABLISHED as fact, QUALIFIED wi
 3. `node desk/_tools/ingest.mjs ingest --package <pkg> --store <private store>` (dry run) → review → `--apply`. Existing developers/districts are linked with `ref`.
 4. Claude writes `private/analysis/<OPP>.json` (handoff part 2; template `analysis-template.json`) and runs `ingest.mjs report` → private decision report; gaps listed as next steps.
 5. Owner decisions: counsel-approved disclosure (`approve-disclosure`), each image (`approve-media`), the opportunity (`approve`).
-6. **Blocked today:** export needs an active market, and no real market can be active until the market gate (D3) is built and Istanbul is activated (D1). Then `export`, commit on a branch, CI, merge, verify the live page.
+6. **Blocked today:** export needs an active market. The market gate MG-1 is built (branch `desk/market-gates`) but INACTIVE: a market becomes active only after the owner approves the rules, its research and legal reviews are recorded, its own gate passes, and the owner runs `activate-market` (D1: Istanbul, Dubai and Abu Dhabi in one programme, each independently). Then `export`, commit on a branch, CI, merge, verify the live page.
 
 Prerequisites outside the code: private research store (repository or drive), Pages Source = GitHub Actions, legal review of disclosures/privacy text.

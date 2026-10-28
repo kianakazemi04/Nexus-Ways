@@ -11,6 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { evidenceFreshness, claimPublication, isPublicClaim, deriveLastVerified, MATERIAL_FIELDS, IDENTITY_FIELDS, isIsoDate } from '../assets/js/policy.js';
+import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons } from './engines/marketgate.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SCHEMA = JSON.parse(fs.readFileSync(path.join(HERE, '../_schema/schema-v1.1.json'), 'utf8'));
@@ -67,7 +68,7 @@ const PRICE_PATTERNS = [
   ['price word and amount', new RegExp(String.raw`${PRICEWORD}\W{0,3}(?:\S+\s){0,3}?(?:\d{1,3}(?:[.,   ]\d{3})+|\d+(?:[.,]\d+)?\s?(?:k|K|m|M|mn|mln|bn|million|billion|thousand|milyon|milyar|bin)\b)`, 'iu')]
 ];
 // paths whose strings are identifiers, links or hashes rather than prose (they are checked by other rules)
-const NON_PROSE_PATH = /(\.(id|slug|sha256|public_path|source_url|url|evidence_ref|geo_code|series_id|base_period|period|retrieved_at|published_at|last_verified|accessed_at|approved_at|expires_at|depicted_date|expected_delivery|field|state|status|kind|type|role|unit|currency|area_basis|activation|record_status|category|key|legal_review|verification_status|evidence_class|tier|source_type|domain|scope|media_type|content_category|risk_type|horizon|controllability|severity|probability|admin_level|delivery_status|research_closure|data_completeness|gate_version|approved_by|country)|_id|_ids\[\d+\]|_types?\[\d+\]|scope\[\d+\])$/;
+const NON_PROSE_PATH = /(\.(id|slug|sha256|public_path|source_url|url|evidence_ref|geo_code|series_id|base_period|period|retrieved_at|published_at|last_verified|accessed_at|approved_at|expires_at|depicted_date|expected_delivery|field|state|status|kind|type|role|unit|currency|area_basis|activation|record_status|category|key|legal_review|verification_status|evidence_class|tier|source_type|domain|topic|scope|media_type|content_category|risk_type|horizon|controllability|severity|probability|admin_level|delivery_status|research_closure|data_completeness|gate_version|approved_by|country)|_id|_ids\[\d+\]|_types?\[\d+\]|scope\[\d+\])$/;
 export function commercialTextHits(text) {
   if (typeof text !== 'string' || !text) return [];
   const hits = [];
@@ -132,7 +133,11 @@ function walk(v, fn, at = '$') {
 
 // ---------------------------------------------------------------- dataset validation
 // ds: { name: string, collections: { [collection]: record[] }, origin: { [id]: 'public'|'fixtures' } }
-// opts: { mode: 'public'|'fixtures', today: 'YYYY-MM-DD', mediaCheck?: (rec)=>string[] }
+// opts: { mode: 'public'|'fixtures'|'private', today: 'YYYY-MM-DD', mediaCheck?: (rec)=>string[], methods?: {id: status},
+//         marketGates?: { config, reviews?: [] | null, provenance?: {} | null } }
+// marketGates (MG-1, owner decision D3) is always passed by the production callers (validateRepo, ingest runGate). With
+// reviews (private store) the gate is computed for every real market; without them (public tree) the public record must
+// carry the activation stamp review.gate_version = config.version, which only `activate-market` writes.
 export function validateDataset(ds, opts) {
   const { mode, today } = opts;
   const errors = []; const E = (code, id, msg) => errors.push({ code, id, msg });
@@ -285,10 +290,19 @@ export function validateDataset(ds, opts) {
   }
   // V09 — risks: no unsupported qualitative judgement
   const sevActive = !!(opts.methods && opts.methods['M-RISK-SEVERITY'] === 'ACTIVE');
-  // market gate (Spec v1 §8): not implemented — the registry marks it INACTIVE / FRAMEWORK_ONLY. Fail closed: unless the
-  // registry passed in says ACTIVE, no real market can be activated and no opportunity in a real market is eligible.
+  // market gate (D3, MG-1): implemented as a shared engine with per-market configuration, INACTIVE until the owner approves
+  // the rules. Fail closed: unless the registry passed in says ACTIVE, no real market can be activated and no opportunity
+  // in a real market is eligible; once ACTIVE, each real market must pass its own computed gate (see marketGates).
   // Illustrative fixture markets (FIX-) simulate an activated market for the local development view only.
   const marketGateOn = !!(opts.methods && opts.methods['M-MARKET-GATE'] === 'ACTIVE');
+  const MG = opts.marketGates || null;
+  const gateResults = {};
+  const gateFor = (id) => {
+    if (!MG || !Array.isArray(MG.reviews)) return null; // public: no private review records, use the activation stamp
+    if (!(id in gateResults)) gateResults[id] = evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: MG.reviews, provenance: MG.provenance || null });
+    return gateResults[id];
+  };
+  const stampOk = (m) => !!(MG && MG.config && !MG.config.error && MG.config.markets && MG.config.markets[m.id] && m.review && m.review.gate_version === MG.config.version);
   for (const r of C('risks')) {
     if ((r.probability !== null || r.severity !== null) && isEmpty(r.evidence_ids)) E('V09', r.id, 'severity/probability requires supporting evidence');
     const isPublic = ds.origin ? ds.origin[r.id] === 'public' : mode === 'public';
@@ -375,7 +389,12 @@ export function validateDataset(ds, opts) {
     if (!r.review || r.review.gate_version !== GATE_VERSION) why.push(`no ${GATE_VERSION} review`);
     const m = get(r.market_id); const cat = C('categories').find(c => c.key === r.category);
     if (!m || m.r.activation !== 'ACTIVE') why.push('market inactive');
-    if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) why.push('market gate not operational (M-MARKET-GATE is framework only)');
+    if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) why.push('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)');
+    if (m && !String(m.r.id).startsWith('FIX-') && marketGateOn && MG) {
+      const g = gateFor(m.r.id);
+      if (g && !g.pass) why.push(`market gate ${g.gate_version} fails for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`);
+      if (!g && !stampOk(m.r)) why.push(`market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp`);
+    }
     if (!cat || cat.activation !== 'ACTIVE') why.push('category inactive');
     const p = r.subject && get(r.subject.id); const pr = p && p.r;
     if (!pr) why.push('subject missing');
@@ -415,6 +434,8 @@ export function validateDataset(ds, opts) {
       for (const c of ['evidence', 'risks', 'conflicts', 'research_blocks', 'media', 'disclosures']) for (const x of C(c)) if (x.subject && subjects.some(s => sameRef(s, x.subject))) closure.add(x.id);
       for (const i of r.disclosure_ids || []) closure.add(i);
       for (const i of closure) if (commercialHits.has(i)) why.push(`${i} has a price or commercial term in free text`);
+      // market-specific per-opportunity requirements (MG-1 publication rules: registration, permits, title status)
+      if (m && !String(m.r.id).startsWith('FIX-') && MG && marketGateOn) for (const w of opportunityRequirementReasons(MG.config, m.r.id, pr, ds.collections, { today, reviews: Array.isArray(MG.reviews) ? MG.reviews : null })) why.push(w);
     }
     // every applicable disclosure must be legally approved — one approved notice never covers a pending one (audit B1)
     for (const d of applicableDisclosures(C('disclosures'), r)) {
@@ -438,7 +459,14 @@ export function validateDataset(ds, opts) {
   for (const r of C('markets')) {
     if (r.record_status === 'PUBLISHED' && (!r.review || r.activation !== 'ACTIVE')) E('V12', r.id, 'market PUBLISHED requires activation ACTIVE and a review');
     // V21 — fail closed: no real market may be active or published while the market gate is not operational
-    if (!marketGateOn && !String(r.id).startsWith('FIX-') && (r.activation === 'ACTIVE' || r.record_status === 'PUBLISHED')) E('V21', r.id, 'market activation/publication requires the market gate (M-MARKET-GATE), which is not operational (framework only); markets stay INACTIVE');
+    const live = r.activation === 'ACTIVE' || r.record_status === 'PUBLISHED';
+    if (!marketGateOn && !String(r.id).startsWith('FIX-') && live) E('V21', r.id, 'market activation/publication requires the market gate (M-MARKET-GATE), which is not approved by the owner; markets stay INACTIVE');
+    // MG-1: a real market is never ACTIVE while its computed gate fails (store), nor without the activation stamp (public)
+    if (marketGateOn && MG && !String(r.id).startsWith('FIX-') && live) {
+      const g = gateFor(r.id);
+      if (g && !g.pass) E('V21', r.id, `market is ${r.activation}/${r.record_status} but its computed gate ${g.gate_version} fails: ${g.reasons.map(x => `${x.code} ${x.item}`).join('; ')}`);
+      if (!stampOk(r)) E('V21', r.id, `market is ${r.activation}/${r.record_status} without the ${MG.config && MG.config.version || 'market-gate'} activation stamp (review.gate_version); only activate-market may activate a market`);
+    }
   }
   for (const r of C('opportunities')) {
     const m = get(r.market_id);
@@ -570,7 +598,9 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
     if (!r.id.startsWith('FIX-') && hasExif(buf)) out.push('EXIF/metadata not stripped');
     return out;
   };
-  const prod = validateDataset({ name: 'public', ...pub }, { mode: 'public', today, mediaCheck, methods });
+  const gateConfig = loadGateConfig(path.join(desk, '_tools/market-gates/MG-1.json'));
+  if (gateConfig.error) errors.push({ code: 'M01', id: 'M-MARKET-GATE', msg: gateConfig.error });
+  const prod = validateDataset({ name: 'public', ...pub }, { mode: 'public', today, mediaCheck, methods, marketGates: { config: gateConfig, reviews: null } });
   errors.push(...prod.errors.map(e => ({ ...e, set: 'public' })));
   const merged = { collections: {}, origin: { ...pub.origin, ...fix.origin } };
   for (const c of Object.keys(COLLECTIONS)) merged.collections[c] = [...(pub.collections[c] || []), ...(fix.collections[c] || [])];
@@ -578,7 +608,7 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
   // report is deterministic; production data always uses the real date
   let fixToday = today;
   try { const c = JSON.parse(fs.readFileSync(path.join(desk, '_fixtures/clock.json'), 'utf8')); if (c && /^\d{4}-\d{2}-\d{2}$/.test(c.today)) fixToday = c.today; } catch { /* no fixture clock: use today */ }
-  const dev = validateDataset({ name: 'fixtures', ...merged }, { mode: 'fixtures', today: fixToday, mediaCheck, methods });
+  const dev = validateDataset({ name: 'fixtures', ...merged }, { mode: 'fixtures', today: fixToday, mediaCheck, methods, marketGates: { config: gateConfig, reviews: null } });
   errors.push(...dev.errors.filter(e => e.id && String(e.id).startsWith('FIX-')).map(e => ({ ...e, set: 'fixtures' })));
 
   // F05 — every file under desk/media must belong to a public media record (no orphan / unapproved uploads)
@@ -592,7 +622,7 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
     note: 'Generated by desk/_tools/validate.mjs --write-index. Do not edit by hand.',
     opportunities: Object.entries(prod.eligibility.opportunities).filter(([id, why]) => !why.length && (pub.collections.opportunities || []).find(o => o.id === id).record_status === 'PUBLISHED').map(([id]) => id).sort(),
     media: Object.entries(prod.eligibility.media).filter(([, why]) => !why.length).map(([id]) => id).sort(),
-    markets: (pub.collections.markets || []).filter(m => methods['M-MARKET-GATE'] === 'ACTIVE' && m.record_status === 'PUBLISHED' && m.review && m.activation === 'ACTIVE').map(m => m.id).sort()
+    markets: (pub.collections.markets || []).filter(m => methods['M-MARKET-GATE'] === 'ACTIVE' && m.record_status === 'PUBLISHED' && m.review && m.review.gate_version === gateConfig.version && m.activation === 'ACTIVE').map(m => m.id).sort()
   };
   // fixture gate report for the local development view (never published: lives under desk/_fixtures)
   const gatePath = path.join(desk, '_fixtures/gate.json');

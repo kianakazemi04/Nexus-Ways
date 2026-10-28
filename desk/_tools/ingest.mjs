@@ -12,6 +12,11 @@
 //   node desk/_tools/ingest.mjs revoke-media  --store <dir> --id <MED-…> --by owner --reason "…"
 //   node desk/_tools/ingest.mjs resolve-conflict --store <dir> --id <CNF-…> --by owner --status EXPLAINED|RESOLVED --note "…" [--accept <EVD-…>]
 //   node desk/_tools/ingest.mjs withdraw --store <dir> --id <OPP-…> --by owner --reason "…"
+//   node desk/_tools/ingest.mjs market-intake  --file <json> --store <dir> --by owner   (market/district research records)
+//   node desk/_tools/ingest.mjs record-review  --store <dir> --market <MKT-…> --topic <KEY> --status … [--outcome …]
+//        --reviewer "…" --role <ROLE> --reference "…" --reviewed-at YYYY-MM-DD [--valid-until …] [--conditions "a|b"] --by owner
+//   node desk/_tools/ingest.mjs market-gate    --store <dir> [--id <MKT-…>]   (computed gate per market; private report)
+//   node desk/_tools/ingest.mjs activate-market --store <dir> --id <MKT-…> --by owner   (refused unless its gate passes)
 //   node desk/_tools/ingest.mjs recover  --store <dir>            (roll back an interrupted write in the store and desk/)
 //   node desk/_tools/ingest.mjs unlock   --store <dir> --force [--public]   (only after checking no command is running)
 //
@@ -24,7 +29,8 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
+import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures, schemaErrors } from './validate.mjs';
+import { loadGateConfig, evaluateMarketGate, gateMarkdown, REVIEW_STATUS, REVIEW_OUTCOME } from './engines/marketgate.mjs';
 import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
 import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness } from '../assets/js/policy.js';
 import { checkAnalysis } from './engines/analysis.mjs';
@@ -89,7 +95,7 @@ export function loadStore(dir) {
     const f = path.join(dir, 'data', `${c}.json`);
     collections[c] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).records : [];
   }
-  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index']) {
+  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index', 'regulatory_reviews']) {
     const f = path.join(dir, 'private', `${n}.json`);
     files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (['media_index', 'entity_index'].includes(n) ? {} : []);
   }
@@ -213,7 +219,8 @@ export function runGate(store, { fixture, today, repoRoot, staged = null }) {
   };
   const m = methods();
   return validateDataset({ collections: store.collections, origin: storeOrigin(store, fixture) },
-    { mode: fixture ? 'fixtures' : 'private', today, mediaCheck, methods: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.status])) });
+    { mode: fixture ? 'fixtures' : 'private', today, mediaCheck, methods: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.status])),
+      marketGates: { config: loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json')), reviews: fixture ? null : (store.private.regulatory_reviews || []), provenance: fixture ? null : store.private.entity_index } });
 }
 
 // ------------------------------------------------------------ ingest
@@ -865,6 +872,100 @@ export function decisionReportFor({ storeDir, id, analysisPath = null, fixture =
   return write ? withLock(storeDir, 'report', run) : run();
 }
 
+// ------------------------------------------------------------ market gate (MG-1, owner decisions D1/D3)
+// Market-level research (market and district research blocks, named statistics, sources, conflicts) enters the store
+// through a market intake file, so every gate record has an owner (entity index) and an audit entry. Legal review is
+// recorded separately per market and topic; it is never inferred from evidence.
+const MARKET_INTAKE_COLLS = ['sources', 'evidence', 'research_blocks', 'districts', 'conflicts'];
+export function marketIntake({ storeDir, file, by, today, repoRoot, fixture = false }) {
+  requireOwner(by, 'market intake');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'market-intake' }, (dir) => {
+    const store = loadStore(dir); const pkg = JSON.parse(fs.readFileSync(file, 'utf8')); const errs = [];
+    if (!/^MI-[A-Z0-9-]+$/.test(pkg.intake_id || '')) errs.push('intake_id must look like MI-<MARKET>-<DATE>');
+    const market = store.collections.markets.find(x => x.id === pkg.market_id);
+    if (!market) errs.push(`market ${pkg.market_id} is not in the store`);
+    const ids = new Set(Object.values(store.collections).flat().map(r => r.id));
+    const mine = new Set([...(pkg.districts || []).map(d => d.id), ...store.collections.districts.filter(d => d.market_id === pkg.market_id).map(d => d.id)]);
+    const inScope = (s) => s && ((s.type === 'market' && s.id === pkg.market_id) || (s.type === 'district' && mine.has(s.id)));
+    for (const c of MARKET_INTAKE_COLLS) for (const r of pkg[c] || []) {
+      for (const e of schemaErrors(SCHEMA.$defs[c], r, `${c}:${r.id}`)) errs.push(`${r.id || c}: ${e}`);
+      const owner = store.private.entity_index[r.id];
+      if (ids.has(r.id) && !(owner && owner.created_by === pkg.intake_id)) errs.push(`${r.id} already exists and was not created by ${pkg.intake_id}`);
+      if (c === 'districts' && r.market_id !== pkg.market_id) errs.push(`${r.id}: district of another market`);
+      if (['evidence', 'research_blocks', 'conflicts'].includes(c) && !inScope(r.subject)) errs.push(`${r.id}: subject must be ${pkg.market_id} or one of its districts`);
+      if (c === 'evidence' && PRIVATE_DOMAINS.has(r.domain)) errs.push(`${r.id}: private domain`);
+      if (c === 'evidence' && r.currency !== null) errs.push(`${r.id}: market-gate evidence carries no currency amounts (D10)`);
+    }
+    if (errs.length) return { ok: false, errors: errs };
+    const received = today; let n = 0;
+    for (const c of MARKET_INTAKE_COLLS) for (const r of pkg[c] || []) {
+      const i = store.collections[c].findIndex(x => x.id === r.id);
+      if (i >= 0) store.collections[c][i] = r; else store.collections[c].push(r);
+      store.private.entity_index[r.id] = { created_by: pkg.intake_id, received_at: received }; n++;
+    }
+    for (const b of pkg.research_blocks || []) if (b.subject.type === 'market' && !market.research_block_ids.includes(b.id)) market.research_block_ids.push(b.id);
+    for (const e of pkg.evidence || []) if (e.subject.type === 'market' && !market.evidence_ids.includes(e.id)) market.evidence_ids.push(e.id);
+    const gate = runGate(store, { fixture, today, repoRoot });
+    const bad = gate.errors.filter(e => (pkg.sources || []).concat(pkg.evidence || [], pkg.research_blocks || [], pkg.districts || [], pkg.conflicts || []).some(r => r.id === e.id));
+    if (bad.length) return { ok: false, errors: bad.map(e => `[${e.code}] ${e.id}: ${e.msg}`) };
+    audit(store, 'market-intake', pkg.market_id, today, { intake_id: pkg.intake_id, records: n });
+    saveStore(store);
+    return { ok: true, records: n };
+  });
+}
+
+export function recordReview({ storeDir, market, topic, status, outcome = null, reviewer, role, reference, reviewedAt, validUntil = null, conditions = [], by, today, repoRoot, fixture = false }) {
+  requireOwner(by, 'a legal/regulatory review record');
+  const cfg = loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json')); const m = cfg.markets && cfg.markets[market];
+  if (!m) throw new Error(`market ${market} has no gate configuration`);
+  if (!m.regulatory_review.topics.some(t => t.key === topic)) throw new Error(`topic ${topic} is not a review topic of ${market} (${m.regulatory_review.topics.map(t => t.key).join(', ')})`);
+  if (!REVIEW_STATUS.includes(status)) throw new Error(`status must be one of ${REVIEW_STATUS.join(', ')}`);
+  if (status === 'COMPLETE' && !REVIEW_OUTCOME.includes(outcome)) throw new Error(`a COMPLETE review needs --outcome ${REVIEW_OUTCOME.join('|')}`);
+  if (status !== 'COMPLETE' && outcome) throw new Error('only a COMPLETE review has an outcome');
+  if (!reviewer || !role || !reference || !/^\d{4}-\d{2}-\d{2}$/.test(reviewedAt || '')) throw new Error('--reviewer, --role, --reference and --reviewed-at are required');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'record-review' }, (dir) => {
+    const store = loadStore(dir); const list = store.private.regulatory_reviews;
+    const seq = list.length + 1;
+    const rec = { id: `REG-${market.slice(4)}-${String(seq).padStart(3, '0')}`, seq, market_id: market, topic, status, outcome: outcome || null, conditions, reviewer, reviewer_role: role, reference, reviewed_at: reviewedAt, valid_until: validUntil, recorded_by: 'owner', recorded_at: today };
+    list.push(rec); // append-only: a later record supersedes an earlier one; nothing is overwritten
+    audit(store, 'record-review', market, today, { topic, status, outcome: rec.outcome, review_id: rec.id });
+    saveStore(store);
+    return rec;
+  });
+}
+
+export function marketGateReport({ storeDir, id = null, today, now = null, repoRoot, write = true }) {
+  const run = () => {
+    const store = loadStore(storeDir); const cfg = loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json'));
+    const ids = id ? [id] : Object.keys(cfg.markets || {});
+    const results = ids.map(mid => evaluateMarketGate(cfg, mid, store.collections, { today, now: now || new Date().toISOString(), reviews: store.private.regulatory_reviews, provenance: store.private.entity_index }));
+    if (write) withTxn(storeDir, 'market-gate', (t) => { for (const g of results) { t.write(path.join(storeDir, 'reports', `market-gate-${g.market_id}.json`), JSON.stringify(g, null, 2) + '\n'); t.write(path.join(storeDir, 'reports', `market-gate-${g.market_id}.md`), gateMarkdown(g, cfg)); } });
+    return results;
+  };
+  return write ? withLock(storeDir, 'market-gate', run) : run();
+}
+
+// The only path to an ACTIVE real market. Refused unless the owner approved the gate rules (registry ACTIVE with
+// RULES_APPROVED/VALIDATED) AND this market's own computed gate passes. Another market's result is irrelevant.
+export function activateMarket({ storeDir, id, by, today, now = null, repoRoot, fixture = false }) {
+  requireOwner(by, 'market activation');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'activate-market' }, (dir) => {
+    const store = loadStore(dir); const cfg = loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json')); const reg = methods()['M-MARKET-GATE']; const why = [];
+    if (!reg || reg.status !== 'ACTIVE' || !['RULES_APPROVED', 'VALIDATED'].includes(reg.validation_status)) why.push(`M-MARKET-GATE is ${reg ? reg.status + ' / ' + reg.validation_status : 'missing'}: the owner has not approved the gate rules`);
+    const market = store.collections.markets.find(m => m.id === id); if (!market) throw new Error(`${id} not found in the store`);
+    const g = evaluateMarketGate(cfg, id, store.collections, { today, now: now || new Date().toISOString(), reviews: store.private.regulatory_reviews, provenance: store.private.entity_index });
+    if (!g.pass) why.push(...g.reasons.map(r => `${r.code} ${r.item} — ${r.detail}`));
+    if (why.length) return { activated: false, why, gate: g };
+    const snapshot = JSON.stringify(store.collections);
+    Object.assign(market, { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: today, gate_version: cfg.version } });
+    const v = runGate(store, { fixture, today, repoRoot }).errors.filter(e => e.id === id);
+    if (v.length) { store.collections = JSON.parse(snapshot); return { activated: false, why: v.map(e => `[${e.code}] ${e.msg}`), gate: g }; }
+    audit(store, 'activate-market', id, today, { gate_version: g.gate_version, engine_version: g.engine_version, evaluated_at: g.evaluated_at, conditions: g.publication.conditions });
+    saveStore(store);
+    return { activated: true, why: [], gate: g };
+  });
+}
+
 // ------------------------------------------------------------ CLI
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const [cmd, ...rest] = process.argv.slice(2);
@@ -872,7 +973,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  const STORE_CMDS = ['ingest', 'gate', 'report', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  const STORE_CMDS = ['ingest', 'gate', 'report', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
   if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
@@ -885,6 +986,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: a.store, fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(a.store); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const w of g.warnings || []) console.log(`! [${w.code}] ${w.id}: ${w.msg}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
     else if (cmd === 'report') { const r = decisionReportFor({ ...O, analysisPath: a.analysis && a.analysis !== true ? path.resolve(a.analysis) : null }); if (!r.ok) { console.error(`✗ analysis refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(r.markdown); console.log(`\n(written to ${path.join(a.store, 'reports', `decision-${a.id}.md`)}; analysis: ${r.analysisUsed || 'none'})`); }
+    else if (cmd === 'market-intake') { const r = marketIntake({ ...O, file: path.resolve(String(a.file)) }); if (!r.ok) { console.error(`✗ market intake refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } console.log(`market intake recorded: ${r.records} record(s)`); }
+    else if (cmd === 'record-review') { const r = recordReview({ ...O, market: a.market, topic: a.topic, status: a.status, outcome: a.outcome === true ? null : a.outcome || null, reviewer: a.reviewer, role: a.role, reference: a.reference, reviewedAt: a['reviewed-at'], validUntil: a['valid-until'] || null, conditions: a.conditions && a.conditions !== true ? String(a.conditions).split('|').map(s => s.trim()).filter(Boolean) : [] }); console.log(`${r.id} recorded: ${r.market_id} ${r.topic} ${r.status}${r.outcome ? ' / ' + r.outcome : ''}`); }
+    else if (cmd === 'market-gate') { const rs = marketGateReport(O); for (const g of rs) { console.log(`${g.market_id} (${g.gate_version}, ${g.evaluated_at}): ${g.pass ? 'PASS' : 'FAIL'}`); for (const r of g.reasons) console.log(`  - ${r.code} ${r.item} — ${r.detail}`); } console.log(`\n(reports written to ${path.join(a.store, 'reports')})`); }
+    else if (cmd === 'activate-market') { const r = activateMarket(O); console.log(r.activated ? `${a.id} ACTIVE in the store (gate ${r.gate.gate_version}, evaluated ${r.gate.evaluated_at}); not exported` : `${a.id} NOT activated — stays INACTIVE:\n${r.why.map(w => '  - ' + w).join('\n')}`); process.exit(r.activated ? 0 : 1); }
     else if (cmd === 'approve') { const r = approve(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported); last verified: ${r.last_verified || 'not recorded in the evidence'}` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
     else if (cmd === 'approve-disclosure') { approveDisclosure(O); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
     else if (cmd === 'approve-media') { const r = approveMedia(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved for public use` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }

@@ -32,4 +32,15 @@ node desk/_tools/ingest.mjs ingest --package <pkg> --store <store>            # 
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store> --apply    # all-or-nothing write
 node desk/_tools/ingest.mjs report --store <store> --id <OPP-…>               # private decision report
 node desk/_tools/ingest.mjs gate   --store <store>                            # publication gate reasons
+node desk/_tools/ingest.mjs market-intake --file <MI-….json> --store <store> --by owner   # market statistics, blocks, districts
+node desk/_tools/ingest.mjs record-review --store <store> --market <MKT> --topic <KEY> --status COMPLETE --outcome CLEAR \
+     --reviewer "<counsel>" --role <ROLE> --reference "<memo ref>" --reviewed-at <date> --by owner   # counsel's answer only
+node desk/_tools/ingest.mjs market-gate   --store <store> [--id <MKT>]          # computed gate per market (private report)
+node desk/_tools/ingest.mjs activate-market --store <store> --id <MKT> --by owner # refused unless that market's gate passes
 ```
+
+## Market research (MG-1)
+Claude drafts one market intake file per market (`MI-<MKT>-<date>.json`: sources, evidence with `topic` = the statistic
+key from `market-gates/MG-1.json`, research blocks, districts) from the official sources listed in `MARKET-GATES.md`,
+with URL, period, unit and retrieval date for every figure. Claude never records a legal review: the owner records
+counsel's answer with `record-review`.
