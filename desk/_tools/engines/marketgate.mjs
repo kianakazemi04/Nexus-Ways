@@ -10,6 +10,7 @@
 //     → { gate_version, engine_version, market_id, evaluated_at, pass, reasons: [{ code, item, detail }], blocks,
 //         statistics, reviews, publication }
 //   opportunityRequirementReasons(config, marketId, project, collections, { today, reviews }) → string[]
+//   gateValidUntil(config, gate) · gateCertificate(config, gate, reviews, today) · certificateState(config, market, today)
 //
 // Freshness rules are tied to each source's publication rhythm (documented per statistic); no statistic has a pass
 // value — the gate checks that evidence exists, is official, verified, traceable, current and unconflicted.
@@ -221,7 +222,7 @@ export function evaluateMarketGate(cfg, marketId, collections, { today, now = nu
   // 6 — legal / regulatory review: separate records per market and topic; evidence never substitutes for review
   for (const t of skipReviews ? [] : m.regulatory_review.topics) {
     const r = reviewState(m.regulatory_review, marketId, t.key, reviews, today);
-    out.reviews.push({ topic: t.key, ok: r.ok, code: r.code, detail: r.detail, status: r.review ? r.review.status : null, outcome: r.review ? r.review.outcome : null, reference: r.review ? r.review.reference : null, reviewed_at: r.review ? r.review.reviewed_at : null, conditions: r.review && r.review.outcome === 'CONDITIONS' ? (r.review.conditions || []) : [] });
+    out.reviews.push({ topic: t.key, ok: r.ok, code: r.code, detail: r.detail, status: r.review ? r.review.status : null, outcome: r.review ? r.review.outcome : null, reference: r.review ? r.review.reference : null, reviewed_at: r.review ? r.review.reviewed_at : null, valid_until: r.review ? r.review.valid_until || null : null, conditions: r.review && r.review.outcome === 'CONDITIONS' ? (r.review.conditions || []) : [] });
     if (!r.ok) R(r.code, t.key, r.detail);
   }
   // 9 — market-specific publication eligibility and restrictions
@@ -269,10 +270,36 @@ export function opportunityRequirementReasons(cfg, marketId, project, collection
   return why;
 }
 
-// Gate certificate (owner decisions D11/D12): the non-confidential attestation written onto the market record when the
-// owner activates a market whose gate passed. It names the gate and engine versions, when the gate was evaluated, which
-// per-opportunity requirements a COMPLETE NOT_APPLICABLE review waived, and which topics carry counsel conditions —
-// never the review text, reviewer or memo. The public validator reads it because it cannot see the private reviews.
+// Validity horizon of a passing gate: the last date on which every input that made it pass is still current — each
+// passing statistic (end of its observation period + its freshness limit), each market research block and the
+// min_closed most recent district blocks (last review + limit), each statutory review (review date + validity, or its own
+// valid_until). Computed in the private store at activation, so the public tree never needs the research itself.
+const addDays = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * DAY).toISOString().slice(0, 10);
+export function gateValidUntil(cfg, g) {
+  if (!g || !g.pass) return null;
+  const m = cfg.markets[g.market_id]; const ends = [];
+  for (const st of g.statistics) {
+    if (st.status !== 'PASS') continue;
+    const s = m.statistics.find(x => x.key === st.key); const pe = periodEnd(st.period, s.period_format);
+    if (pe.ok) ends.push(addDays(pe.end, s.max_age_days));
+  }
+  for (const b of g.blocks.filter(b => b.subject === g.market_id && b.ok)) {
+    const rule = m.research_blocks.find(r => r.domain === b.domain); if (rule) ends.push(addDays(b.last_reviewed, rule.max_age_days));
+  }
+  const dEnds = g.blocks.filter(b => b.subject !== g.market_id && b.ok).map(b => addDays(b.last_reviewed, m.districts.max_age_days)).sort().reverse();
+  if (dEnds.length >= m.districts.min_closed) ends.push(dEnds[m.districts.min_closed - 1]);
+  for (const r of g.reviews) {
+    if (!r.ok) continue;
+    ends.push(addDays(r.reviewed_at, m.regulatory_review.max_age_days)); if (r.valid_until) ends.push(r.valid_until);
+  }
+  return ends.length ? ends.sort()[0] : null;
+}
+
+// Gate certificate (owner decisions D11/D12, minimised by PUB-2): the non-confidential attestation written onto the
+// market record when the owner activates a market whose gate passed. It names the gate and engine versions, when the gate
+// was evaluated, until when its inputs stay current, and which per-opportunity requirements a COMPLETE NOT_APPLICABLE
+// review waived — never research figures, review text, reviewer, memo or counsel conditions. The public validator reads
+// it because neither the research nor the reviews are public.
 export function gateCertificate(cfg, g, reviews, today) {
   const m = cfg.markets[g.market_id];
   const waived = [];
@@ -281,7 +308,20 @@ export function gateCertificate(cfg, g, reviews, today) {
     const r = reviewState(m.regulatory_review, g.market_id, q.basis_review, reviews, today);
     if (r.ok && r.review.outcome === 'NOT_APPLICABLE') waived.push(q.key);
   }
-  return { gate_version: g.gate_version, engine_version: g.engine_version, evaluated_at: g.evaluated_at, activated_at: today, waived_requirements: waived.sort(), conditions_topics: (g.publication.conditions || []).map(c => c.topic).sort() };
+  return { gate_version: g.gate_version, engine_version: g.engine_version, evaluated_at: g.evaluated_at, activated_at: today, valid_until: gateValidUntil(cfg, g), waived_requirements: waived.sort() };
+}
+
+// Public attestation check (PUB-2): an ACTIVE market in the public tree is accepted on its activation stamp and gate
+// certificate; once the certificate's validity horizon has passed, new publications are blocked until the owner
+// re-runs the gate in the store (activate-market + export-market) or deactivates the market.
+export function certificateState(cfg, market, today) {
+  const c = market && market.gate_certificate;
+  if (!cfg || cfg.error || !cfg.markets || !cfg.markets[market.id]) return { ok: false, code: 'MG_CONFIG', detail: 'no gate configuration' };
+  if (!market.review || market.review.gate_version !== cfg.version) return { ok: false, code: 'MG_CERT_MISSING', detail: `no ${cfg.version} activation stamp` };
+  if (!c || c.gate_version !== cfg.version || !c.engine_version || !isIsoDate(c.activated_at)) return { ok: false, code: 'MG_CERT_MISSING', detail: `no ${cfg.version} gate certificate` };
+  if (!isIsoDate(c.valid_until)) return { ok: false, code: 'MG_CERT_INVALID', detail: 'certificate without a validity horizon' };
+  if (c.valid_until < today) return { ok: false, code: 'MG_CERT_EXPIRED', detail: `gate inputs current only until ${c.valid_until}` };
+  return { ok: true, code: null, detail: null };
 }
 
 // Plain-text summary of one evaluation for the owner (private report).

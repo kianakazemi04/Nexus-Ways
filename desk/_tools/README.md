@@ -121,7 +121,8 @@ Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingest
   A market becomes ACTIVE only through `activate-market` (its own computed gate must pass; writes the stamp and the
   gate certificate) and reaches the public tree only through `export-market`; `deactivate-market` rolls back. The store
   validator re-checks the full gate (V21); the public validator requires stamp + certificate (V21) and warns (W04) when
-  an active market's public evidence ages out, blocking new publications. Statutory checks are recorded per market and
+  the certificate's validity date (`valid_until`, the earliest expiry of the inputs that passed) has gone by, blocking
+  new publications. Market and district research is never public (PUB-2, V22). Statutory checks are recorded per market and
   topic with `record-review` (private, append-only); evidence never counts as legal approval. Tests seed a TEST-ONLY
   market (`seedTestMarketGate`) and simulate the unapproved state with `disableTestMarketGate`.
 - **Freshness.** The ingestion report uses review policy RP-1 (the same function as the gate and the pages). No

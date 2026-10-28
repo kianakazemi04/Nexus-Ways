@@ -19,7 +19,7 @@ test('the shared Desk constants are exactly the owner-supplied channels', () => 
 });
 
 test('every Desk page: Desk e-mail and Desk calendar in the footer; no company channel, key or company form link', () => {
-  assert.ok(deskPages.length >= 57);
+  assert.ok(deskPages.length >= 36);
   for (const [f, h] of deskPages) {
     const foot = (h.match(/<footer[\s\S]*<\/footer>/) || [''])[0];
     assert.ok(foot.includes(`href="mailto:${DESK.email}"`) && foot.includes(`href="${DESK.cal}"`), `${f}: Desk e-mail and calendar in the footer`);

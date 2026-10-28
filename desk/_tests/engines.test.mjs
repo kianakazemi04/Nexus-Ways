@@ -269,22 +269,30 @@ test('decision report (end to end): private, traceable, runs only supported meth
   } finally { s.cleanup(); }
 });
 
-// ================================================================== registry and public methodology stay synchronised
-test('decision-engines page (EN/TR/AR) lists every registry method with its real status; internal results never show as public', () => {
+// ================================================================== PUB-2: public pages are decision-first and minimal
+test('PUB-2: internal financial, pricing and fit methods are implemented and never public', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
-  const want = Object.fromEntries(reg.map(m => [m.id, m.status === 'ACTIVE' ? 'public' : m.internal === 'ACTIVE' ? 'internal' : 'inactive']));
-  for (const f of ['intelligence/decision-engines/index.html', 'tr/intelligence/decision-engines/index.html', 'ar/intelligence/decision-engines/index.html']) {
-    const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8');
-    const got = Object.fromEntries([...h.matchAll(/data-method="([^"]+)" data-state="([^"]+)"/g)].map(m => [m[1], m[2]]));
-    assert.deepEqual(got, want, f);
-  }
-  // internal financial / pricing / fit methods are implemented, tested and never public
   for (const id of ['M-CASHFLOW', 'M-ROI', 'M-NPV', 'M-SCENARIOS', 'M-COMPARABLES', 'M-INVESTMENT-FIT']) {
     const m = reg.find(x => x.id === id); assert.equal(m.status, 'INACTIVE', id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'PROHIBITED_IN_MVP', id);
   }
-  for (const id of ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-RISK-SEVERITY', 'M-ASSET-QUALITY', 'M-LIQUIDITY']) assert.equal(want[id], 'inactive', id);
-  assert.equal(want['M-MARKET-GATE'], 'public', 'the market gate is an approved, operating control; its result is shown on the Markets pages');
-  // the methodology no longer says that nothing is calculated, and links to the engines page
-  const ev = fs.readFileSync(path.join(ROOT, 'desk/intelligence/evaluation/index.html'), 'utf8');
-  assert.doesNotMatch(ev, /What is not calculated in the MVP/); assert.match(ev, /href="\.\.\/decision-engines\/"/);
+});
+test('PUB-2: no generated page shows market figures, gate details, legal-review topics or internal method names', () => {
+  const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
+  const pages = fs.readdirSync(path.join(ROOT, 'desk'), { recursive: true }).map(String).filter(f => f.endsWith('.html') && !f.split(path.sep).some(x => x.startsWith('_')));
+  const banned = [/\bMG-1\b/, /\bMGE-1\b/, /\b(?:FIN|CMP|CNV|FIT|RPT|OPC|ANL)-\d\b/, /\bNPV\b/, /\bIRR\b/, /data-gate=/, /data-stat=/, /data-topic=/, /Trakheesi|Madhmoun|yetki belgesi|brokerage authority/i, /\b(?:IST|DXB|AUH)-(?:AGENT|ONLINE|OFFPLAN)/];
+  for (const f of pages) {
+    const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '');
+    for (const re of banned) assert.doesNotMatch(h, re, `${f}: ${re}`);
+    for (const m of reg) assert.ok(!h.includes(m.id), `${f}: method id ${m.id}`);
+  }
+  // no market or district research in the public tree (V22); sources named on the pages are names only
+  for (const c of ['evidence', 'research_blocks', 'conflicts']) assert.ok(!readJson(path.join(ROOT, `desk/data/public/${c}.json`)).records.some(r => r.subject && ['market', 'district'].includes(r.subject.type)), c);
+  for (const lang of ['', 'tr/', 'ar/']) {
+    const ev = fs.readFileSync(path.join(ROOT, `desk/${lang}intelligence/index.html`), 'utf8');
+    assert.match(ev, /data-split="public"/); assert.match(ev, /data-split="private"/);
+    for (const id of ['MKT-IST', 'MKT-DXB', 'MKT-AUH']) assert.match(ev, new RegExp(`data-sources="${id}"`), `${lang}: sources of ${id}`);
+    const mk = fs.readFileSync(path.join(ROOT, `desk/${lang}markets/dubai/index.html`), 'utf8');
+    assert.match(mk, /data-market-status="preparing"/); assert.match(mk, /data-req="DXB-PROJECT-REGISTRATION"/);
+    assert.doesNotMatch(mk, /<a [^>]*href="https:\/\/(?!nexus-ways\.com|calendly)/, `${lang}: no outbound source links on the market page`);
+  }
 });

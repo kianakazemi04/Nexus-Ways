@@ -58,8 +58,11 @@ only; it also re-computes NPV and ROI by hand and checks that no private figure 
   nominal, real and home-currency ROI and IRR side by side.
 - **Fit:** list soft criteria in the investor profile's `preferences`; budget is always hard and includes recorded
   acquisition costs (`price_evidence.costs`).
-- **Markets:** market research enters the store with `market-intake` and reaches the site only with
-  `activate-market` → `export-market`.
+- **Markets:** market research enters the store with `market-intake` and stays there (PUB-2): it feeds the gate, the
+  analysis and the consultation, never the site. `activate-market` → `export-market` publishes only the market record,
+  its certificate (with its validity date) and the district names.
+- **Public copy (PUB-2):** write public notes as a client would read them — no internal status, no open legal item, no
+  unverified figure, no method code. Anything uncertain stays in the private report.
 
 ## Commands
 ```
@@ -68,7 +71,7 @@ node desk/_tools/ingest.mjs ingest --package <pkg> --store <store> --apply    # 
 node desk/_tools/ingest.mjs report --store <store> --id <OPP-…>               # private decision report
 node desk/_tools/ingest.mjs gate   --store <store>                            # publication gate reasons
 node desk/_tools/ingest.mjs approve-disclosure-template --store <store> --id DT-… --by owner   # once per standard text
-node desk/_tools/ingest.mjs export-market --store <store> --id <MKT> --by owner   # activated market → public site
+node desk/_tools/ingest.mjs export-market --store <store> --id <MKT> --by owner   # activated market → public site (record, certificate, district names)
 node desk/_tools/ingest.mjs compare --store <store> --ids <OPP-…>,<OPP-…>       # side by side + research queue (private)
 node desk/_tools/ingest.mjs record-permission --file <perm.json> --store <store> --by owner   # permission received later
 node desk/_tools/ingest.mjs market-intake --file <MI-….json> --store <store> --by owner   # market statistics, blocks, districts

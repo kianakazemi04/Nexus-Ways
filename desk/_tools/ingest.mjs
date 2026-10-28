@@ -867,7 +867,8 @@ export function exportPublic({ storeDir, id, repoRoot, today }) {
     const project = clone(store.collections.projects.find(p => p.id === opp.subject.id));
     const own = new Set([opp.id, project.id, ...store.collections.assets.filter(a => a.project_id === project.id).map(a => a.id)]);
     const shared = new Set([project.developer_id, project.district_id, project.area_id].filter(Boolean));
-    const subj = new Set([opp.id, project.id, opp.asset_id, ...shared].filter(Boolean));
+    // district research is market research (PUB-2): the district record is exported, its research and evidence are not
+    const subj = new Set([opp.id, project.id, opp.asset_id, project.developer_id, project.area_id].filter(Boolean));
     const skipped = []; const heldBack = [];
     const sevActive = methods()['M-RISK-SEVERITY'].status === 'ACTIVE';
     const out = { opportunities: [opp], projects: [project] };
@@ -1102,12 +1103,14 @@ export function activateMarket({ storeDir, id, by, today, now = null, repoRoot, 
   });
 }
 
-// ------------------------------------------------------------ public market activation (owner decisions D11/D12)
+// ------------------------------------------------------------ public market activation (owner decisions D11/D12, PUB-2)
 // export-market copies an ACTIVE market from the private store to the public tree: the market record with its activation
-// stamp and gate certificate, its districts, and the public-safe research behind its gate (market and district research
-// blocks, evidence that passes the claim policy and carries no currency amount, their sources, and conflicts with two
-// public sides). The full gate is recomputed first and must pass; the public result must validate, or nothing changes.
-// This is the single path by which market-level research reaches the public tree: the store is its source of truth.
+// stamp and gate certificate, and its districts (names only: research and evidence ids are dropped). Market and district
+// research — named statistics, research notes, sources and conflicts — stays in the store (PUB-2, owner instruction
+// 28 Oct 2026): it is used for the gate and for analysis, never published. Any market research left in the public tree
+// by an earlier version is removed, with the sources that only it used. The full gate is recomputed first and must pass;
+// the public result must validate, or nothing changes. The store is the source of truth.
+const PUBLIC_MARKET_FIELDS = ['id', 'slug', 'name', 'country', 'currency', 'activation', 'summary', 'category', 'record_status', 'field_states', 'last_reviewed', 'is_illustrative', 'review', 'gate_certificate'];
 export function exportMarket({ storeDir, id, by, repoRoot, today, now = null }) {
   requireOwner(by, 'market export');
   if (id.startsWith('FIX-')) throw new Error('illustrative fixture markets are never exported');
@@ -1118,35 +1121,30 @@ export function exportMarket({ storeDir, id, by, repoRoot, today, now = null }) 
     if (!reg || reg.status !== 'ACTIVE') throw new Error('M-MARKET-GATE is not ACTIVE: the owner has not approved the gate rules');
     const m0 = store.collections.markets.find(m => m.id === id); if (!m0) throw new Error(`${id} not found in the store`);
     if (m0.activation !== 'ACTIVE' || m0.record_status !== 'PUBLISHED' || !m0.review || m0.review.gate_version !== cfg.version || !m0.gate_certificate) throw new Error(`${id} is not activated in the store (run activate-market --by owner first)`);
+    if (!m0.gate_certificate.valid_until || m0.gate_certificate.valid_until < today) throw new Error(`${id}: gate certificate is not current (valid until ${m0.gate_certificate.valid_until || 'unknown'}) — re-run activate-market`);
     const g = evaluateMarketGate(cfg, id, store.collections, { today, now: now || new Date().toISOString(), reviews: store.private.regulatory_reviews, provenance: store.private.entity_index });
     if (!g.pass) throw new Error(`${id} no longer passes its gate — not exported: ${g.reasons.slice(0, 8).map(r => `${r.code} ${r.item}`).join('; ')}`);
     const clone = (x) => JSON.parse(JSON.stringify(x));
-    const market = clone(m0);
-    const dists = store.collections.districts.filter(d => d.market_id === id).map(clone);
-    const scope = new Set([id, ...dists.map(d => d.id)]);
-    const inScope = (r) => r.subject && scope.has(r.subject.id) && ['market', 'district'].includes(r.subject.type);
-    const heldBack = [];
-    const evidence = store.collections.evidence.filter(inScope).filter(e => (e.currency === null || (heldBack.push(`${e.id} (currency)`), false)) && (isPublicClaim(e) || (heldBack.push(`${e.id} (${claimPublication(e).reason})`), false))).map(clone);
-    const blocks = store.collections.research_blocks.filter(inScope).map(clone);
-    const evIds = new Set(evidence.map(e => e.id));
-    const conflicts = store.collections.conflicts.filter(inScope).filter(c => c.evidence_ids.filter(i => evIds.has(i)).length >= 2 || (heldBack.push(`${c.id} (conflict with non-public evidence)`), false)).map(clone);
-    const srcIds = new Set(evidence.map(e => e.source_id));
-    const sources = store.collections.sources.filter(s => srcIds.has(s.id)).map(clone);
-    const exportedIds = new Set([market, ...dists, ...evidence, ...blocks, ...conflicts].map(r => r.id));
-    for (const r of [market, ...dists]) { r.research_block_ids = (r.research_block_ids || []).filter(i => exportedIds.has(i)); r.evidence_ids = (r.evidence_ids || []).filter(i => exportedIds.has(i)); }
-    for (const e of evidence) e.conflict_ids = (e.conflict_ids || []).filter(i => exportedIds.has(i));
+    const market = Object.fromEntries(PUBLIC_MARKET_FIELDS.filter(k => k in m0).map(k => [k, clone(m0[k])]));
+    Object.assign(market, { research_block_ids: [], evidence_ids: [] });
+    const dists = store.collections.districts.filter(d => d.market_id === id).map(d => ({ ...clone(d), research_block_ids: [], evidence_ids: [] }));
+    const exportedIds = new Set([market, ...dists].map(r => r.id));
+    const removed = [];
     const res = publicChange({ repoRoot, today, label: 'export-market' }, (pub) => {
       const projDistricts = new Set(pub.projects.map(p => p.district_id).filter(Boolean));
-      // the market's previous public research is replaced as a whole by the store's
-      for (const c of ['evidence', 'research_blocks', 'conflicts']) pub[c] = pub[c].filter(r => !(r.subject && (r.subject.type === 'market' ? r.subject.id === id : r.subject.type === 'district' && pub.districts.some(d => d.id === r.subject.id && d.market_id === id))));
+      // market and district research never stays public (PUB-2), whichever market it belongs to
+      for (const c of ['evidence', 'research_blocks', 'conflicts']) pub[c] = pub[c].filter(r => !(r.subject && ['market', 'district'].includes(r.subject.type)) || (removed.push(r.id), false));
+      const used = new Set(pub.evidence.map(e => e.source_id));
+      pub.sources = pub.sources.filter(x => used.has(x.id) || (removed.push(x.id), false));
+      for (const r of [...pub.markets, ...pub.districts]) { r.research_block_ids = []; r.evidence_ids = []; }
       // districts of this market are replaced by the store's; one still used by a published project is kept
       pub.districts = pub.districts.filter(d => d.market_id !== id || projDistricts.has(d.id));
       const put = (c, recs) => { for (const r of recs) { const i = pub[c].findIndex(x => x.id === r.id); if (i >= 0) pub[c][i] = r; else pub[c].push(r); } };
-      put('markets', [market]); put('districts', dists); put('evidence', evidence); put('research_blocks', blocks); put('conflicts', conflicts); put('sources', sources);
+      put('markets', [market]); put('districts', dists);
     });
-    try { audit(store, 'export-market', id, today, { gate_version: g.gate_version, evaluated_at: g.evaluated_at, records: exportedIds.size, held_back: heldBack }); saveStore(store); }
+    try { audit(store, 'export-market', id, today, { gate_version: g.gate_version, evaluated_at: g.evaluated_at, valid_until: market.gate_certificate.valid_until, records: exportedIds.size, removed_from_public: removed.length }); saveStore(store); }
     catch (e) { res.auditWarning = `public tree updated, but the audit entry could not be written: ${e.message}`; }
-    return { exported: [...exportedIds].sort(), heldBack, ...res };
+    return { exported: [...exportedIds].sort(), heldBack: [], removed, ...res };
   });
 }
 

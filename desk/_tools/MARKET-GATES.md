@@ -2,7 +2,9 @@
 
 Status (28 Oct 2026, after the engineering audit): **rules approved by the owner (registry ACTIVE / RULES_APPROVED); every
 market still fails its own gate and stays INACTIVE.** A market becomes public only through activate-market → export-market
-with its gate certificate. This document is a research and control specification, not legal advice; every statutory item
+with its gate certificate. Market research (statistics, research blocks, district research) is private (PUB-2, owner
+instruction 28 Oct 2026): it is evaluated in the store and never published; the site shows the market's status, the
+per-project checks and the names of the sources used. This document is a research and control specification, not legal advice; every statutory item
 below is an open check, not a conclusion.
 
 ## 1. Design
@@ -14,14 +16,17 @@ below is an open check, not a conclusion.
   `ingest.mjs activate-market --id <MKT> --by owner`, which recomputes that market's gate and refuses unless
   (a) the gate passes and (b) the registry entry `M-MARKET-GATE` is ACTIVE with `RULES_APPROVED` (approved 28 Oct 2026).
   Activation writes the stamp `review.gate_version = "MG-1"`, a non-confidential **gate certificate** (gate and engine
-  versions, evaluation time, waived per-opportunity requirements, topics carrying counsel conditions — never review text)
-  and an audit entry. `export-market --by owner` then publishes the market record, its districts and its public-safe
-  research from the store (the single source of market research); `deactivate-market --by owner --reason` rolls back.
+  versions, evaluation time, validity date, waived per-opportunity requirements — never figures, review text or counsel
+  conditions) and an audit entry. `export-market --by owner` then publishes the market record with its certificate and
+  the names of its districts, and removes any market research an earlier version left public; `deactivate-market --by
+  owner --reason` rolls back.
 - **Fail closed everywhere.** The validator (V21) rejects a real market that is ACTIVE/PUBLISHED (a) while the registry
   is INACTIVE, (b) in the private store, whenever its computed gate fails — including later, when evidence ages or a
-  review is withdrawn — and (c) in the public tree, without the MG-1 activation stamp and gate certificate. On the public tree the non-statutory part
-  of the gate is re-checked from the public evidence: when it ages out, new opportunities are blocked and W04 is raised,
-  without blocking deployments (so a withdrawal can always be published). Opportunities in a market whose
+  review is withdrawn — and (c) in the public tree, without the MG-1 activation stamp and gate certificate. On the public tree the gate is attested by the
+  certificate: `valid_until` is the earliest date on which an input that made the gate pass (a statistic, a research
+  block, the required district blocks, a statutory review) expires; after it, new opportunities are blocked and W04 is
+  raised, without blocking deployments (so a withdrawal can always be published). V22 rejects any market or district
+  research in the public tree. Opportunities in a market whose
   gate fails are not eligible, and each opportunity must also carry its market's per-project requirements.
 - **Independent markets.** Each market is evaluated on its own records and its own review records. Dubai evidence and
   Dubai reviews never satisfy Abu Dhabi (and vice versa), even where the currency and federal FX source are shared. A
@@ -234,42 +239,34 @@ series codes and publication calendars are recorded at intake; nothing below is 
 - Limit: index coverage and method to be documented before AUH-PRICE-INDEX is relied on (it is optional for that
   reason).
 
-## 5. Unresolved statutory checks (28 Oct 2026)
+## 5. Statutory checks
 
 Owner instruction (28 Oct 2026): project-level advertising and media authorization comes from each sales office's
 written permission, recorded privately per project (channels, activities, media, validity) and checked per page and per
-image. No separate legal opinion is required per project. Market-level topics are limited to statutory requirements that
-apply to Nexus Ways' own activity; each can be recorded by the owner with an official reference (licence or permit
-number, official guidance) or by counsel's memo. None is recorded yet:
-
-- **Istanbul:** brokerage authority certificate (IST-AGENT-AUTHORIZATION); applicability of the Ministry of Trade
-  online-listing rules (IST-ONLINE-LISTING-RULES); statements required for off-plan housing advertising
-  (IST-OFFPLAN-ADVERTISING).
-- **Dubai:** RERA/DLD broker registration (DXB-AGENT-AUTHORIZATION); Trakheesi advertising permit per page
-  (DXB-ADVERTISING-PERMIT).
-- **Abu Dhabi:** ADREC/DMT broker licence (AUH-AGENT-AUTHORIZATION); Madhmoun listing permit per page, ADGM rules for
-  ADGM-area projects (AUH-LISTING-PERMIT).
-
-A sales-office e-mail never substitutes for these: it authorizes the use of that project's information and images, not
-a broker licence or a regulator's advertising permit.
+image. Market-level topics are limited to statutory requirements that apply to Nexus Ways' own activity (the topics
+configured per market in `MG-1.json`); each is recorded by the owner with an official reference or by counsel's memo,
+with `record-review`, in the private store. Their status is tracked privately (owner decisions register), not in this
+repository. A sales-office e-mail never substitutes for them.
 
 ## 6. Prerequisites that need the owner's manual action
 
 1. **Private research store** — create the private repository or drive folder outside the public repository (the
    tools refuse any store inside it) and give the session access. Not created by Claude (standing rule).
-2. **Statutory checks** — record your broker/licence status and the permit route per market (section 5) with
-   `record-review --by owner` and the official reference; counsel only where you choose or the rule is unclear.
+2. **Statutory checks** — record them per market (section 5) with `record-review --by owner` and the official
+   reference; counsel only where you choose or the rule is unclear.
 3. **MG-1 rules — approved (28 Oct 2026).** The registry is ACTIVE / RULES_APPROVED; amendments are made in
    `MG-1.json` through a reviewed pull request.
 4. **Market research intake** — supply or approve the official statistics and research blocks per market
-   (`market-intake --file <MI-….json> --by owner`); Claude drafts the intake files from the official sources.
+   (`market-intake --file <MI-….json> --by owner`); Claude drafts the intake files from the official sources. The
+   research cycle of 28 Oct 2026 (secondary sources, not verified) is held privately in the project
+   (`nexus-desk/private/market-research-holding-2026-10-28.json`) until the store exists.
 5. **Public gate record (D11) — implemented:** a waiver recorded privately reaches the public check only through the
    market's gate certificate written by `activate-market`.
 6. **Public market activation step (D12) — implemented:** `export-market` and `deactivate-market` (tested).
 
 ## 7. Test evidence
 
-`node --test desk/_tests/marketgate.test.mjs` — 52 tests, all passing (including activation → export → rollback and the certificate waiver). Every
+`node --test desk/_tests/marketgate.test.mjs` — 55 tests, all passing (including activation → export → rollback, the certificate waiver and the validity date). Every
 negative test spoils exactly one element of an otherwise passing synthetic (TEST-ONLY) dataset, for each of the three
 configurations. Mutation checks (removing the review check, the geography check or the district check from the
 engine) make 15, 3 and 9 tests fail respectively.

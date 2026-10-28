@@ -1,174 +1,164 @@
-// Markets pages (EN/TR/AR): static copy and the renderer. Built by build.mjs from the public research records and the
-// market-gate configuration MG-1 — the pages never state more than the records and the gate support.
-import { evaluateMarketGate } from './engines/marketgate.mjs';
+// Markets and "How we evaluate" copy (EN/TR/AR), built by build.mjs. PUB-2 (owner instruction 28 Oct 2026): public
+// pages are decision-first and carry no market figures, gate counts, research notes, legal-review topics or internal
+// method names. Market research, statistics and the gate result are used in the private store and in consultation only;
+// the pages name the sources the research relies on. Market status comes from the public market record alone.
+
+// Sources the research relies on, per market (official publishers and registries named in MG-1). Names only: no figure,
+// link or claim is published from them.
+export const SOURCES = {
+  en: {
+    'MKT-IST': ['Turkish Statistical Institute (TÜİK)', 'Central Bank of the Republic of Türkiye (TCMB)', 'General Directorate of Land Registry and Cadastre (TKGM)', 'District municipalities (building permits)'],
+    'MKT-DXB': ['Dubai Land Department (DLD) and RERA', 'Dubai Pulse (DLD transaction data)', 'Dubai Statistics Center', 'Central Bank of the UAE (CBUAE)'],
+    'MKT-AUH': ['Abu Dhabi Real Estate Centre (ADREC)', 'Department of Municipalities and Transport (DMT)', 'Statistics Centre – Abu Dhabi (SCAD)', 'Central Bank of the UAE (CBUAE)'],
+    common: 'Market reports from established research firms and the financial press, used to cross-check — never as the only source.'
+  },
+  tr: {
+    'MKT-IST': ['Türkiye İstatistik Kurumu (TÜİK)', 'Türkiye Cumhuriyet Merkez Bankası (TCMB)', 'Tapu ve Kadastro Genel Müdürlüğü (TKGM)', 'İlçe belediyeleri (yapı ruhsatları)'],
+    'MKT-DXB': ['Dubai Arazi Dairesi (DLD) ve RERA', 'Dubai Pulse (DLD işlem verileri)', 'Dubai İstatistik Merkezi', 'BAE Merkez Bankası (CBUAE)'],
+    'MKT-AUH': ['Abu Dabi Gayrimenkul Merkezi (ADREC)', 'Belediyeler ve Ulaştırma Dairesi (DMT)', 'Abu Dabi İstatistik Merkezi (SCAD)', 'BAE Merkez Bankası (CBUAE)'],
+    common: 'Köklü araştırma şirketlerinin pazar raporları ve ekonomi basını; yalnızca çapraz kontrol için, hiçbir zaman tek kaynak olarak kullanılmaz.'
+  },
+  ar: {
+    'MKT-IST': ['معهد الإحصاء التركي (TÜİK)', 'البنك المركزي لجمهورية تركيا (TCMB)', 'المديرية العامة للطابو والمساحة (TKGM)', 'بلديات الأحياء (رخص البناء)'],
+    'MKT-DXB': ['دائرة الأراضي والأملاك في دبي ومؤسسة التنظيم العقاري (ريرا)', 'دبي بالس (بيانات معاملات دائرة الأراضي)', 'مركز دبي للإحصاء', 'مصرف الإمارات العربية المتحدة المركزي'],
+    'MKT-AUH': ['مركز أبوظبي العقاري', 'دائرة البلديات والنقل', 'مركز الإحصاء – أبوظبي', 'مصرف الإمارات العربية المتحدة المركزي'],
+    common: 'تقارير السوق الصادرة عن شركات أبحاث راسخة والصحافة المالية، للمقارنة والتحقق فقط — وليست مصدراً وحيداً أبداً.'
+  }
+};
 
 export const MKC = {
   en: {
-    idxLab: 'Coverage', idxH: 'Three markets, one evidence standard',
-    idxP: 'Istanbul, Dubai and Abu Dhabi are researched in parallel. Each market opens on its own, when its own gate passes and the owner approves it; no market waits for another.',
-    cardStats: '{a} of {b} named statistics recorded', cardBlocks: '{a} of {b} research areas closed', cardDistricts: '{n} districts or communities under research', cardVerified: 'Verified against the official release: {n}',
-    procLab: 'Process', procH: 'How a market opens and how projects are sourced',
-    p1t: 'Official statistics', p1p: 'Named statistics per market from the official publishers (TÜİK, TCMB; DLD; ADREC, SCAD; CBUAE), each with period, unit, geography and a freshness limit.',
-    p2t: 'Research areas', p2p: 'Market, macro and currency, developer registration, project registration and permits, risks, and district research — closure and data completeness recorded separately.',
-    p3t: 'Statutory checks', p3p: 'Only the requirements that apply to Nexus Ways’ own activity in that market (agent authorization, advertising permits), recorded with the official reference.',
-    p4t: 'Project permission', p4p: 'Each project is presented with the written permission of its sales office, within the channels, media and dates that permission states.',
-    stLab: 'Status', stH: 'Market gate MG-1', stNot: 'Not passed — the market stays inactive', stPass: 'Passed', asOf: 'Assessed on the public research records of {d}',
-    stStats: 'Named statistics', stStatsV: '{a} of {b} recorded · {v} verified against the official release',
-    stBlocks: 'Research areas', stBlocksV: '{a} of {b} closed',
-    stDist: 'District / community research', stDistV: '{a} closed of {n} under research (at least {m} required)',
-    stLegal: 'Statutory checks', stLegalV: '{n} topics; recorded privately by the owner with official references — required before activation', stLegalDone: '{n} topics recorded privately; gate certificate of {d}',
-    indLab: 'Indicators', indH: 'Market indicators as reported',
-    indP: 'Figures below come from secondary sources that cite the official publisher. They are shown as reported and are not yet checked against the official release; the gate does not count them until they are.',
-    thInd: 'Indicator', thVal: 'Value', thPer: 'Period', thSrc: 'Source', thSt: 'Status',
-    notRec: 'Not yet recorded', notRecP: 'No statement is made until the official figure is recorded.', reported: 'Reported · official check pending', verified: 'Verified',
-    covLab: 'Research', covH: 'Research coverage by area',
-    dLab: 'Districts and communities', dH: 'Under research',
-    dP: 'Listed in the order of recorded market activity where a count exists; this is research coverage, not an investment ranking. Each still needs location, supply, rental-demand and project-level research.',
-    dNone: 'No district is recorded yet.', dNoneP: 'Current district-level data could not be obtained from the official tables in this research cycle; earlier private breakdowns are out of date and are not used.',
-    dCount: '{n} sales transactions · {p} · as reported',
-    reqLab: 'Before publication', reqH: 'What every project here must show',
-    reqP: 'In addition to the Desk publication gate (verified identity, developer, evidence, risks, disclosures and approved images):',
-    reqPerm: 'Written permission from the project’s sales office naming the Desk website, the project information and each image used.',
-    legalH: 'Statutory checks for Nexus Ways in this market', fxH: 'Currency and dates',
-    oppLab: 'Opportunities', scope: 'Scope', excluded: 'Excluded', admin: { DISTRICT: 'District', SUB_DISTRICT: 'Sub-district', COMMUNITY: 'Community (DLD / ADREC area)' },
-    fx: { 'MKT-IST': 'Amounts are in TRY. A conversion is shown only at a dated CBRT indicative rate no older than 7 days; TRY figures over time need inflation context. No conversion is shown today.', 'MKT-DXB': 'Amounts are in AED. AED/USD at the CBUAE reference rate, confirmed from the central bank; other currencies only at a dated rate.', 'MKT-AUH': 'Amounts are in AED, recorded separately from Dubai so that neither market depends on the other’s evidence.' },
-    asset: { 'MKT-IST': 'Residential units in identified projects in Istanbul province', 'MKT-DXB': 'Residential units in DLD-registered projects in the Emirate of Dubai', 'MKT-AUH': 'Residential units in ADREC-registered projects in the Emirate of Abu Dhabi (ADGM areas assessed separately)' },
-    excl: 'Land, commercial units, short-term rental operations',
-    topics: {
-      'IST-AGENT-AUTHORIZATION': ['Brokerage authority certificate', 'No Istanbul opportunity is published until the certificate (or the licensed firm) is recorded.'],
-      'IST-ONLINE-LISTING-RULES': ['Online listing rules (Ministry of Trade)', 'Applicability of the verified-listing rules to Desk pages to be recorded before publication.'],
-      'IST-OFFPLAN-ADVERTISING': ['Advertising of off-plan housing', 'No off-plan or under-construction Istanbul project is published until the required statements are recorded.'],
-      'DXB-AGENT-AUTHORIZATION': ['Broker registration (RERA/DLD)', 'No Dubai opportunity is published until the broker registration is recorded.'],
-      'DXB-ADVERTISING-PERMIT': ['Advertising permit (Trakheesi)', 'Each Dubai opportunity needs its advertising-permit number, unless the review concludes it does not apply.'],
-      'AUH-AGENT-AUTHORIZATION': ['Broker licence (ADREC/DMT)', 'No Abu Dhabi opportunity is published until the licence is recorded. Dubai registration does not apply.'],
-      'AUH-LISTING-PERMIT': ['Listing permit (Madhmoun)', 'Each Abu Dhabi opportunity needs its Madhmoun number, unless the review concludes it does not apply. ADGM areas follow ADGM rules.']
-    },
+    idxLab: 'Coverage', idxH: 'Three markets, one standard',
+    idxP: 'Each market is researched separately and opens to new opportunities on its own, once our checks for that market are complete.',
+    procLab: 'Process', procH: 'How we prepare a market',
+    p1t: 'Official and market data', p1p: 'We follow the official statistics and registries of each market, compare sources and keep our picture of the market current.',
+    p2t: 'Location research', p2p: 'Districts and communities are researched for location, supply and demand before projects there are considered.',
+    p3t: 'Our own compliance', p3p: 'Before presenting projects in a market, we confirm the licences and permits that apply to our own activity there.',
+    p4t: 'Project permission', p4p: 'Each project is presented with the written permission of its sales office.',
+    chkLab: 'Before a project is shown', chkH: 'What we check for every project here',
+    chkP: 'In addition to the developer, the project facts, the material risks and the image rights:',
+    reqPerm: 'Written permission from the project’s sales office for the information and images we show.',
+    areaLab: 'Areas', areaH: 'In our research scope',
+    areaP: 'Districts and communities we are researching in this market. This is research scope, not a recommendation or a ranking.',
+    areaNone: 'The areas for this market are being selected.',
+    srcLab: 'Sources', srcH: 'Sources we use',
+    srcP: 'We compare and refresh market data against these official publishers and registries. The figures support our analysis and are discussed with you in consultation; Desk does not publish them.',
+    ctaH: 'Considering this market?', ctaP: 'Tell us your objectives and timeframe. We will share our current view of the market and the projects that fit, privately.', ctaBtn: 'Request a consultation',
+    admin: { DISTRICT: 'District', SUB_DISTRICT: 'Neighbourhood', COMMUNITY: 'Community' },
     reqs: {
-      'IST-TITLE-STATUS': 'Title status from the land registry (TKGM)', 'IST-BUILDING-PERMIT': 'Building permit, for projects not yet completed',
-      'DXB-PROJECT-REGISTRATION': 'DLD project registration and status', 'DXB-ESCROW-ACCOUNT': 'Escrow account, for off-plan projects', 'DXB-ADVERTISING-PERMIT': 'Advertising permit number for the page',
-      'AUH-PROJECT-REGISTRATION': 'ADREC project registration and status', 'AUH-ESCROW-ACCOUNT': 'Escrow details, for off-plan projects', 'AUH-LISTING-PERMIT': 'Madhmoun listing permit number for the page'
-    },
-    stats: {
-      'IST-HOUSING-SALES': 'House sales, Istanbul (monthly)', 'IST-FOREIGN-SALES': 'House sales to foreign nationals, Istanbul', 'IST-RPPI': 'Residential property price index, Istanbul (CBRT)', 'TR-CPI': 'Annual consumer inflation, Türkiye', 'TR-POLICY-RATE': 'CBRT policy rate', 'TR-FX-USDTRY': 'USD/TRY indicative rate (CBRT)',
-      'DXB-SALES-TX': 'Sales transactions, Dubai (monthly)', 'DXB-OFFPLAN-SHARE': 'Off-plan share of sales, Dubai', 'DXB-CPI': 'Consumer inflation, Dubai', 'AE-BASE-RATE': 'CBUAE base rate', 'AE-FX-PEG': 'AED/USD reference rate (CBUAE)',
-      'AUH-SALES-TX': 'Residential sales transactions, Abu Dhabi', 'AUH-PRICE-INDEX': 'ADREC sales price index (optional)', 'AUH-CPI': 'Consumer inflation, Abu Dhabi'
+      'IST-TITLE-STATUS': 'Title status in the land registry (TKGM)', 'IST-BUILDING-PERMIT': 'Building permit, for projects not yet completed',
+      'DXB-PROJECT-REGISTRATION': 'Project registration and status with the Dubai Land Department', 'DXB-ESCROW-ACCOUNT': 'Escrow account, for off-plan projects', 'DXB-ADVERTISING-PERMIT': 'Advertising permit for the project page',
+      'AUH-PROJECT-REGISTRATION': 'Project registration and status with ADREC', 'AUH-ESCROW-ACCOUNT': 'Escrow arrangements, for off-plan projects', 'AUH-LISTING-PERMIT': 'Listing permit for the project page'
     }
   },
   tr: {
-    idxLab: 'Kapsam', idxH: 'Üç pazar, tek kanıt standardı',
-    idxP: 'İstanbul, Dubai ve Abu Dabi paralel olarak araştırılır. Her pazar, kendi kapısı geçildiğinde ve sahibi onayladığında ayrı açılır; hiçbir pazar diğerini beklemez.',
-    cardStats: '{b} adlandırılmış istatistikten {a} tanesi kayıtlı', cardBlocks: '{b} araştırma alanından {a} tanesi kapandı', cardDistricts: '{n} ilçe veya bölge araştırılıyor', cardVerified: 'Resmî yayına göre doğrulanan: {n}',
-    procLab: 'Süreç', procH: 'Bir pazar nasıl açılır, projeler nasıl seçilir',
-    p1t: 'Resmî istatistikler', p1p: 'Her pazar için resmî yayıncılardan (TÜİK, TCMB; DLD; ADREC, SCAD; CBUAE) adlandırılmış istatistikler; dönem, birim, coğrafya ve tazelik sınırıyla.',
-    p2t: 'Araştırma alanları', p2p: 'Pazar, makro ve döviz, geliştirici kaydı, proje kaydı ve izinler, riskler ve ilçe araştırması — kapanış ve veri bütünlüğü ayrı kaydedilir.',
-    p3t: 'Yasal kontroller', p3p: 'Yalnızca Nexus Ways’in o pazardaki kendi faaliyetine uygulanan koşullar (aracı yetkisi, reklam izinleri), resmî referansıyla kaydedilir.',
-    p4t: 'Proje izni', p4p: 'Her proje, satış ofisinin yazılı izniyle ve bu iznin belirttiği kanallar, görseller ve tarihler içinde sunulur.',
-    stLab: 'Durum', stH: 'Pazar kapısı MG-1', stNot: 'Geçilmedi — pazar pasif kalır', stPass: 'Geçildi', asOf: '{d} tarihli kamuya açık araştırma kayıtlarına göre değerlendirildi',
-    stStats: 'Adlandırılmış istatistikler', stStatsV: '{b} istatistikten {a} tanesi kayıtlı · resmî yayına göre doğrulanan {v}',
-    stBlocks: 'Araştırma alanları', stBlocksV: '{b} alandan {a} tanesi kapandı',
-    stDist: 'İlçe / bölge araştırması', stDistV: 'Araştırılan {n} bölgeden {a} tanesi kapandı (en az {m} gerekli)',
-    stLegal: 'Yasal kontroller', stLegalV: '{n} konu; sahibi tarafından resmî referanslarla gizli kayıtta tutulur — aktifleştirmeden önce zorunlu', stLegalDone: '{n} konu gizli kayıtta; {d} tarihli kapı sertifikası',
-    indLab: 'Göstergeler', indH: 'Aktarıldığı şekliyle pazar göstergeleri',
-    indP: 'Aşağıdaki rakamlar resmî yayıncıya atıf yapan ikincil kaynaklardandır. Aktarıldığı şekliyle gösterilir ve henüz resmî yayına göre kontrol edilmedi; kontrol edilene kadar kapı bunları saymaz.',
-    thInd: 'Gösterge', thVal: 'Değer', thPer: 'Dönem', thSrc: 'Kaynak', thSt: 'Durum',
-    notRec: 'Henüz kayıtlı değil', notRecP: 'Resmî rakam kaydedilene kadar bir ifade kullanılmaz.', reported: 'Aktarıldı · resmî kontrol bekliyor', verified: 'Doğrulandı',
-    covLab: 'Araştırma', covH: 'Alanlara göre araştırma kapsamı',
-    dLab: 'İlçeler ve bölgeler', dH: 'Araştırılanlar',
-    dP: 'Sayı bulunan yerlerde kayıtlı pazar hareketine göre sıralanmıştır; bu bir yatırım sıralaması değil, araştırma kapsamıdır. Her biri için konum, arz, kira talebi ve proje düzeyi araştırma gerekir.',
-    dNone: 'Henüz kayıtlı ilçe yok.', dNoneP: 'Bu araştırma döneminde güncel ilçe düzeyi veri resmî tablolardan alınamadı; daha eski özel dağılımlar güncel değildir ve kullanılmaz.',
-    dCount: '{n} satış işlemi · {p} · aktarıldığı şekliyle',
-    reqLab: 'Yayından önce', reqH: 'Buradaki her projenin göstermesi gerekenler',
-    reqP: 'Desk yayın kapısına (doğrulanmış kimlik, geliştirici, kanıt, riskler, açıklamalar ve onaylı görseller) ek olarak:',
-    reqPerm: 'Projenin satış ofisinden; Desk web sitesini, proje bilgilerini ve kullanılan her görseli belirten yazılı izin.',
-    legalH: 'Bu pazarda Nexus Ways için yasal kontroller', fxH: 'Para birimi ve tarihler',
-    oppLab: 'Fırsatlar', scope: 'Kapsam', excluded: 'Kapsam dışı', admin: { DISTRICT: 'İlçe', SUB_DISTRICT: 'Mahalle', COMMUNITY: 'Bölge (DLD / ADREC alanı)' },
-    fx: { 'MKT-IST': 'Tutarlar TL’dir. Dönüşüm yalnızca 7 günden eski olmayan, tarihli bir TCMB gösterge kuruyla gösterilir; zaman içindeki TL rakamları enflasyon bağlamı gerektirir. Bugün dönüşüm gösterilmez.', 'MKT-DXB': 'Tutarlar AED’dir. AED/USD, merkez bankasından teyit edilen CBUAE referans kuruyla; diğer para birimleri yalnızca tarihli bir kurla.', 'MKT-AUH': 'Tutarlar AED’dir; hiçbir pazar diğerinin kanıtına dayanmasın diye Dubai’den ayrı kaydedilir.' },
-    asset: { 'MKT-IST': 'İstanbul ilindeki belirli projelerde konut birimleri', 'MKT-DXB': 'Dubai Emirliği’nde DLD’ye kayıtlı projelerde konut birimleri', 'MKT-AUH': 'Abu Dabi Emirliği’nde ADREC’e kayıtlı projelerde konut birimleri (ADGM bölgeleri ayrıca değerlendirilir)' },
-    excl: 'Arsa, ticari birimler, kısa süreli kiralama işletmeleri',
-    topics: {
-      'IST-AGENT-AUTHORIZATION': ['Taşınmaz ticareti yetki belgesi', 'Belge (veya yetkili firma) kaydedilene kadar İstanbul’da fırsat yayımlanmaz.'],
-      'IST-ONLINE-LISTING-RULES': ['İnternet ilan kuralları (Ticaret Bakanlığı)', 'Doğrulanmış ilan kurallarının Desk sayfalarına uygulanıp uygulanmadığı yayından önce kaydedilecek.'],
-      'IST-OFFPLAN-ADVERTISING': ['Ön ödemeli konut reklamı', 'Gerekli ifadeler kaydedilene kadar proje aşamasındaki veya inşaatı süren İstanbul projeleri yayımlanmaz.'],
-      'DXB-AGENT-AUTHORIZATION': ['Aracı kaydı (RERA/DLD)', 'Aracı kaydı kaydedilene kadar Dubai’de fırsat yayımlanmaz.'],
-      'DXB-ADVERTISING-PERMIT': ['Reklam izni (Trakheesi)', 'İnceleme uygulanmadığı sonucuna varmadıkça her Dubai fırsatı için reklam izni numarası gerekir.'],
-      'AUH-AGENT-AUTHORIZATION': ['Aracı lisansı (ADREC/DMT)', 'Lisans kaydedilene kadar Abu Dabi’de fırsat yayımlanmaz. Dubai kaydı geçerli değildir.'],
-      'AUH-LISTING-PERMIT': ['İlan izni (Madhmoun)', 'İnceleme uygulanmadığı sonucuna varmadıkça her Abu Dabi fırsatı için Madhmoun numarası gerekir. ADGM bölgeleri ADGM kurallarına tabidir.']
-    },
+    idxLab: 'Kapsam', idxH: 'Üç pazar, tek standart',
+    idxP: 'Her pazar ayrı araştırılır ve o pazara ilişkin kontrollerimiz tamamlandığında yeni fırsatlara kendi başına açılır.',
+    procLab: 'Süreç', procH: 'Bir pazarı nasıl hazırlıyoruz',
+    p1t: 'Resmî veriler ve pazar verileri', p1p: 'Her pazarın resmî istatistiklerini ve kayıtlarını izler, kaynakları karşılaştırır ve pazar görünümümüzü güncel tutarız.',
+    p2t: 'Konum araştırması', p2p: 'İlçe ve bölgeler, oradaki projeler değerlendirilmeden önce konum, arz ve talep açısından araştırılır.',
+    p3t: 'Kendi uyumumuz', p3p: 'Bir pazarda proje sunmadan önce, oradaki kendi faaliyetimiz için gereken lisans ve izinleri teyit ederiz.',
+    p4t: 'Proje izni', p4p: 'Her proje, satış ofisinin yazılı izniyle sunulur.',
+    chkLab: 'Bir proje gösterilmeden önce', chkH: 'Buradaki her proje için kontrol ettiklerimiz',
+    chkP: 'Geliştirici, proje bilgileri, önemli riskler ve görsel haklarına ek olarak:',
+    reqPerm: 'Gösterdiğimiz bilgi ve görseller için projenin satış ofisinden yazılı izin.',
+    areaLab: 'Bölgeler', areaH: 'Araştırma kapsamımızda',
+    areaP: 'Bu pazarda araştırdığımız ilçe ve bölgeler. Bu bir araştırma kapsamıdır; öneri veya sıralama değildir.',
+    areaNone: 'Bu pazar için bölgeler belirleniyor.',
+    srcLab: 'Kaynaklar', srcH: 'Kullandığımız kaynaklar',
+    srcP: 'Pazar verilerini bu resmî yayıncı ve kayıtlarla karşılaştırır ve güncelleriz. Rakamlar analizimizi destekler ve görüşmede sizinle paylaşılır; Desk bunları yayımlamaz.',
+    ctaH: 'Bu pazarı mı düşünüyorsunuz?', ctaP: 'Hedeflerinizi ve zaman planınızı paylaşın. Pazara ilişkin güncel görüşümüzü ve uygun projeleri size özel olarak iletelim.', ctaBtn: 'Görüşme talep edin',
+    admin: { DISTRICT: 'İlçe', SUB_DISTRICT: 'Mahalle', COMMUNITY: 'Bölge' },
     reqs: {
-      'IST-TITLE-STATUS': 'Tapu (TKGM) kayıtlarından tapu durumu', 'IST-BUILDING-PERMIT': 'Tamamlanmamış projeler için yapı ruhsatı',
-      'DXB-PROJECT-REGISTRATION': 'DLD proje kaydı ve durumu', 'DXB-ESCROW-ACCOUNT': 'Off-plan projeler için emanet hesabı', 'DXB-ADVERTISING-PERMIT': 'Sayfa için reklam izni numarası',
-      'AUH-PROJECT-REGISTRATION': 'ADREC proje kaydı ve durumu', 'AUH-ESCROW-ACCOUNT': 'Off-plan projeler için emanet bilgileri', 'AUH-LISTING-PERMIT': 'Sayfa için Madhmoun ilan izni numarası'
-    },
-    stats: {
-      'IST-HOUSING-SALES': 'Konut satışları, İstanbul (aylık)', 'IST-FOREIGN-SALES': 'Yabancılara konut satışları, İstanbul', 'IST-RPPI': 'Konut fiyat endeksi, İstanbul (TCMB)', 'TR-CPI': 'Yıllık tüketici enflasyonu, Türkiye', 'TR-POLICY-RATE': 'TCMB politika faizi', 'TR-FX-USDTRY': 'USD/TRY gösterge kuru (TCMB)',
-      'DXB-SALES-TX': 'Satış işlemleri, Dubai (aylık)', 'DXB-OFFPLAN-SHARE': 'Off-plan satış payı, Dubai', 'DXB-CPI': 'Tüketici enflasyonu, Dubai', 'AE-BASE-RATE': 'CBUAE politika faizi', 'AE-FX-PEG': 'AED/USD referans kuru (CBUAE)',
-      'AUH-SALES-TX': 'Konut satış işlemleri, Abu Dabi', 'AUH-PRICE-INDEX': 'ADREC satış fiyat endeksi (isteğe bağlı)', 'AUH-CPI': 'Tüketici enflasyonu, Abu Dabi'
+      'IST-TITLE-STATUS': 'Tapu kaydındaki durum (TKGM)', 'IST-BUILDING-PERMIT': 'Tamamlanmamış projeler için yapı ruhsatı',
+      'DXB-PROJECT-REGISTRATION': 'Dubai Arazi Dairesi’nde proje kaydı ve durumu', 'DXB-ESCROW-ACCOUNT': 'Off-plan projeler için emanet hesabı', 'DXB-ADVERTISING-PERMIT': 'Proje sayfası için reklam izni',
+      'AUH-PROJECT-REGISTRATION': 'ADREC’de proje kaydı ve durumu', 'AUH-ESCROW-ACCOUNT': 'Off-plan projeler için emanet düzenlemesi', 'AUH-LISTING-PERMIT': 'Proje sayfası için ilan izni'
     }
   },
   ar: {
-    idxLab: 'التغطية', idxH: 'ثلاثة أسواق ومعيار أدلة واحد',
-    idxP: 'تُبحث إسطنبول ودبي وأبوظبي بالتوازي. يُفتح كل سوق وحده عندما تجتاز بوابته الخاصة ويوافق المالك؛ ولا ينتظر أي سوق غيره.',
-    cardStats: '{a} من {b} إحصاءات محددة مسجّلة', cardBlocks: '{a} من {b} مجالات بحث مغلقة', cardDistricts: '{n} من الأحياء أو المجتمعات قيد البحث', cardVerified: 'المتحقق منها مقابل الإصدار الرسمي: {n}',
-    procLab: 'المنهجية', procH: 'كيف يُفتح السوق وكيف تُختار المشاريع',
-    p1t: 'إحصاءات رسمية', p1p: 'إحصاءات محددة لكل سوق من الجهات الرسمية (معهد الإحصاء التركي، البنك المركزي التركي؛ دائرة الأراضي والأملاك؛ مركز أبوظبي العقاري، مركز الإحصاء؛ مصرف الإمارات المركزي)، مع الفترة والوحدة والنطاق الجغرافي وحد الحداثة.',
-    p2t: 'مجالات البحث', p2p: 'السوق، والاقتصاد الكلي والعملة، وتسجيل المطوّرين، وتسجيل المشاريع والتصاريح، والمخاطر، وبحث الأحياء — يُسجَّل إغلاق البحث واكتمال البيانات كلٌّ على حدة.',
-    p3t: 'الفحوص القانونية', p3p: 'المتطلبات التي تنطبق على نشاط Nexus Ways نفسه في ذلك السوق فقط (ترخيص الوساطة، تصاريح الإعلان)، مسجّلة بمرجعها الرسمي.',
-    p4t: 'إذن المشروع', p4p: 'يُعرض كل مشروع بإذن كتابي من مكتب مبيعاته، وضمن القنوات والصور والتواريخ التي يحددها ذلك الإذن.',
-    stLab: 'الحالة', stH: 'بوابة السوق MG-1', stNot: 'لم تُجتز — يبقى السوق غير نشط', stPass: 'اجتيزت', asOf: 'قُيّمت على سجلات البحث العامة بتاريخ {d}',
-    stStats: 'الإحصاءات المحددة', stStatsV: '{a} من {b} مسجّلة · {v} متحقق منها مقابل الإصدار الرسمي',
-    stBlocks: 'مجالات البحث', stBlocksV: '{a} من {b} مغلقة',
-    stDist: 'بحث الأحياء / المجتمعات', stDistV: '{a} مغلقة من {n} قيد البحث (الحد الأدنى {m})',
-    stLegal: 'الفحوص القانونية', stLegalV: '{n} مواضيع؛ يسجّلها المالك بشكل خاص مع المراجع الرسمية — مطلوبة قبل التفعيل', stLegalDone: '{n} مواضيع مسجّلة بشكل خاص؛ شهادة البوابة بتاريخ {d}',
-    indLab: 'المؤشرات', indH: 'مؤشرات السوق كما نُقلت',
-    indP: 'الأرقام أدناه من مصادر ثانوية تستند إلى الجهة الرسمية. تُعرض كما نُقلت ولم تُراجع بعد مقابل الإصدار الرسمي؛ ولا تحتسبها البوابة حتى تتم مراجعتها.',
-    thInd: 'المؤشر', thVal: 'القيمة', thPer: 'الفترة', thSrc: 'المصدر', thSt: 'الحالة',
-    notRec: 'لم يُسجَّل بعد', notRecP: 'لا يُذكر أي بيان حتى يُسجَّل الرقم الرسمي.', reported: 'منقول · بانتظار المراجعة الرسمية', verified: 'متحقق منه',
-    covLab: 'البحث', covH: 'تغطية البحث حسب المجال',
-    dLab: 'الأحياء والمجتمعات', dH: 'قيد البحث',
-    dP: 'مرتبة حسب النشاط المسجّل حيث يتوفر عدد؛ هذه تغطية بحثية وليست تصنيفاً استثمارياً. كل منها يحتاج بعد إلى بحث في الموقع والعرض والطلب الإيجاري وعلى مستوى المشروع.',
-    dNone: 'لا توجد أحياء مسجّلة بعد.', dNoneP: 'تعذّر الحصول على بيانات حديثة على مستوى الأحياء من الجداول الرسمية في دورة البحث هذه؛ التوزيعات الخاصة الأقدم قديمة ولا تُستخدم.',
-    dCount: '{n} معاملة بيع · {p} · كما نُقل',
-    reqLab: 'قبل النشر', reqH: 'ما يجب أن يقدّمه كل مشروع هنا',
-    reqP: 'إضافةً إلى بوابة النشر في Desk (هوية متحقق منها، والمطوّر، والأدلة، والمخاطر، والإفصاحات، والصور المعتمدة):',
-    reqPerm: 'إذن كتابي من مكتب مبيعات المشروع يسمّي موقع Desk ومعلومات المشروع وكل صورة مستخدمة.',
-    legalH: 'الفحوص القانونية لـ Nexus Ways في هذا السوق', fxH: 'العملة والتواريخ',
-    oppLab: 'الفرص', scope: 'النطاق', excluded: 'خارج النطاق', admin: { DISTRICT: 'حي', SUB_DISTRICT: 'حي فرعي', COMMUNITY: 'مجتمع (منطقة دائرة الأراضي / المركز العقاري)' },
-    fx: { 'MKT-IST': 'المبالغ بالليرة التركية. لا يُعرض تحويل إلا بسعر استرشادي مؤرخ من البنك المركزي التركي لا يتجاوز عمره 7 أيام؛ وأرقام الليرة عبر الزمن تحتاج إلى سياق التضخم. لا يُعرض أي تحويل اليوم.', 'MKT-DXB': 'المبالغ بالدرهم. الدرهم مقابل الدولار بالسعر المرجعي لمصرف الإمارات المركزي المؤكَّد منه؛ والعملات الأخرى بسعر مؤرخ فقط.', 'MKT-AUH': 'المبالغ بالدرهم، وتُسجَّل بشكل منفصل عن دبي حتى لا يعتمد أي سوق على أدلة الآخر.' },
-    asset: { 'MKT-IST': 'وحدات سكنية في مشاريع محددة في ولاية إسطنبول', 'MKT-DXB': 'وحدات سكنية في مشاريع مسجّلة لدى دائرة الأراضي والأملاك في إمارة دبي', 'MKT-AUH': 'وحدات سكنية في مشاريع مسجّلة لدى مركز أبوظبي العقاري في إمارة أبوظبي (تُقيَّم مناطق سوق أبوظبي العالمي بشكل منفصل)' },
-    excl: 'الأراضي، والوحدات التجارية، وتشغيل الإيجار قصير الأجل',
-    topics: {
-      'IST-AGENT-AUTHORIZATION': ['شهادة ترخيص الوساطة العقارية', 'لا تُنشر أي فرصة في إسطنبول حتى تُسجَّل الشهادة (أو الشركة المرخّصة).'],
-      'IST-ONLINE-LISTING-RULES': ['قواعد الإعلانات الإلكترونية (وزارة التجارة)', 'يُسجَّل مدى انطباق قواعد الإعلانات الموثّقة على صفحات Desk قبل النشر.'],
-      'IST-OFFPLAN-ADVERTISING': ['الإعلان عن المساكن على الخارطة', 'لا يُنشر أي مشروع على الخارطة أو قيد الإنشاء في إسطنبول حتى تُسجَّل البيانات المطلوبة.'],
-      'DXB-AGENT-AUTHORIZATION': ['تسجيل الوسيط (ريرا/دائرة الأراضي)', 'لا تُنشر أي فرصة في دبي حتى يُسجَّل تسجيل الوسيط.'],
-      'DXB-ADVERTISING-PERMIT': ['تصريح الإعلان (ترخيصي)', 'تحتاج كل فرصة في دبي إلى رقم تصريح إعلان، ما لم تخلص المراجعة إلى عدم انطباقه.'],
-      'AUH-AGENT-AUTHORIZATION': ['رخصة الوسيط (مركز أبوظبي العقاري/دائرة البلديات والنقل)', 'لا تُنشر أي فرصة في أبوظبي حتى تُسجَّل الرخصة. تسجيل دبي لا يسري.'],
-      'AUH-LISTING-PERMIT': ['تصريح الإعلان «مضمون»', 'تحتاج كل فرصة في أبوظبي إلى رقم «مضمون»، ما لم تخلص المراجعة إلى عدم انطباقه. مناطق سوق أبوظبي العالمي تتبع قواعده.']
-    },
+    idxLab: 'التغطية', idxH: 'ثلاثة أسواق ومعيار واحد',
+    idxP: 'يُبحث كل سوق على حدة، ويُفتح للفرص الجديدة وحده بعد اكتمال فحوصنا الخاصة بذلك السوق.',
+    procLab: 'المنهجية', procH: 'كيف نُعدّ السوق',
+    p1t: 'البيانات الرسمية وبيانات السوق', p1p: 'نتابع الإحصاءات والسجلات الرسمية لكل سوق، ونقارن المصادر، ونحافظ على صورة محدّثة للسوق.',
+    p2t: 'بحث المواقع', p2p: 'تُبحث الأحياء والمجتمعات من حيث الموقع والعرض والطلب قبل النظر في المشاريع فيها.',
+    p3t: 'امتثالنا نحن', p3p: 'قبل عرض المشاريع في أي سوق، نتأكد من التراخيص والتصاريح التي تنطبق على نشاطنا فيه.',
+    p4t: 'إذن المشروع', p4p: 'يُعرض كل مشروع بإذن كتابي من مكتب مبيعاته.',
+    chkLab: 'قبل عرض أي مشروع', chkH: 'ما نتحقق منه لكل مشروع هنا',
+    chkP: 'إضافةً إلى المطوّر ومعلومات المشروع والمخاطر الجوهرية وحقوق الصور:',
+    reqPerm: 'إذن كتابي من مكتب مبيعات المشروع للمعلومات والصور التي نعرضها.',
+    areaLab: 'المناطق', areaH: 'ضمن نطاق بحثنا',
+    areaP: 'الأحياء والمجتمعات التي نبحثها في هذا السوق. هذا نطاق بحث، وليس توصية ولا تصنيفاً.',
+    areaNone: 'يجري اختيار مناطق هذا السوق.',
+    srcLab: 'المصادر', srcH: 'المصادر التي نعتمد عليها',
+    srcP: 'نقارن بيانات السوق ونحدّثها استناداً إلى هذه الجهات الرسمية والسجلات. تدعم الأرقام تحليلنا ونناقشها معك في الاستشارة؛ ولا ينشرها Desk.',
+    ctaH: 'هل تفكر في هذا السوق؟', ctaP: 'أخبرنا بأهدافك وإطارك الزمني، وسنشاركك رؤيتنا الحالية للسوق والمشاريع المناسبة بشكل خاص.', ctaBtn: 'اطلب استشارة',
+    admin: { DISTRICT: 'حي', SUB_DISTRICT: 'حي فرعي', COMMUNITY: 'مجتمع' },
     reqs: {
-      'IST-TITLE-STATUS': 'حالة سند الملكية من سجل الطابو (TKGM)', 'IST-BUILDING-PERMIT': 'رخصة البناء، للمشاريع غير المكتملة',
-      'DXB-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى دائرة الأراضي والأملاك', 'DXB-ESCROW-ACCOUNT': 'حساب الضمان، للمشاريع على الخارطة', 'DXB-ADVERTISING-PERMIT': 'رقم تصريح الإعلان للصفحة',
-      'AUH-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى مركز أبوظبي العقاري', 'AUH-ESCROW-ACCOUNT': 'تفاصيل الضمان، للمشاريع على الخارطة', 'AUH-LISTING-PERMIT': 'رقم تصريح «مضمون» للصفحة'
-    },
-    stats: {
-      'IST-HOUSING-SALES': 'مبيعات المساكن، إسطنبول (شهري)', 'IST-FOREIGN-SALES': 'مبيعات المساكن للأجانب، إسطنبول', 'IST-RPPI': 'مؤشر أسعار العقارات السكنية، إسطنبول', 'TR-CPI': 'التضخم السنوي لأسعار المستهلك، تركيا', 'TR-POLICY-RATE': 'سعر الفائدة الرئيسي للبنك المركزي التركي', 'TR-FX-USDTRY': 'السعر الاسترشادي للدولار مقابل الليرة',
-      'DXB-SALES-TX': 'معاملات البيع، دبي (شهري)', 'DXB-OFFPLAN-SHARE': 'حصة البيع على الخارطة، دبي', 'DXB-CPI': 'تضخم أسعار المستهلك، دبي', 'AE-BASE-RATE': 'سعر الأساس لمصرف الإمارات المركزي', 'AE-FX-PEG': 'السعر المرجعي للدرهم مقابل الدولار',
-      'AUH-SALES-TX': 'معاملات البيع السكنية، أبوظبي', 'AUH-PRICE-INDEX': 'مؤشر أسعار المبيعات (اختياري)', 'AUH-CPI': 'تضخم أسعار المستهلك، أبوظبي'
+      'IST-TITLE-STATUS': 'حالة الملكية في سجل الطابو (TKGM)', 'IST-BUILDING-PERMIT': 'رخصة البناء، للمشاريع غير المكتملة',
+      'DXB-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى دائرة الأراضي والأملاك', 'DXB-ESCROW-ACCOUNT': 'حساب الضمان، للمشاريع على الخارطة', 'DXB-ADVERTISING-PERMIT': 'تصريح الإعلان لصفحة المشروع',
+      'AUH-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى مركز أبوظبي العقاري', 'AUH-ESCROW-ACCOUNT': 'ترتيبات الضمان، للمشاريع على الخارطة', 'AUH-LISTING-PERMIT': 'تصريح الإعلان لصفحة المشروع'
     }
   }
 };
 
-// Coverage of one market, from the public records only (no private review records → statutory checks never pass here).
+// "How we evaluate" (/desk/intelligence/): one plain-language page.
+export const HOW = {
+  en: {
+    stLab: 'Process', stH: 'Four steps behind every opportunity',
+    steps: [
+      ['Verify', 'Project identity, developer and registration are checked against official records. What a developer or agent states is labelled as their statement.'],
+      ['Research the market and location', 'Official statistics, registries and market data are compared across sources and kept current for each market and area.'],
+      ['State the risks', 'Every opportunity shows its material risks and what is still being confirmed, in plain language.'],
+      ['Prepare your private analysis', 'Pricing, payment plans, comparable projects and financial scenarios are prepared for your objectives and discussed with you one to one.']
+    ],
+    splitLab: 'Public and private', splitH: 'What you see here, and what we prepare for you',
+    pubH: 'On Desk', pub: ['Verified project and developer facts', 'Location and delivery status', 'Material risks and open points', 'The sources behind the facts'],
+    privH: 'In your consultation', priv: ['Current pricing and payment plans', 'Comparable projects in the area', 'Financial scenarios with stated assumptions', 'Fit with your objectives, budget and timeframe'],
+    privP: 'Pricing changes often and depends on the unit and the terms, so it is shared directly, with its date and source.',
+    lblLab: 'Labels', lblH: 'How facts are labelled',
+    lbls: { VERIFIED: 'Confirmed against an official or primary record.', CORROBORATED: 'Consistent across independent sources.', 'SOURCE-REPORTED': 'Reported by one credible source; not yet independently confirmed.', 'DEVELOPER-CLAIM': 'Stated by the developer or its agents.' },
+    srcLab: 'Sources', srcH: 'Sources we use', srcP: 'Official publishers and registries in each market. Their figures support our analysis and are discussed in consultation; Desk does not republish them.',
+    ctaH: 'Discuss an opportunity with us', ctaP: 'Share your objectives, budget range and timeframe. We will come back with a short list and the analysis behind it.', ctaBtn: 'Request a consultation'
+  },
+  tr: {
+    stLab: 'Süreç', stH: 'Her fırsatın arkasındaki dört adım',
+    steps: [
+      ['Doğrulama', 'Proje kimliği, geliştirici ve kayıt bilgileri resmî kayıtlarla kontrol edilir. Geliştiricinin veya aracının söyledikleri, onların beyanı olarak etiketlenir.'],
+      ['Pazar ve konum araştırması', 'Resmî istatistikler, kayıtlar ve pazar verileri her pazar ve bölge için kaynaklar arasında karşılaştırılır ve güncel tutulur.'],
+      ['Risklerin açıkça belirtilmesi', 'Her fırsat, önemli risklerini ve hâlâ teyit edilmekte olan noktaları sade bir dille gösterir.'],
+      ['Size özel analiz', 'Fiyatlar, ödeme planları, emsal projeler ve finansal senaryolar hedeflerinize göre hazırlanır ve sizinle birebir görüşülür.']
+    ],
+    splitLab: 'Açık ve özel', splitH: 'Burada gördükleriniz ve sizin için hazırladıklarımız',
+    pubH: 'Desk’te', pub: ['Doğrulanmış proje ve geliştirici bilgileri', 'Konum ve teslim durumu', 'Önemli riskler ve açık noktalar', 'Bilgilerin dayandığı kaynaklar'],
+    privH: 'Görüşmenizde', priv: ['Güncel fiyatlar ve ödeme planları', 'Bölgedeki emsal projeler', 'Varsayımları belirtilmiş finansal senaryolar', 'Hedeflerinize, bütçenize ve zaman planınıza uygunluk'],
+    privP: 'Fiyatlar sık değişir ve birime ve koşullara bağlıdır; bu nedenle tarihi ve kaynağıyla doğrudan paylaşılır.',
+    lblLab: 'Etiketler', lblH: 'Bilgiler nasıl etiketlenir',
+    lbls: { VERIFIED: 'Resmî veya birincil bir kayda göre teyit edildi.', CORROBORATED: 'Bağımsız kaynaklar arasında tutarlı.', 'SOURCE-REPORTED': 'Güvenilir tek bir kaynak tarafından aktarıldı; henüz bağımsız olarak teyit edilmedi.', 'DEVELOPER-CLAIM': 'Geliştirici veya aracıları tarafından beyan edildi.' },
+    srcLab: 'Kaynaklar', srcH: 'Kullandığımız kaynaklar', srcP: 'Her pazardaki resmî yayıncılar ve kayıtlar. Rakamları analizimizi destekler ve görüşmede paylaşılır; Desk bunları yeniden yayımlamaz.',
+    ctaH: 'Bir fırsatı bizimle görüşün', ctaP: 'Hedeflerinizi, bütçe aralığınızı ve zaman planınızı paylaşın. Kısa bir liste ve arkasındaki analizle size dönelim.', ctaBtn: 'Görüşme talep edin'
+  },
+  ar: {
+    stLab: 'المنهجية', stH: 'أربع خطوات وراء كل فرصة',
+    steps: [
+      ['التحقق', 'تُراجع هوية المشروع والمطوّر والتسجيل مقابل السجلات الرسمية. وما يذكره المطوّر أو الوسيط يُوسَم على أنه تصريح منه.'],
+      ['بحث السوق والموقع', 'تُقارن الإحصاءات والسجلات الرسمية وبيانات السوق بين المصادر وتُحدَّث لكل سوق ومنطقة.'],
+      ['توضيح المخاطر', 'تعرض كل فرصة مخاطرها الجوهرية وما زال قيد التأكيد، بلغة واضحة.'],
+      ['إعداد تحليلك الخاص', 'تُعدّ الأسعار وخطط الدفع والمشاريع المماثلة والسيناريوهات المالية وفق أهدافك، ونناقشها معك مباشرة.']
+    ],
+    splitLab: 'العام والخاص', splitH: 'ما تراه هنا، وما نُعدّه لك',
+    pubH: 'على Desk', pub: ['معلومات موثّقة عن المشروع والمطوّر', 'الموقع وحالة التسليم', 'المخاطر الجوهرية والنقاط المفتوحة', 'المصادر التي تستند إليها المعلومات'],
+    privH: 'في استشارتك', priv: ['الأسعار الحالية وخطط الدفع', 'المشاريع المماثلة في المنطقة', 'سيناريوهات مالية بافتراضات معلنة', 'مدى الملاءمة لأهدافك وميزانيتك وإطارك الزمني'],
+    privP: 'تتغير الأسعار باستمرار وتعتمد على الوحدة والشروط، لذلك نشاركها مباشرةً مع تاريخها ومصدرها.',
+    lblLab: 'التصنيفات', lblH: 'كيف تُصنَّف المعلومات',
+    lbls: { VERIFIED: 'مؤكَّد مقابل سجل رسمي أو أولي.', CORROBORATED: 'متّسق بين مصادر مستقلة.', 'SOURCE-REPORTED': 'نقله مصدر موثوق واحد؛ لم يُؤكَّد بشكل مستقل بعد.', 'DEVELOPER-CLAIM': 'صرّح به المطوّر أو وكلاؤه.' },
+    srcLab: 'المصادر', srcH: 'المصادر التي نعتمد عليها', srcP: 'الجهات الرسمية والسجلات في كل سوق. تدعم أرقامها تحليلنا وتُناقش في الاستشارة؛ ولا يعيد Desk نشرها.',
+    ctaH: 'ناقش فرصة معنا', ctaP: 'شاركنا أهدافك ونطاق ميزانيتك وإطارك الزمني، وسنعود إليك بقائمة مختصرة والتحليل الذي يدعمها.', ctaBtn: 'اطلب استشارة'
+  }
+};
+
+// Requirements and areas of one market, from the gate configuration and the public district records only.
 export function marketCoverage(cfg, m, data) {
-  const asOf = m.last_reviewed || '2026-10-28';
-  // an activated market carries a gate certificate (the private statutory records are attested there, D11/D12)
-  const certified = !!(m.gate_certificate && m.gate_certificate.gate_version === cfg.version && m.review && m.review.gate_version === cfg.version && m.activation === 'ACTIVE');
-  const g = evaluateMarketGate(cfg, m.id, data, { today: asOf, reviews: [], skipReviews: certified });
-  const mc = cfg.markets[m.id];
-  const ev = (k) => data.evidence.filter(e => e.subject && e.subject.type === 'market' && e.subject.id === m.id && e.topic === k);
-  const stats = mc.statistics.map(s => ({ key: s.key, required: s.required, unit: s.unit, ev: ev(s.key).sort((a, b) => String(b.period).localeCompare(String(a.period)))[0] || null, pass: (g.statistics.find(x => x.key === s.key) || {}).status === 'PASS' }));
-  const blocks = g.blocks.filter(b => !b.item.startsWith('DST-'));
-  const dists = data.districts.filter(d => d.market_id === m.id);
-  return { g, asOf, certified, cert: certified ? m.gate_certificate : null, stats, recorded: stats.filter(s => s.ev).length, verified: stats.filter(s => s.pass).length, blocks, closed: blocks.filter(b => b.ok).length,
-    dists, distClosed: g.blocks.filter(b => b.item.startsWith('DST-') && b.ok).length, minDist: mc.districts.min_closed, topics: mc.regulatory_review.topics, reqs: mc.publication.opportunity_requirements };
+  const mc = cfg && cfg.markets && cfg.markets[m.id];
+  const dists = data.districts.filter(d => d.market_id === m.id).sort((a, b) => a.name.localeCompare(b.name));
+  return { dists, reqs: mc ? mc.publication.opportunity_requirements : [] };
 }

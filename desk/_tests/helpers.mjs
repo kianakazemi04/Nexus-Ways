@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateRepo } from '../_tools/validate.mjs';
 import { gateDataset } from './marketgate-data.mjs';
+import { evaluateMarketGate, gateCertificate } from '../_tools/engines/marketgate.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 // Test clock (audit C-18): a fixed date, moved forward only when the committed public research is dated later, so new
@@ -64,12 +65,13 @@ export function seedTestMarketGate(repo, store, tst) {
   for (const c of ['districts', 'research_blocks', 'sources', 'evidence']) writeJson(path.join(store, `data/${c}.json`), { schema_version: '1.1', collection: c, records: d.collections[c] });
   writeJson(path.join(store, 'private/regulatory_reviews.json'), d.reviews);
   writeJson(path.join(store, 'private/entity_index.json'), d.provenance);
-  // the public side of an activated market, as activate-market + export-market would leave it (D11/D12)
-  tst.gate_certificate = { gate_version: cfg.version, engine_version: 'MGE-1', evaluated_at: `${TODAY}T00:00:00Z`, activated_at: TODAY, waived_requirements: [], conditions_topics: [] };
-  for (const c of ['districts', 'research_blocks', 'sources', 'evidence']) {
-    const f = path.join(repo, `desk/data/public/${c}.json`); const j = readJson(f);
-    j.records = [...j.records, ...d.collections[c]].sort((a, b) => a.id.localeCompare(b.id)); writeJson(f, j);
-  }
+  // the public side of an activated market, as activate-market + export-market would leave it (D11/D12, PUB-2): the
+  // market record with its certificate and the district names — never the research itself
+  const g = evaluateMarketGate(cfg, tst.id, d.collections, { today: TODAY, now: `${TODAY}T00:00:00Z`, reviews: d.reviews, provenance: d.provenance });
+  if (!g.pass) throw new Error(`TEST-ONLY market gate does not pass: ${g.reasons.map(r => r.code + ' ' + r.item).join('; ')}`);
+  tst.gate_certificate = gateCertificate(cfg, g, d.reviews, TODAY);
+  const f = path.join(repo, 'desk/data/public/districts.json'); const j = readJson(f);
+  j.records = [...j.records, ...d.collections.districts.map(x => ({ ...x, research_block_ids: [], evidence_ids: [] }))].sort((a, b) => a.id.localeCompare(b.id)); writeJson(f, j);
 }
 // A TEST-ONLY real store beside a temporary repository, with a package derived from fixture A.
 export function realSetup({ mutate, marketGate = true } = {}) {
