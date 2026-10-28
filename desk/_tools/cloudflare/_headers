@@ -1,0 +1,17 @@
+# Cloudflare Pages response headers (copied to the site root at deploy time; see CLOUDFLARE-MIGRATION.md).
+# The policy lists every outside host the site uses: Google Fonts (styles and font files) and Web3Forms (form posts).
+# Calendly, LinkedIn, WhatsApp and the official sources on the Markets pages are ordinary links and need no entry.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.web3forms.com; form-action 'self' https://api.web3forms.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  X-Frame-Options: DENY
+  Cross-Origin-Opener-Policy: same-origin
+
+/desk/assets/*
+  Cache-Control: public, max-age=86400
+
+/images/*
+  Cache-Control: public, max-age=604800

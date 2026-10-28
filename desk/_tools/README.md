@@ -161,3 +161,16 @@ them and the registry entry is switched to `internal: ACTIVE`; until then report
   internal IDs), price position, scenario table (nominal, real, home currency) with the assumptions behind it, risks by
   severity, the official market overview, and the standard commission and not-advice texts. Sent privately with the
   catalogue; never published.
+
+## Private store between sessions (owner decision 29 Oct 2026)
+
+Project material is sent in the chat; no separate private repository. Each working session builds its store in a folder
+outside this repository. At the end of a session `node desk/_tools/storepack.mjs pack --store <dir> --out <file>` packs
+the store's text records (STP-1, with a checksum); the file is saved to the owner's Claude project under
+`nexus-desk/private/store/`. The next session restores it with `storepack.mjs unpack --in <file> --store <new dir>`.
+Both commands refuse any path inside the public repository.
+
+## Hosting
+
+Prepared move to Cloudflare Pages: `desk/_tools/CLOUDFLARE-MIGRATION.md` and `.github/workflows/cloudflare-deploy.yml`
+(inert until the owner sets `CF_PAGES_PROJECT` and the two secrets).

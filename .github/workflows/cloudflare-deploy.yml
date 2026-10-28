@@ -1,0 +1,53 @@
+name: Cloudflare Pages deployment
+# Prepared for the move from GitHub Pages to Cloudflare Pages (desk/_tools/CLOUDFLARE-MIGRATION.md). The code stays on
+# GitHub; this workflow validates the commit, builds the site with the same GitHub Pages builder as today, re-checks the
+# exact tree, adds the security headers file and uploads it to Cloudflare Pages.
+#
+# INERT until the owner sets up Cloudflare: the deploy job runs only when the repository variable CF_PAGES_PROJECT is
+# set (Settings → Secrets and variables → Actions → Variables), together with the secrets CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID. Nothing is sent anywhere before that.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: vars.CF_PAGES_PROJECT != ''
+    uses: ./.github/workflows/desk-validate.yml
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && vars.CF_PAGES_PROJECT != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: cloudflare-pages
+      url: https://nexus-ways.com
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Build with the GitHub Pages builder (same output as today)
+        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+        with:
+          source: ./
+          destination: ./_site
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Re-check the exact tree that will be deployed
+        run: python3 desk/_tests/pages_check.py _site
+      - name: Add the security headers file
+        run: sudo cp desk/_tools/cloudflare/_headers _site/_headers && sudo rm -f _site/CNAME
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Upload to Cloudflare Pages (wrangler pinned)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_PAGES_PROJECT: ${{ vars.CF_PAGES_PROJECT }}
+        run: npm exec --yes wrangler@4.148.0 -- pages deploy _site --project-name "$CF_PAGES_PROJECT" --branch main --commit-dirty=true
