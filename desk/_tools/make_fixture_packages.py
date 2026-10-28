@@ -6,6 +6,11 @@ Every name, document, image and value here is fictional and labelled as such. Ou
 import json, os, shutil
 from PIL import Image, ImageDraw, ImageFont
 
+# documented findings shown on the opportunity page (owner brief 29 Oct 2026); illustrative only
+FINDINGS_A = [
+    {'type': 'STRENGTH', 'text': {'en': 'Project identity and developer relationship are confirmed in the (illustrative) title registry extract.', 'tr': 'Proje kimliği ve geliştirici ilişkisi (temsili) tapu kaydı özetinde doğrulanmıştır.', 'ar': 'هوية المشروع وعلاقته بالمطوّر مؤكدة في مستخرج السجل العقاري (التوضيحي).'}, 'evidence_facts': ['F-NAME', 'F-DEVREL']},
+    {'type': 'WEAKNESS', 'text': {'en': 'Delivery date rests only on the developer’s statement; no independent progress report yet.', 'tr': 'Teslim tarihi yalnızca geliştiricinin beyanına dayanıyor; henüz bağımsız ilerleme raporu yok.', 'ar': 'يعتمد موعد التسليم على بيان المطوّر فقط؛ ولا يوجد تقرير تقدّم مستقل بعد.'}, 'evidence_facts': ['F-DELIVERY']},
+]
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '_fixtures', 'packages'))
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 FONT_R = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
@@ -85,7 +90,7 @@ def complete_package(pid, letter, tone):
         'district': {'name': 'Illustrative District North', 'slug': 'illustrative-district-north', 'admin_level': 'DISTRICT', **({'ref': 'FIX-DST-ILL-ILLUSTRATIVE-DISTRICT-NORTH'} if letter != 'A' else {})},
         'project': {'name': name, 'asset_types': ['APARTMENT'], 'description': {'en': f'{name} is a fictional residential project used to test the Nexus Desk ingestion and rendering lifecycle.'}},
         'assets': [{'key': 'A1'}],
-        'opportunity': {'title': {'en': f'{name} — 2+1 apartments (illustrative)'}, 'summary': {'en': 'Illustrative opportunity record. Not a real project and not real market data.'}, 'asset_key': 'A1', 'investor_objective_tags': ['long_term_hold']},
+        'opportunity': {'title': {'en': f'{name} — 2+1 apartments (illustrative)'}, 'summary': {'en': 'Illustrative opportunity record. Not a real project and not real market data.'}, 'asset_key': 'A1', 'investor_objective_tags': ['long_term_hold'], **({'findings': FINDINGS_A} if letter == 'A' else {})},
         'facts': [
             {'key': 'F-NAME', 'subject': 'project', 'field': 'name', 'value': name, 'unit': 'text', 'claim': {'en': 'Project name as registered.'}, 'source': 'S1', 'evidence_class': 'FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative District North', 'period': None, 'locator': 'extract p.1'},
             {'key': 'F-LEGAL', 'subject': 'developer', 'field': 'legal_entity_name', 'value': f'Illustrative Developer {letter} Ltd (fictional)', 'unit': 'text', 'claim': {'en': 'Legal entity of the developer.'}, 'source': 'S1', 'evidence_class': 'LEGAL FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative Market', 'period': None},

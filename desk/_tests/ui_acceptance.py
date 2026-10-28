@@ -38,7 +38,8 @@ async def run():
                     if ov > 0: check(False, f'{tag} horizontal overflow {ov}px')
                     if w == 1440 and scheme == 'dark':
                         # data-rendered regions only (methodology prose legitimately names what is NOT calculated)
-                        txt = await pg.evaluate("""(() => { const out = []; for (const el of document.querySelectorAll('#cards, #opp, #cmp, #mkt')) { const c = el.cloneNode(true); c.querySelectorAll('.na, .sh, .gnote, .notice').forEach(x => x.remove()); out.push(c.innerText); } return out.join(' '); })()""")
+                        # [data-analysis-availability] names what the private report contains and what is not offered — names, never values
+                        txt = await pg.evaluate("""(() => { const out = []; for (const el of document.querySelectorAll('#cards, #opp, #cmp, #mkt')) { const c = el.cloneNode(true); c.querySelectorAll('.na, .sh, .gnote, .notice, [data-analysis-availability]').forEach(x => x.remove()); out.push(c.innerText); } return out.join(' '); })()""")
                         for m in BANNED.finditer(txt):
                             check(False, f'{tag} banned term in data view: …{txt[max(0, m.start() - 40):m.end() + 20]}…')
                         robots = await pg.evaluate("document.querySelector('meta[name=robots]')?.content || ''")

@@ -204,6 +204,16 @@ export function validateDataset(ds, opts) {
     if (a && r.subject && a.project_id !== r.subject.id) E('V03', r.id, 'asset belongs to a different project');
     (r.disclosure_ids || []).forEach(i => { const d = refTo(r.id, i, 'disclosures'); if (d && d.subject && !sameRef(d.subject, { type: 'opportunity', id: r.id }) && !sameRef(d.subject, r.subject)) E('V03', r.id, `${i} is a disclosure for another record`); });
     ownList(r.id, 'opportunity', r.evidence_ids, 'evidence'); ownList(r.id, 'opportunity', r.risk_ids, 'risks');
+    // V23 — documented findings: each cites publishable evidence about this opportunity, its project, asset or developer
+    const own = new Set([r.id, r.subject && r.subject.id, r.asset_id, s && s.developer_id].filter(Boolean));
+    for (const [i, f] of (r.findings || []).entries()) {
+      if (!(f.evidence_ids || []).length) E('V23', r.id, `findings[${i}] has no evidence`);
+      for (const id of f.evidence_ids || []) {
+        const e = refTo(r.id, id, 'evidence');
+        if (e && e.subject && !own.has(e.subject.id)) E('V23', r.id, `findings[${i}]: ${id} is evidence about another record`);
+        else if (e && !isPublicClaim(e)) E('V23', r.id, `findings[${i}]: ${id} is not publishable (${claimPublication(e).reason}) — a finding must rest on publishable evidence`);
+      }
+    }
   }
   for (const r of C('evidence')) { subj(r.id, r.subject); refTo(r.id, r.source_id, 'sources'); (r.conflict_ids || []).forEach(i => refTo(r.id, i, 'conflicts')); }
   for (const r of C('conflicts')) { subj(r.id, r.subject); (r.evidence_ids || []).forEach(i => refTo(r.id, i, 'evidence')); }

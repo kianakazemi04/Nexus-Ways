@@ -190,6 +190,13 @@ export function validatePackage(pkg, pkgDir) {
     const w = `risks[${i}]`; inEnum(w, k && k.risk_type, 'risk_type'); if (!k || !isText(k.title)) E(`${w}: title text (en) required`);
     for (const f of (k && k.evidence_facts) || []) if (!factKeys.has(f)) E(`${w}: evidence fact "${f}" is not a declared fact key`);
   }
+  for (const [i, f] of ((pkg.opportunity && pkg.opportunity.findings) || []).entries()) {
+    const w = `opportunity.findings[${i}]`;
+    if (!f || !['STRENGTH', 'WEAKNESS'].includes(f.type)) E(`${w}: type must be STRENGTH or WEAKNESS`);
+    if (!f || !f.text || typeof f.text.en !== 'string' || !f.text.en.trim()) E(`${w}: text.en required`);
+    if (!f || !Array.isArray(f.evidence_facts) || !f.evidence_facts.length) E(`${w}: evidence_facts required — a finding without evidence is not shown`);
+    for (const k of (f && f.evidence_facts) || []) if (!factKeys.has(k)) E(`${w}: evidence fact "${k}" is not a declared fact key`);
+  }
   for (const [i, d] of (pkg.disclosures || []).entries()) {
     const w = `disclosures[${i}]`;
     if (d && d.template) { if (!disclosureTemplate(d.template)) E(`${w}: unknown disclosure template ${d.template}`); if (d.text || d.kind) E(`${w}: give a template or kind + text, not both`); continue; }
@@ -487,6 +494,8 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
     if (sub.risk_ids && !sub.risk_ids.includes(id)) sub.risk_ids.push(id);
     R.created.push(id);
   }
+  // documented findings (owner brief 29 Oct 2026): strengths and weaknesses, each tied to the evidence of its facts
+  opp.findings = ((pkg.opportunity && pkg.opportunity.findings) || []).map(f => ({ type: f.type, text: f.text, evidence_ids: (f.evidence_facts || []).map(k => factEvd[k]).filter(Boolean) }));
   // disclosures
   for (const d0 of pkg.disclosures || []) {
     const id = nextSeq(store, 'disclosures', `${fx}DSC-${K}-`, 2);

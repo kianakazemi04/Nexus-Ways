@@ -79,6 +79,31 @@
     "asset_key": "A1",
     "investor_objective_tags": [
       "long_term_hold"
+    ],
+    "findings": [
+      {
+        "type": "STRENGTH",
+        "text": {
+          "en": "Project identity and developer relationship are confirmed in the (illustrative) title registry extract.",
+          "tr": "Proje kimliği ve geliştirici ilişkisi (temsili) tapu kaydı özetinde doğrulanmıştır.",
+          "ar": "هوية المشروع وعلاقته بالمطوّر مؤكدة في مستخرج السجل العقاري (التوضيحي)."
+        },
+        "evidence_facts": [
+          "F-NAME",
+          "F-DEVREL"
+        ]
+      },
+      {
+        "type": "WEAKNESS",
+        "text": {
+          "en": "Delivery date rests only on the developer’s statement; no independent progress report yet.",
+          "tr": "Teslim tarihi yalnızca geliştiricinin beyanına dayanıyor; henüz bağımsız ilerleme raporu yok.",
+          "ar": "يعتمد موعد التسليم على بيان المطوّر فقط؛ ولا يوجد تقرير تقدّم مستقل بعد."
+        },
+        "evidence_facts": [
+          "F-DELIVERY"
+        ]
+      }
     ]
   },
   "facts": [

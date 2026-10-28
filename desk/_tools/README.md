@@ -143,10 +143,10 @@ run only on the private store (`ingest.mjs report`) and their results are never 
 (`data/methods.json`) records each method's engines, public `status`, `internal` status, contract and tests; the
 Intelligence page "Decision engines" is generated from it. Tests: `desk/_tests/engines.test.mjs`.
 
-## Price position, risk severity and client brief (29 Oct 2026; awaiting owner approval, D-20)
+## Price position, risk severity and client brief (approved by the owner 29 Oct 2026)
 
-Three private methods, implemented and tested (`desk/_tests/analysis2.test.mjs`). They run only once the owner approves
-them and the registry entry is switched to `internal: ACTIVE`; until then reports state "methodology awaiting approval".
+Three private methods, implemented and tested (`desk/_tests/analysis2.test.mjs`), approved by the owner on 29 Oct 2026
+(registry `internal: ACTIVE`, results INTERNAL). Setting an entry back to `internal: INACTIVE` switches it off (D-20).
 
 - **M-PRICE-POSITION (PPO-1, `engines/pricepos.mjs`).** Places the unit's asking price per m² against the CMP-1
   comparables: below the range, lower half, upper half or above the range (interquartile range and median), with the
@@ -174,3 +174,17 @@ Both commands refuse any path inside the public repository.
 
 Prepared move to Cloudflare Pages: `desk/_tools/CLOUDFLARE-MIGRATION.md` and `.github/workflows/cloudflare-deploy.yml`
 (inert until the owner sets `CF_PAGES_PROJECT` and the two secrets).
+
+## All approved engines run on every project (owner approval 29 Oct 2026)
+
+Registry: comparables, conversion, price position, cash flow, ROI, NPV, return views, scenarios, investment fit, budget
+eligibility, exit review, domain assessment, comparison, decision report, client brief and risk severity are approved and
+run privately (`publication: INTERNAL`). Their results go into the private decision report and the client brief only.
+Still off by design: public yield/return figures (D10), fair value (needs a licensed valuer), area ranking, liquidity
+score and asset-quality score.
+
+## Documented findings on the opportunity page (V23)
+
+`opportunity.findings` in the intake package: `[{ "type": "STRENGTH"|"WEAKNESS", "text": {en, tr, ar}, "evidence_facts":
+["F-…"] }]`. Each finding must rest on publishable evidence about the opportunity, its project, unit or developer; the
+validator refuses anything else (V23). The page shows them under "Our assessment of the project".
