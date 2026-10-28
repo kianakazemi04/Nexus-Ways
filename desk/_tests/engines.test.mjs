@@ -300,7 +300,10 @@ test('PUB-2: no generated page shows market figures, gate details, legal-review 
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
   const pages = fs.readdirSync(path.join(ROOT, 'desk'), { recursive: true }).map(String).filter(f => f.endsWith('.html') && !f.split(path.sep).some(x => x.startsWith('_')));
   // visible text only: method ids may appear in data attributes (they come from the public registry), never as copy
-  const visible = (h) => h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
+  // Owner instruction 28 Oct 2026: market pages carry an official overview (counts and changes) and buying rules, each
+  // linked to its government source. Those two sections are the only exception; they are checked in site.test.mjs.
+  const official = (h) => h.replace(/<section class="sec" aria-labelledby="(?:ov|ru)-h" data-market-(?:overview|rules)="[^"]+">[\s\S]*?<\/section>/g, '');
+  const visible = (h) => official(h).replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
   const banned = [/\bMG-1\b/, /\bMGE-1\b/, /\b(?:FIN|CMP|CNV|FIT|RPT|OPC|ANL)-\d\b/, /Trakheesi|Madhmoun|yetki belgesi|brokerage authority/i, /\b(?:IST|DXB|AUH)-(?:AGENT|ONLINE|OFFPLAN)/, /\d[\d,.]*\s?%/];
   for (const f of pages) {
     const raw = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8'); const h = visible(raw);
@@ -317,7 +320,7 @@ test('PUB-2: no generated page shows market figures, gate details, legal-review 
     for (const id of ['MKT-IST', 'MKT-DXB', 'MKT-AUH']) assert.match(mi, new RegExp(`data-sources="${id}"`), `${lang}: sources of ${id}`);
     const mk = fs.readFileSync(path.join(ROOT, `desk/${lang}markets/dubai/index.html`), 'utf8');
     assert.match(mk, /data-market-status="preparing"/); assert.match(mk, /data-req="DXB-PROJECT-REGISTRATION"/);
-    for (const page of [mk, mi, ev]) assert.doesNotMatch(page, /<a [^>]*href="https:\/\/(?!nexus-ways\.com|calendly)/, `${lang}: no outbound source links`);
+    for (const page of [official(mk), mi, ev]) assert.doesNotMatch(page, /<a [^>]*href="https:\/\/(?!nexus-ways\.com|calendly)/, `${lang}: no outbound source links`);
   }
 });
 

@@ -527,3 +527,11 @@ ul.plain li::before { content: ""; position: absolute; inset-inline-start: 0; to
 .lims li { color: var(--fg2) }
 @media (max-width: 960px) { .hws.c3 { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
 @media (max-width: 640px) { .hws.c3 { grid-template-columns: minmax(0, 1fr) } }
+/* Market overview figures (official releases) */
+.rb.ov .rbx { gap: 8px }
+.ov-n { font-size: clamp(28px, 3.2vw, 38px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; unicode-bidi: isolate }
+[dir=rtl] .ov-n { text-align: right }
+.ov-s { font-size: 12.5px; color: var(--mut, inherit); margin: 0 }
+.ru li { margin-bottom: 8px }
+.srcl { color: inherit; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px }
+.srcl:hover { color: var(--fg, inherit) }

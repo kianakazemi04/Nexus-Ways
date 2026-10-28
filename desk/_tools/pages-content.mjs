@@ -45,7 +45,7 @@ export const MP = {
     gNote: 'Statuses are generated from the published market records each time the site is built. Gate details and statutory records stay private.',
     sLab: 'Sources', sH: 'Traceable sources. Explicit limitations.',
     sP: 'Market evidence identifies the originating institution, source title, reporting period, retrieval date, unit and verification status. Where an official source cannot be accessed, that limitation is disclosed.',
-    sLimit: 'Current limitation: no market figure has yet been verified against its official release for publication, so Desk shows no market figures. Figures are discussed in consultation with their source and status.',
+    sLimit: 'Each market page shows headline figures from the latest official releases, each with its publisher and date. Detailed figures are discussed in consultation with their source.',
     ctaH: 'From market context to asset-level research.', ctaP: 'Market context is the starting point. Individual assets require separate evidence, permissions, financial analysis and due diligence.',
     ctaBtn: 'Explore the Intelligence framework', ctaAlt: 'Request a consultation'
   },
@@ -89,7 +89,7 @@ export const MP = {
     gNote: 'Durumlar, site her oluşturulduğunda yayımlanmış pazar kayıtlarından üretilir. Kapı ayrıntıları ve yasal kayıtlar gizli kalır.',
     sLab: 'Kaynaklar', sH: 'İzlenebilir kaynaklar. Açık sınırlamalar.',
     sP: 'Pazar kanıtı; kaynak kurumu, kaynak başlığını, raporlama dönemini, erişim tarihini, birimi ve doğrulama durumunu belirtir. Resmî bir kaynağa erişilemediğinde bu sınırlama açıklanır.',
-    sLimit: 'Mevcut sınırlama: yayın için henüz hiçbir pazar rakamı resmî yayınına göre doğrulanmadı; bu nedenle Desk pazar rakamı göstermez. Rakamlar, kaynağı ve durumuyla birlikte görüşmede paylaşılır.',
+    sLimit: 'Her pazar sayfası, son resmî yayınlardan öne çıkan rakamları yayıncısı ve tarihiyle birlikte gösterir. Ayrıntılı rakamlar, kaynağıyla birlikte görüşmede paylaşılır.',
     ctaH: 'Pazar bağlamından varlık düzeyinde araştırmaya.', ctaP: 'Pazar bağlamı başlangıç noktasıdır. Her varlık ayrıca kanıt, izin, finansal analiz ve detaylı inceleme gerektirir.',
     ctaBtn: 'Değerlendirme çerçevesini inceleyin', ctaAlt: 'Görüşme talep edin'
   },
@@ -133,7 +133,7 @@ export const MP = {
     gNote: 'تُولَّد الحالات من سجلات الأسواق المنشورة في كل مرة يُبنى فيها الموقع. وتبقى تفاصيل البوابة والسجلات القانونية خاصة.',
     sLab: 'المصادر', sH: 'مصادر قابلة للتتبع. قيود معلنة.',
     sP: 'تحدد أدلة السوق المؤسسة المصدرة وعنوان المصدر وفترة التقرير وتاريخ الاسترجاع والوحدة وحالة التحقق. وحين يتعذّر الوصول إلى مصدر رسمي، يُفصح عن هذا القيد.',
-    sLimit: 'القيد الحالي: لم يُتحقق بعد من أي رقم للسوق مقابل إصداره الرسمي لأغراض النشر، لذلك لا يعرض Desk أرقاماً للأسواق. وتُناقش الأرقام في الاستشارة مع مصدرها وحالتها.',
+    sLimit: 'تعرض صفحة كل سوق أبرز الأرقام من أحدث الإصدارات الرسمية مع الجهة المصدِرة والتاريخ، وتُناقش الأرقام التفصيلية في الاستشارة مع مصدرها.',
     ctaH: 'من سياق السوق إلى بحث الأصل.', ctaP: 'سياق السوق نقطة البداية. ويتطلب كل أصل أدلة وأذونات وتحليلاً مالياً وفحصاً نافياً للجهالة بشكل مستقل.',
     ctaBtn: 'استكشف إطار التحليل', ctaAlt: 'اطلب استشارة'
   }
