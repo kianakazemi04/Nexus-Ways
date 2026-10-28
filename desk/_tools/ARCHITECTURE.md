@@ -1,7 +1,13 @@
-# Nexus Intelligence Desk — Architecture, engines and research workflow (v1, 28 Oct 2026)
+# Nexus Intelligence Desk — Architecture, engines and research workflow (v2, 28 Oct 2026)
 
-Not published (underscore folder). Describes what is implemented on `desk/intelligence-engines`; anything not
-implemented is marked as such. Statuses follow the capability register (project doc `nexus-desk/capability-register-v2.md`).
+Not published on the site (underscore folder; the repository itself is public on GitHub). Describes what is implemented
+on `main` plus the public-minimisation change PUB-2 (branch `desk/public-minimisation`); anything not implemented is
+marked as such. Statuses follow the capability register (project doc `nexus-desk/capability-register-v6.md`).
+
+**PUB-2 (owner instruction, 28 Oct 2026).** Desk is a sales platform: it makes the decision easier, not more
+complicated. Everything researched is used for analysis; only what is safe, verified and useful to the client is
+published. Market research, statistics, research notes, gate details, legal-review topics and internal method names are
+private; the site names the sources the research relies on and offers the analysis in consultation.
 
 ## 1. Layers
 
@@ -18,7 +24,8 @@ Private research store  data/*.json · private/*.json · media/ · reports/
         ├─► decision report (private)          ingest.mjs report
         │  owner: approve-disclosure, approve-media, approve
         ▼
-Public projection  desk/data/public + desk/media   ingest.mjs export (staged, validated, atomic)
+Public projection  desk/data/public + desk/media   ingest.mjs export / export-market (staged, validated, atomic)
+                   markets: record + certificate + district names only (PUB-2)
         │  build.mjs → pages (EN/TR/AR) · validate.mjs (gate, deny-lists, V16, V20, V21 …)
         ▼
 GitHub Pages (main) — Desk pages read only published.json-listed records
@@ -31,9 +38,9 @@ findings text; every number, calculation, gate decision and publication step is 
 
 | Domain | Where it lives | Public? |
 |---|---|---|
-| A Market | `markets`, `districts`, research blocks (MARKET, MACRO_FX, DEVELOPER, PROJECT_ASSET, RISK, DISTRICT), named statistics (`evidence.topic`), private `regulatory_reviews`; source of truth = the private store, published by `export-market` | public as research context (Markets pages, figures labelled with their verification status); activation only through the MG-1 gate (rules approved 28 Oct 2026) and the gate certificate |
-| B Macro & FX | market-level statistics (CPI, policy/base rate, FX reference) as evidence with `topic`; the analysis file's `fx[]` rows must reference that evidence (ANL-2: one source of truth) | market statistics public as context; D10 (prices, rents, returns) unchanged — no financial figure is public |
-| C District & location | `districts`, `areas`, evidence on district/area, project.district_id | yes, with evidence |
+| A Market | `markets`, `districts`, research blocks (MARKET, MACRO_FX, DEVELOPER, PROJECT_ASSET, RISK, DISTRICT), named statistics (`evidence.topic`), private `regulatory_reviews`; source of truth = the private store, published by `export-market` | **private (PUB-2)**: the market record, its status, the per-project checks and the names of the sources used are public; statistics and research notes are used in the store only; activation only through the MG-1 gate (rules approved 28 Oct 2026) and the gate certificate |
+| B Macro & FX | market-level statistics (CPI, policy/base rate, FX reference) as evidence with `topic`; the analysis file's `fx[]` rows must reference that evidence (ANL-2: one source of truth) | private (PUB-2); D10 (prices, rents, returns) unchanged — no financial figure is public |
+| C District & location | `districts`, `areas`, evidence on district/area, project.district_id | district names public; district research private (PUB-2); area facts of a published project public with evidence |
 | D Project & asset | `projects`, `assets`, evidence, media | yes, with evidence |
 | E Developer & brand | `developers`, evidence; brands/architects/collaborators recorded as evidence claims on the project or developer | developer yes; **canonical brand/collaborator records NOT IMPLEMENTED** (schema has no entity for them) |
 | F Pricing & value | private facts (PRICING), comparables in the analysis file | private (D-02, D-03) |
@@ -58,7 +65,7 @@ findings text; every number, calculation, gate decision and publication step is 
 | Engine | Module | Methods | Status |
 |---|---|---|---|
 | 1 Evidence & data quality | `validate.mjs`, `assets/js/policy.js` | M-EVIDENCE, M-MISSING-DATA, M-RESEARCH-STATUS, M-PUBLICATION-GATE | public, implemented & tested |
-| 2 Market & location | `engines/report.mjs` §3; `engines/marketgate.mjs` | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate MG-1 approved (28 Oct 2026), all three markets fail today; activation + `export-market` + certificate (D11/D12); ranking inactive |
+| 2 Market & location | `engines/report.mjs` §3; `engines/marketgate.mjs` | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate MG-1 approved (28 Oct 2026), all three markets fail today; activation + `export-market` + certificate with validity date (D11/D12, PUB-2: public attestation, research private); ranking inactive |
 | 3 Project, developer & brand | `engines/report.mjs` §3, validator gate | M-DOMAIN-ASSESSMENT; M-ASSET-QUALITY | assessment internal & tested; asset quality inactive |
 | 4 Pricing & comparables | `engines/comparables.mjs`, `engines/units.mjs` | M-COMPARABLES (CMP-1), M-CONVERSION (CNV-1); M-FAIR-VALUE | internal & tested; fair value not implemented |
 | 5 Rental & financial | `engines/finance.mjs` | M-CASHFLOW, M-ROI, M-NPV, M-SCENARIOS, M-RETURN-VIEWS (FIN-2); M-YIELD-RETURNS (public figures) | internal & tested; public figures prohibited (D10) |
@@ -85,15 +92,15 @@ findings text; every number, calculation, gate decision and publication step is 
 
 **ANL-2 — analysis handoff** · every number `{value, ref}`; refs resolve to evidence, private facts or ASSUMPTION (note required); a value that differs from its record needs a derivation note; findings need evidence; every `fx[]` row references the evidence or private fact of that rate, with the same value (or its inverse) and date. Refused files write nothing.
 
-**MG-1 / MGE-1 — market gate and public activation** · `activate-market` (store; gate must pass; writes the review stamp and a non-confidential gate certificate: versions, evaluation time, waived per-opportunity requirements, topics with counsel conditions) → `export-market` (public tree: market record, districts, public-safe market research; the store is the source of truth) → `deactivate-market` (rollback; refused while an opportunity of the market is published). Public validator: an ACTIVE market needs the stamp and certificate (V21); its public evidence is re-checked and, when it ages out, new publications are blocked and a W04 warning is raised (deployments are not blocked).
+**MG-1 / MGE-1 — market gate and public activation** · `activate-market` (store; gate must pass; writes the review stamp and a non-confidential gate certificate: versions, evaluation time, `valid_until` = earliest expiry of the inputs that passed, waived per-opportunity requirements) → `export-market` (public tree: market record with certificate and district names; removes any market research left public; the store is the source of truth) → `deactivate-market` (rollback; refused while an opportunity of the market is published). Public validator: an ACTIVE market needs the stamp and certificate (V21); after `valid_until`, new publications are blocked and W04 is raised (deployments are not blocked); V22 rejects market or district research in the public tree.
 
 **Disclosure templates (K-3)** · `desk/_tools/disclosures/standard.json`; `approve-disclosure-template --by owner` binds the exact text (SHA-256); opportunities created from an approved template get APPROVED disclosures; a changed text needs a new approval.
 
 **Indexing (K-4)** · Desk is `noindex` until the first opportunity is published; then Explore, Markets, Intelligence and published opportunity pages are indexable (build rule, tested).
 
-## 5. Public / private policy (unchanged in this work)
+## 5. Public / private policy (PUB-2, 28 Oct 2026)
 
-Public: project/developer facts with evidence (ESTABLISHED as fact, QUALIFIED with "as reported by"), location, research status, documented risks, data gaps, disclosures, permitted media, methodology. Private: prices, price lists, payment plans, rents, financial models and scenarios, comparables, investor profiles, commercial terms, documents, restricted media, personal data. Enforcement: schema allow-list, deny-listed keys, V08 (currency), V16 (free-text prices), V20 (claim policy), F05/F06 (files), method registry (`publication: PROHIBITED_IN_MVP`), export filter. **No restriction was relaxed.** Publishing any financial figure (price band, yield, ROI range) requires an owner-approved policy change — see proposal P-1 in the register.
+Public: project/developer facts with evidence (ESTABLISHED as fact, QUALIFIED with "as reported by"), location, documented risks, open points, disclosures, permitted media, a plain-language evaluation process, the names of the sources used, market status and the per-project checks of each market. Private (in addition to the list below): market and district statistics, research notes and closure states, gate results and inputs, statutory-review topics and status, internal method names, contracts and statuses. Enforcement for PUB-2: V22 (no market/district evidence, research blocks or conflicts in the public tree), the minimised certificate schema (S-16), `export-market` and the opportunity export (no district research), and tests on the generated pages. Private: prices, price lists, payment plans, rents, financial models and scenarios, comparables, investor profiles, commercial terms, documents, restricted media, personal data. Enforcement: schema allow-list, deny-listed keys, V08 (currency), V16 (free-text prices), V20 (claim policy), F05/F06 (files), method registry (`publication: PROHIBITED_IN_MVP`), export filter. **No restriction was relaxed.** Publishing any financial figure (price band, yield, ROI range) requires an owner-approved policy change — see proposal P-1 in the register.
 
 ## 6. First real project — exact steps
 
@@ -102,6 +109,6 @@ Public: project/developer facts with evidence (ESTABLISHED as fact, QUALIFIED wi
 3. `node desk/_tools/ingest.mjs ingest --package <pkg> --store <private store>` (dry run) → review → `--apply`. Existing developers/districts are linked with `ref`.
 4. Claude writes `private/analysis/<OPP>.json` (handoff part 2; template `analysis-template.json`) and runs `ingest.mjs report` → private decision report; gaps listed as next steps.
 5. Owner decisions: counsel-approved disclosure (`approve-disclosure`), each image (`approve-media`), the opportunity (`approve`).
-6. **Blocked today:** export needs an active market. The market gate MG-1 is built (branch `desk/market-gates`) but INACTIVE: a market becomes active only after the owner approves the rules, its research and legal reviews are recorded, its own gate passes, and the owner runs `activate-market` (D1: Istanbul, Dubai and Abu Dhabi in one programme, each independently). Then `export`, commit on a branch, CI, merge, verify the live page.
+6. **Blocked today:** export needs an active market. The MG-1 rules are approved (28 Oct 2026); every market still fails its own gate. A market becomes active only after its research and statutory reviews are recorded in the store, its own gate passes, and the owner runs `activate-market` then `export-market` (D1: Istanbul, Dubai and Abu Dhabi in one programme, each independently). Then `export`, commit on a branch, CI, merge, verify the live page.
 
-Prerequisites outside the code: private research store (repository or drive), Pages Source = GitHub Actions, legal review of disclosures/privacy text.
+Prerequisites outside the code: private research store (repository or drive; the 28 Oct 2026 research cycle is held in the project at `nexus-desk/private/market-research-holding-2026-10-28.json` until then), Pages Source = GitHub Actions, legal review of disclosures/privacy text. Recommended (security audit 28 Oct 2026): make this repository private, since its configuration and tooling are readable by anyone today.

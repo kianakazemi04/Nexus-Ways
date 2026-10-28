@@ -25,7 +25,7 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/desk/assets/css/desk.css?v=5">
+<link rel="stylesheet" href="/desk/assets/css/desk.css?v=6">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>
@@ -45,11 +45,11 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <button class="bg" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv"><span></span><span></span></button>
 </div></header>
 <main id="main">
-<section class="pi"><div class="w"><div class="eb">Investment Intelligence &amp; Opportunity Assessment</div><h1 style="margin-top:20px">Discover. Evaluate. Compare. <em>Decide.</em></h1><p class="lead">A selective set of researched opportunities, each shown with its evidence, documented risks and data gaps. No public prices, scores or forecasts: the analysis stays honest about what is known.</p></div></section>
+<section class="pi"><div class="w"><div class="eb">Investment Intelligence &amp; Opportunity Assessment</div><h1 style="margin-top:20px">Discover. Evaluate. Compare. <em>Decide.</em></h1><p class="lead">A selective set of opportunities, each checked against official records before it is shown. Pricing, payment plans and the financial analysis are prepared privately for you in consultation.</p></div></section>
 <section class="sec"><div class="w"><div class="sh"><div><span class="lab">Categories</span><h2>Where Desk operates</h2></div></div><div class="cats" id="cats"></div></div></section>
-<section class="sec hw" aria-labelledby="hw-t"><div class="w"><div class="sh"><div><span class="lab">How Desk works</span><h2 id="hw-t">Research first. Every statement traceable.</h2></div><p>Nexus Desk is the research desk of Nexus Ways. It does not list everything on the market: it shows a small number of opportunities, each with the evidence behind it, the risks documented and the gaps stated.</p></div>
-<ol class="hws"><li class="rv"><span class="n">01</span><h3>Sourcing and screening</h3><p>Opportunities come from developers, official records and market sources, and are screened before any research starts.</p></li><li class="rv"><span class="n">02</span><h3>Evidence for every fact</h3><p>Each value links to its source, source tier, date and verification status. Developer statements are labelled as such, never presented as verified fact.</p></li><li class="rv"><span class="n">03</span><h3>Risks and data gaps</h3><p>Material risks are documented with cause and mitigation. Missing information is stated explicitly, never estimated or filled in.</p></li><li class="rv"><span class="n">04</span><h3>Publication review</h3><p>An opportunity is shown only after its identity, developer, disclosures and image rights pass review. Prices, scores and forecasts are not published.</p></li></ol>
-<a class="btn o" href="/desk/intelligence/">Read the methodology <i aria-hidden="true">→</i></a></div></section>
+<section class="sec hw" aria-labelledby="hw-t"><div class="w"><div class="sh"><div><span class="lab">How Desk works</span><h2 id="hw-t">Fewer opportunities. Better checked.</h2></div><p>Nexus Desk is the research desk of Nexus Ways. We present a small number of opportunities and do the verification, comparison and analysis behind them, so your decision rests on checked facts.</p></div>
+<ol class="hws"><li class="rv"><span class="n">01</span><h3>Selected sources</h3><p>Opportunities come from developers, official records and our market network, and are screened before research starts.</p></li><li class="rv"><span class="n">02</span><h3>Verified facts</h3><p>Identity, developer and registration are checked against official records. What a developer states is labelled as their statement.</p></li><li class="rv"><span class="n">03</span><h3>Risks stated plainly</h3><p>Every opportunity shows its material risks and what is still being confirmed.</p></li><li class="rv"><span class="n">04</span><h3>Your private analysis</h3><p>Pricing, payment plans, comparable projects and financial scenarios are prepared for your objectives and discussed one to one.</p></li></ol>
+<a class="btn o" href="/desk/intelligence/">How we evaluate <i aria-hidden="true">→</i></a></div></section>
 <section class="sec" aria-labelledby="ex-t"><div class="w"><div class="sh"><div><span class="lab">Opportunities</span><h2 id="ex-t">Explore</h2></div></div>
 <div class="ex"><form class="flt" id="flt" role="search" aria-label="Filter opportunities" onsubmit="return false">
 <label><span class="lab">Search</span><input type="search" id="f-q" placeholder="Project, district, market" autocomplete="off"></label>
@@ -59,7 +59,7 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <label><span class="lab">Delivery status</span><select id="f-delivery"></select></label>
 <label><span class="lab">Evidence status</span><select id="f-evidence"></select></label>
 <label><span class="lab">Sort</span><select id="f-sort"><option value="verified">Last verified</option><option value="delivery">Expected delivery</option></select></label>
-<div class="ft"><span class="lab">No price filters</span><button type="button" class="lnk" id="clr">Clear</button></div></form>
+<div class="ft"><span class="lab">Pricing on request</span><button type="button" class="lnk" id="clr">Clear</button></div></form>
 <div><div class="res"><span class="lab" id="count" aria-live="polite"></span></div><div class="cards" id="cards"><p class="loading">Loading…</p></div></div></div></div></section>
 <noscript><div class="w"><div class="notice"><b>JavaScript is required to load Desk data.</b><p>All content is static and local; nothing is tracked or stored.</p></div></div></noscript>
 <div class="tray" id="tray" aria-live="polite"><div class="w"><span class="lab">Compare</span><div class="its"></div><button type="button" class="lnk">Clear</button><a class="btn sm" href="/desk/compare/" aria-disabled="true"><span>Compare 0</span> <i aria-hidden="true">→</i></a><p class="msg" role="status"></p></div></div>
@@ -69,8 +69,8 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <div><h4 translate="no">Desk</h4><nav aria-label="Desk"><a href="/desk/">Explore</a><a href="/desk/markets/">Markets</a><a href="/desk/intelligence/">Intelligence</a><a href="/desk/consultation/">Consultation</a><a href="/desk/disclosures/">Disclosures</a></nav></div>
 <div><h4>Contact Desk</h4><nav aria-label="Contact Desk"><a href="mailto:desk@nexus-ways.com" dir="ltr" translate="no">desk@nexus-ways.com</a><a href="https://calendly.com/nexus-ways/desk" target="_blank" rel="noopener">Book a call ↗</a><a href="/desk/consultation/">Consultation request</a></nav></div>
 <div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/">Investment Arm</a><a href="/about/">About</a></nav></div>
-</div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>No public prices · no scores · no forecasts</span></div></div></footer>
-<script type="module" src="/desk/assets/js/explore.js?v=5"></script>
+</div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>Pricing and analysis are shared privately in consultation</span></div></div></footer>
+<script type="module" src="/desk/assets/js/explore.js?v=6"></script>
 <noscript><style>.rv{opacity:1;transform:none}</style></noscript>
 </body>
 </html>

@@ -41,7 +41,7 @@ function render() {
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><span class="lab">${esc(t('emptyLab'))}</span><h3>${esc(t('emptyH'))}</h3>
       <p>${esc(t('emptyP'))}</p>
       <ul><li>${esc(t('emptyL1'))}</li><li>${esc(t('emptyL2'))}</li><li>${esc(t('emptyL3'))}</li></ul>
-      <div><a class="btn o sm" href="${D.withFixtureFlag('/desk/intelligence/evaluation/')}">${esc(t('emptyBtn'))} <i>→</i></a></div></div>`;
+      <div><a class="btn o sm" href="${D.withFixtureFlag('/desk/intelligence/')}">${esc(t('emptyBtn'))} <i>→</i></a></div></div>`;
   } else if (!list.length) {
     grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>${esc(t('noMatchH'))}</h3><p>${filtered ? esc(t('noMatchP')) : ''}</p><div><button type="button" class="lnk" id="clr2">${esc(t('clearFilters'))}</button></div></div>`;
     $('#clr2').onclick = clear;

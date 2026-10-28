@@ -469,3 +469,16 @@ noscript .notice { margin-top: 16px }
 .mkc li { padding-inline-start: 14px; position: relative }
 .mkc li::before { content: ""; position: absolute; inset-inline-start: 0; top: .6em; width: 6px; height: 1px; background: var(--red) }
 .dom a.lnk { overflow-wrap: anywhere }
+
+/* PUB-2: decision-first market and evaluation pages */
+.chips { display: flex; flex-wrap: wrap; gap: 8px }
+.chips .chip small { font-size: inherit }
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+ul.plain li { position: relative; padding-inline-start: 18px; line-height: 1.5 }
+ul.plain li::before { content: ""; position: absolute; inset-inline-start: 0; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--fg2); opacity: .7 }
+.notice.cta { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px 28px; padding: 28px }
+.notice.cta p { max-width: 62ch }
+@media (max-width: 720px) { .notice.cta { grid-template-columns: minmax(0, 1fr) } .notice.cta .btn { justify-self: start } }
+.rb.wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)) }
+.rb.wide .rbx { align-content: start; padding: 22px }
+.mk > .chip { justify-self: start; align-self: start; width: max-content; max-width: 100% }

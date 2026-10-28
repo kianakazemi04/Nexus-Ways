@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT, TODAY, readJson, writeJson, tmp, tmpRepo, cli, enableTestMarketGate, disableTestMarketGate } from './helpers.mjs';
-import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons, configProblems, periodEnd, CONFIG_PATH } from '../_tools/engines/marketgate.mjs';
+import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons, configProblems, periodEnd, CONFIG_PATH, gateCertificate, gateValidUntil, certificateState } from '../_tools/engines/marketgate.mjs';
 import { validateDataset, validateRepo } from '../_tools/validate.mjs';
 import { gateDataset, requirementEvidence, sub } from './marketgate-data.mjs';
 
@@ -270,7 +270,7 @@ const ON = { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' };
 for (const id of MARKETS) {
   test(`${id}: validator — a hand-activated market is V21 while its computed gate fails; the stamp alone is not enough`, () => {
     const d = clone(gateDataset(CFG, id, TODAY));
-    Object.assign(d.collections.markets[0], { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, gate_certificate: { gate_version: 'MG-1', engine_version: 'MGE-1', evaluated_at: `${TODAY}T00:00:00Z`, activated_at: TODAY, waived_requirements: [], conditions_topics: [] } });
+    Object.assign(d.collections.markets[0], { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, gate_certificate: { gate_version: 'MG-1', engine_version: 'MGE-1', evaluated_at: `${TODAY}T00:00:00Z`, activated_at: TODAY, valid_until: TODAY, waived_requirements: [] } });
     const v = (ds, reviews) => validateDataset({ collections: ds.collections }, { mode: 'private', today: TODAY, methods: ON, marketGates: { config: CFG, reviews, provenance: ds.provenance } }).errors.filter(e => e.code === 'V21');
     assert.deepEqual(v(d, d.reviews), [], 'passing gate + stamp: no V21');
     const stale = clone(d); stale.collections.evidence = stale.collections.evidence.filter(e => e.topic !== CFG.markets[id].fx.reference);
@@ -278,21 +278,43 @@ for (const id of MARKETS) {
     assert.ok(v(d, []).some(e => /MG_REVIEW_MISSING/.test(e.msg)), 'unapproved: no legal review');
     const nostamp = clone(d); nostamp.collections.markets[0].review.gate_version = 'G3-v1';
     assert.ok(v(nostamp, d.reviews).some(e => /activation stamp/.test(e.msg)));
-    // public tree: no review records → the stamp is required
-    const pubErr = validateDataset({ collections: nostamp.collections }, { mode: 'public', today: TODAY, methods: ON, marketGates: { config: CFG, reviews: null } }).errors.filter(e => e.code === 'V21');
-    assert.ok(pubErr.some(e => /activation stamp/.test(e.msg)));
-    // public tree with stamp + certificate: no V21; the statutory part is attested by the certificate
+    // public tree (PUB-2): the market record, its certificate and district names only — the research stays private
+    const g = evaluateMarketGate(CFG, id, d.collections, { today: TODAY, reviews: d.reviews, provenance: d.provenance });
+    const publicOf = (ds, cert) => { const x = clone(ds); for (const c of ['evidence', 'research_blocks', 'sources', 'conflicts']) x.collections[c] = []; for (const r of [...x.collections.markets, ...x.collections.districts]) { r.research_block_ids = []; r.evidence_ids = []; } x.collections.markets[0].gate_certificate = cert; return x; };
+    const cert = gateCertificate(CFG, g, d.reviews, TODAY);
     const pub = (ds) => validateDataset({ collections: ds.collections }, { mode: 'public', today: TODAY, methods: ON, marketGates: { config: CFG, reviews: null } });
-    assert.deepEqual(pub(d).errors.filter(e => e.code === 'V21'), []);
-    const nocert = clone(d); nocert.collections.markets[0].gate_certificate = null;
-    assert.ok(pub(nocert).errors.some(e => e.code === 'V21' && /gate certificate/.test(e.msg)));
-    // public evidence that no longer passes: a warning (W04), never a deployment-blocking error
-    const pubStale = pub(stale);
+    const pd = publicOf(d, cert);
+    assert.deepEqual(pub(pd).errors.filter(e => ['V21', 'V22'].includes(e.code)), [], 'stamp + current certificate: no V21/V22');
+    const pnostamp = clone(pd); pnostamp.collections.markets[0].review.gate_version = 'G3-v1';
+    assert.ok(pub(pnostamp).errors.some(e => e.code === 'V21' && /activation stamp/.test(e.msg)));
+    assert.ok(pub(publicOf(d, null)).errors.some(e => e.code === 'V21' && /gate certificate/.test(e.msg)));
+    // market research left in the public tree is rejected (V22)
+    assert.ok(pub(d).errors.some(e => e.code === 'V22'), 'market research in public → V22');
+    // a certificate past its validity date: a warning (W04), never a deployment-blocking error
+    const pubStale = pub(publicOf(d, { ...cert, valid_until: sub(TODAY, 1) }));
     assert.ok(pubStale.warnings.some(w => w.code === 'W04') && !pubStale.errors.some(e => e.code === 'V21'));
     // registry not approved → V21 for any activation, whatever the data
     assert.ok(validateDataset({ collections: d.collections }, { mode: 'private', today: TODAY, methods: { 'M-MARKET-GATE': 'INACTIVE' }, marketGates: { config: CFG, reviews: d.reviews } }).errors.some(e => e.code === 'V21'));
   });
 }
+
+// ------------------------------------------------------------------ certificate validity horizon (PUB-2)
+const addD = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+for (const id of MARKETS) {
+  test(`${id}: certificate valid_until is exactly the last day on which the same inputs still pass the gate`, () => {
+    const d = gateDataset(CFG, id, TODAY);
+    const g = evaluateMarketGate(CFG, id, d.collections, { today: TODAY, reviews: d.reviews, provenance: d.provenance });
+    assert.ok(g.pass);
+    const vu = gateValidUntil(CFG, g); assert.match(vu, /^\d{4}-\d{2}-\d{2}$/); assert.ok(vu >= TODAY);
+    const at = (day) => evaluateMarketGate(CFG, id, d.collections, { today: day, reviews: d.reviews, provenance: d.provenance }).pass;
+    assert.equal(at(vu), true, `passes on ${vu}`); assert.equal(at(addD(vu, 1)), false, `fails the day after ${vu}`);
+    const c = gateCertificate(CFG, g, d.reviews, TODAY);
+    assert.deepEqual(Object.keys(c).sort(), ['activated_at', 'engine_version', 'evaluated_at', 'gate_version', 'valid_until', 'waived_requirements']);
+    assert.equal(certificateState(CFG, { id, review: { gate_version: 'MG-1' }, gate_certificate: c }, vu).ok, true);
+    assert.equal(certificateState(CFG, { id, review: { gate_version: 'MG-1' }, gate_certificate: c }, addD(vu, 1)).code, 'MG_CERT_EXPIRED');
+  });
+}
+assert.equal(gateValidUntil(CFG, { pass: false }), null);
 
 // ------------------------------------------------------------------ the real repository
 test('real repository: gate rules approved (owner, 28 Oct 2026); all three markets INACTIVE and each fails closed on the public data', () => {
@@ -427,12 +449,17 @@ test('commands (simulated owner approval): activate → export-market publishes 
     r = cli(repo, ['export-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 0, r.out);
     const pm = readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === 'MKT-DXB');
     assert.equal(pm.activation, 'ACTIVE'); assert.equal(pm.review.gate_version, 'MG-1'); assert.deepEqual(pm.gate_certificate, sm.gate_certificate);
-    const ev = readJson(path.join(repo, 'desk/data/public/evidence.json')).records;
-    assert.ok(!ev.some(e => /^EVD-MKT-DXB-/.test(e.id) || /^EVD-DST-DXB-/.test(e.id)), 'the previous public research for Dubai is replaced by the store’s');
-    assert.ok(ev.some(e => /^EVD-DXB-MG-/.test(e.id)));
+    // PUB-2: the market's research stays in the store; the public side is the record, the certificate and district names
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(pm.gate_certificate.valid_until) && pm.gate_certificate.valid_until >= TODAY, 'certificate carries its validity date');
+    assert.ok(!('conditions_topics' in pm.gate_certificate), 'no counsel-condition topics in public');
+    assert.deepEqual([pm.research_block_ids, pm.evidence_ids], [[], []]);
+    for (const c of ['evidence', 'research_blocks', 'conflicts']) assert.ok(!readJson(path.join(repo, `desk/data/public/${c}.json`)).records.some(r => r.subject && ['market', 'district'].includes(r.subject.type)), `no market or district ${c} in public`);
+    const pd = readJson(path.join(repo, 'desk/data/public/districts.json')).records.filter(d => d.market_id === 'MKT-DXB');
+    assert.ok(pd.length >= 1 && pd.every(d => !d.research_block_ids.length && !d.evidence_ids.length), 'district names only');
+    assert.ok(!fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8').includes('TEST-ONLY memo'));
     const v = validateRepo(repo, { today: TODAY }); assert.deepEqual(v.errors, []);
     assert.deepEqual(v.report.index.markets, ['MKT-DXB']);
-    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-gate="pass"/);
+    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-market-status="open"/);
     for (const id of ['MKT-IST', 'MKT-AUH']) assert.equal(readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === id).activation, 'INACTIVE', `${id} unaffected`);
     // rollback
     assert.notEqual(cli(repo, ['deactivate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']).code, 0, '--reason required');
@@ -440,7 +467,7 @@ test('commands (simulated owner approval): activate → export-market publishes 
     const pm2 = readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === 'MKT-DXB');
     assert.equal(pm2.activation, 'INACTIVE'); assert.equal(pm2.gate_certificate, null); assert.equal(pm2.review, null);
     assert.deepEqual(validateRepo(repo, { today: TODAY }).errors, []);
-    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-gate="fail"/);
+    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-market-status="preparing"/);
     const audit = readJson(path.join(store, 'private/audit_log.json')).map(a => a.action);
     for (const a of ['activate-market', 'export-market', 'deactivate-market']) assert.ok(audit.includes(a), a);
   } finally { for (const x of [repo, store, pkgDir]) fs.rmSync(x, { recursive: true, force: true }); }

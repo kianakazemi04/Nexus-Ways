@@ -9,12 +9,8 @@
       "name": "Al Reem Island",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-AUH-AL-REEM-ISLAND"
-      ],
-      "evidence_ids": [
-        "EVD-DST-AUH-0001"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -25,12 +21,8 @@
       "name": "Hudayriyat Island",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-AUH-HUDAYRIYAT-ISLAND"
-      ],
-      "evidence_ids": [
-        "EVD-DST-AUH-0002"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -41,12 +33,8 @@
       "name": "Saadiyat Island",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-AUH-SAADIYAT-ISLAND"
-      ],
-      "evidence_ids": [
-        "EVD-DST-AUH-0003"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -57,12 +45,8 @@
       "name": "Yas Island",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-AUH-YAS-ISLAND"
-      ],
-      "evidence_ids": [
-        "EVD-DST-AUH-0004"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -73,12 +57,8 @@
       "name": "Al Barsha South Fourth",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-DXB-AL-BARSHA-SOUTH-FOURTH"
-      ],
-      "evidence_ids": [
-        "EVD-DST-DXB-0001"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -89,12 +69,8 @@
       "name": "Business Bay",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-DXB-BUSINESS-BAY"
-      ],
-      "evidence_ids": [
-        "EVD-DST-DXB-0005"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -105,12 +81,8 @@
       "name": "Dubai South",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-DXB-DUBAI-SOUTH"
-      ],
-      "evidence_ids": [
-        "EVD-DST-DXB-0002"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -121,12 +93,8 @@
       "name": "Jabal Ali First",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-DXB-JABAL-ALI-FIRST"
-      ],
-      "evidence_ids": [
-        "EVD-DST-DXB-0004"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     },
@@ -137,12 +105,8 @@
       "name": "Wadi Al Safa 3",
       "admin_level": "COMMUNITY",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [
-        "RB-DST-DXB-WADI-AL-SAFA-3"
-      ],
-      "evidence_ids": [
-        "EVD-DST-DXB-0003"
-      ],
+      "research_block_ids": [],
+      "evidence_ids": [],
       "field_states": [],
       "is_illustrative": false
     }

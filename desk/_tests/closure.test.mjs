@@ -301,7 +301,7 @@ test('CI runs every node test suite in desk/_tests', () => {
 // ================================================================== owner requests (28 Oct): mobile languages, Web3 category, status bar, Explore intro
 test('every Desk page has the language choices inside the mobile menu, like the company site', () => {
   const pages = fs.readdirSync(path.join(ROOT, 'desk'), { recursive: true }).map(String).filter(f => f.endsWith('.html') && !f.split(path.sep).some(s => s.startsWith('_')));
-  assert.ok(pages.length >= 50);
+  assert.ok(pages.length >= 36);
   for (const f of pages) {
     const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8');
     const nav = (h.match(/<nav class="nv"[\s\S]*?<\/nav>/) || [''])[0];

@@ -11,7 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { evidenceFreshness, claimPublication, isPublicClaim, deriveLastVerified, MATERIAL_FIELDS, IDENTITY_FIELDS, isIsoDate } from '../assets/js/policy.js';
-import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons } from './engines/marketgate.mjs';
+import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons, certificateState } from './engines/marketgate.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SCHEMA = JSON.parse(fs.readFileSync(path.join(HERE, '../_schema/schema-v1.1.json'), 'utf8'));
@@ -297,14 +297,19 @@ export function validateDataset(ds, opts) {
   const marketGateOn = !!(opts.methods && opts.methods['M-MARKET-GATE'] === 'ACTIVE');
   const MG = opts.marketGates || null;
   const gateResults = {};
-  // private store (review records available): the full gate. Public tree: everything except the private statutory
-  // records, whose clearance is attested by the market's gate certificate (D11/D12).
+  // private store (research and review records available): the full gate. Public tree (PUB-2): market research and
+  // statutory reviews are never public, so the gate is attested by the market's activation stamp and gate certificate,
+  // including its validity horizon (D11/D12).
   const privateGate = !!(MG && Array.isArray(MG.reviews));
   const gateFor = (id) => {
     if (!MG || !MG.config || MG.config.error) return null;
-    if (!(id in gateResults)) gateResults[id] = privateGate
-      ? evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: MG.reviews, provenance: MG.provenance || null })
-      : evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: [], provenance: null, skipReviews: true });
+    if (!(id in gateResults)) {
+      if (privateGate) gateResults[id] = evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: MG.reviews, provenance: MG.provenance || null });
+      else {
+        const mk = C('markets').find(x => x.id === id); const c = mk ? certificateState(MG.config, mk, today) : { ok: false, code: 'MG_SCOPE', detail: 'market record not found' };
+        gateResults[id] = { gate_version: MG.config.version, pass: c.ok, reasons: c.ok ? [] : [{ code: c.code, item: id, detail: c.detail }] };
+      }
+    }
     return gateResults[id];
   };
   const stampOk = (m) => !!(MG && MG.config && !MG.config.error && MG.config.markets && MG.config.markets[m.id] && m.review && m.review.gate_version === MG.config.version);
@@ -321,6 +326,13 @@ export function validateDataset(ds, opts) {
     if (!(e.r.conflict_ids || []).includes(r.id)) E('V10', r.id, `${i} does not reference this conflict`);
   }
   // research blocks unique per subject+domain
+  // V22 — PUB-2 public minimisation (owner instruction 28 Oct 2026): market and district research (named statistics,
+  // research notes, gate inputs) is used for analysis in the private store and never published; the public tree carries
+  // only the market and district records, the market's activation stamp and its gate certificate.
+  for (const c of ['evidence', 'research_blocks', 'conflicts']) for (const r of C(c)) {
+    const isPublic = ds.origin ? ds.origin[r.id] === 'public' : mode === 'public';
+    if (isPublic && r.subject && ['market', 'district'].includes(r.subject.type)) E('V22', r.id, `${c} on ${r.subject.type} ${r.subject.id} is private research (PUB-2); it stays in the private store`);
+  }
   { const seen = new Set(); for (const r of C('research_blocks')) { const k = `${r.subject && r.subject.type}:${r.subject && r.subject.id}:${r.domain}`; if (seen.has(k)) E('V15', r.id, `second research block for ${k}`); seen.add(k); } }
 
   // V08/V14 — deny-list keys and personal data, everywhere
@@ -407,7 +419,7 @@ export function validateDataset(ds, opts) {
       else if (!g.pass) {
         // public tree: a market whose public evidence has aged out blocks NEW publication; already-published records only
         // warn (W01), as for opportunity evidence (D4). In the private store the full gate decides.
-        const w = `market gate ${g.gate_version} ${privateGate ? 'fails' : 'no longer passes on the public evidence'} for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`;
+        const w = `market gate ${g.gate_version} ${privateGate ? 'fails' : 'certificate is no longer current'} for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`;
         why.push(w); if (!privateGate) fresh.add(w);
       }
       if (!privateGate && !certOk(m.r)) why.push(`market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp and gate certificate`);
@@ -484,7 +496,7 @@ export function validateDataset(ds, opts) {
       const g = gateFor(r.id);
       if (g && !g.pass && privateGate) E('V21', r.id, `market is ${r.activation}/${r.record_status} but its computed gate ${g.gate_version} fails: ${g.reasons.map(x => `${x.code} ${x.item}`).join('; ')}`);
       // public tree: ageing market evidence must not block every later deployment (including a withdrawal), so it warns
-      if (g && !g.pass && !privateGate) W('W04', r.id, `active market whose public gate evidence no longer passes (${g.reasons.map(x => `${x.code} ${x.item}`).slice(0, 6).join('; ')}); new opportunities are blocked until the evidence is refreshed (export-market) or the market is deactivated`);
+      if (g && !g.pass && !privateGate && g.reasons.some(x => x.code === 'MG_CERT_EXPIRED' || x.code === 'MG_CERT_INVALID')) W('W04', r.id, `active market whose gate certificate is no longer current (${g.reasons.map(x => x.detail).join('; ')}); new opportunities are blocked until the owner re-runs the gate in the store (activate-market, export-market) or deactivates the market`);
       if (!stampOk(r)) E('V21', r.id, `market is ${r.activation}/${r.record_status} without the ${MG.config && MG.config.version || 'market-gate'} activation stamp (review.gate_version); only activate-market may activate a market`);
       else if (!r.gate_certificate || r.gate_certificate.gate_version !== MG.config.version) E('V21', r.id, `market is ${r.activation}/${r.record_status} without a ${MG.config.version} gate certificate; only activate-market writes it`);
     }

@@ -75,7 +75,7 @@ test('indexing (K-4): noindex while nothing is published; from the first publica
   const s = publishedSetup();
   try {
     const slug = fs.readdirSync(path.join(s.repo, 'desk/opportunities')).find(d => d !== 'preview' && d !== 'index.html');
-    for (const rel of ['index.html', 'tr/index.html', 'markets/index.html', 'markets/istanbul/index.html', 'intelligence/index.html', 'ar/intelligence/decision-engines/index.html', `opportunities/${slug}/index.html`]) assert.equal(head(s.repo, rel), 'index, follow', rel);
+    for (const rel of ['index.html', 'tr/index.html', 'markets/index.html', 'markets/istanbul/index.html', 'intelligence/index.html', 'ar/intelligence/index.html', `opportunities/${slug}/index.html`]) assert.equal(head(s.repo, rel), 'index, follow', rel);
     for (const rel of ['opportunities/preview/index.html', 'compare/index.html', 'consultation/index.html', 'disclosures/index.html', '404.html']) assert.equal(head(s.repo, rel), 'noindex, follow', rel);
   } finally { s.cleanup(); }
 });
