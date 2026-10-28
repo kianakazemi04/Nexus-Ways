@@ -11,6 +11,14 @@ import { scenarios as runScenarios, FIN_VERSION } from './finance.mjs';
 import { selectComparables } from './comparables.mjs';
 import { investmentFit } from './fit.mjs';
 import { exitReview } from './exit.mjs';
+import { pricePosition } from './pricepos.mjs';
+import { assessSeverity } from './severity.mjs';
+import fs from 'node:fs';
+
+// Internal engines run only when the method registry marks them internally active (D-20: no method runs before its
+// methodology is approved). The registry is read from the repository.
+const REG = (() => { try { return JSON.parse(fs.readFileSync(new URL('../../data/methods.json', import.meta.url), 'utf8')).methods; } catch { return []; } })();
+export const internalActive = (id, reg) => ((reg || REG).find(m => m.id === id) || {}).internal === 'ACTIVE';
 
 export const RPT_VERSION = 'RPT-1';
 const DOMAIN_OF = { market: 'MARKET', district: 'DISTRICT', area: 'AREA', project: 'PROJECT_ASSET', asset: 'PROJECT_ASSET', developer: 'DEVELOPER', opportunity: 'PROJECT_ASSET' };
@@ -18,7 +26,7 @@ const same = (a, b) => a && b && a.type === b.type && a.id === b.id;
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
 
 // store: loaded store; gateWhy: gate reasons for the opportunity (from the validator); analysis: unwrapped (checkAnalysis)
-export function decisionReport(store, oppId, { gateWhy = [], analysis = null, provenance = [], today, privateFacts = null }) {
+export function decisionReport(store, oppId, { gateWhy = [], analysis = null, provenance = [], today, privateFacts = null, registry = REG }) {
   const C = (c) => store.collections[c] || [];
   const byId = new Map(); for (const recs of Object.values(store.collections)) for (const r of recs) byId.set(r.id, r);
   const o = byId.get(oppId); if (!o) return { status: 'UNAVAILABLE', reason: `${oppId} not found` };
@@ -45,7 +53,8 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
     for (const e of evFor(type, rec.id)) d.evidence.push({ id: e.id, subject: rec.id, field: e.field, claim: e.claim && e.claim.en, label: label(e) });
   }
   for (const b of C('research_blocks')) if (subjects.some(s => same(b.subject, { type: s.type, id: s.rec.id }))) (domains[b.domain] ||= { evidence: [], research_blocks: [] }).research_blocks.push({ id: b.id, research_closure: b.research_closure, data_completeness: b.data_completeness });
-  const risks = C('risks').filter(r => subjects.some(s => same(r.subject, { type: s.type, id: s.rec.id }))).map(r => ({ id: r.id, type: r.risk_type, title: r.title && r.title.en, cause: r.cause && r.cause.en, mitigation: r.mitigation && r.mitigation.en, residual: r.residual_uncertainty && r.residual_uncertainty.en, evidence: r.evidence_ids, severity: 'not assessed (M-RISK-SEVERITY inactive)' }));
+  const risks = C('risks').filter(r => subjects.some(s => same(r.subject, { type: s.type, id: s.rec.id }))).map(r => ({ id: r.id, type: r.risk_type, title: r.title && r.title.en, cause: r.cause && r.cause.en, mitigation: r.mitigation && r.mitigation.en, i18n: { title: r.title || null, mitigation: r.mitigation || null }, residual: r.residual_uncertainty && r.residual_uncertainty.en, evidence: r.evidence_ids, severity: 'not assessed (M-RISK-SEVERITY inactive)' }));
+  const sevOn = internalActive('M-RISK-SEVERITY', registry);
   const conflicts = C('conflicts').filter(c => subjects.some(s => same(c.subject, { type: s.type, id: s.rec.id }))).map(c => ({ id: c.id, field: c.field, status: c.status, evidence: c.evidence_ids }));
   const gaps = facts.filter(f => f.value === null).map(f => `${f.subject}.${f.field}: ${f.state}`);
   const exit = exitReview({ collections: store.collections, subjects: subjects.map(s => ({ type: s.type, id: s.rec.id })), marketId: o.market_id, privateFacts: privateFacts || (store.private && store.private.private_facts) || [] });
@@ -56,6 +65,10 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
   if (A.finance) finance = runScenarios(A.finance, A.scenarios || {});
   let comparables = { status: 'UNAVAILABLE', missing: ['analysis.comparables'] };
   if (A.comparables) comparables = selectComparables({ ...A.comparables.subject, as_of: (A.comparables.subject || {}).as_of || A.as_of }, A.comparables.candidates, A.comparables.rules, A.fx || []);
+  const ppOn = internalActive('M-PRICE-POSITION', registry);
+  const position = !ppOn ? { status: 'INACTIVE' } : A.price_position ? pricePosition(A.price_position, comparables) : { status: 'UNAVAILABLE', missing: ['analysis.price_position'] };
+  const severity = sevOn ? assessSeverity(risks, A.risk_severity || {}) : { errors: [], labels: {} };
+  if (sevOn) for (const r of risks) { const x = severity.labels[r.id]; if (x) { r.severity = x.label; r.severity_rationale = x.rationale; } }
   let fit = { status: 'UNAVAILABLE', missing: ['analysis.investor_profile'] };
   if (A.investor_profile) fit = investmentFit(A.investor_profile, { investor_objective_tags: o.investor_objective_tags, delivery_status: p && p.delivery_status, expected_delivery: p && p.expected_delivery, market_id: o.market_id, risk_types: risks.map(r => r.type), price: A.price_evidence ? { min: A.price_evidence.min, costs: typeof A.price_evidence.costs === 'number' ? A.price_evidence.costs : undefined, currency: A.price_evidence.currency, evidence_id: (provenance.find(x => x.path === '$.price_evidence.min') || {}).ref } : null, as_of: A.as_of });
 
@@ -67,7 +80,9 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
     'M-COMPARABLES': comparables.status === 'OK' ? 'RUN' : `NOT RUN — ${comparables.status}${comparables.missing ? ': ' + comparables.missing.join(', ') : comparables.n !== undefined ? ` (${comparables.n} of ${comparables.min_sample} required)` : ''}`,
     'M-INVESTMENT-FIT': fit.status === 'OK' ? 'RUN (qualitative criteria)' : 'NOT RUN — no investor profile',
     'M-EXIT-REVIEW': `RUN (qualitative; ${exit.not_available.length} of 4 liquidity inputs not available)`,
-    'M-FAIR-VALUE, M-AREA-RANKING, M-RISK-SEVERITY, M-ASSET-QUALITY, M-LIQUIDITY': 'INACTIVE — no approved method'
+    'M-PRICE-POSITION': !ppOn ? 'INACTIVE — methodology awaiting approval' : position.status === 'OK' ? 'RUN' : `NOT RUN — ${(position.missing || []).join(', ')}`,
+    'M-RISK-SEVERITY': !sevOn ? 'INACTIVE — methodology awaiting approval' : `RUN (${Object.values(severity.labels).filter(x => x.label !== 'NOT_ASSESSED').length} of ${risks.length} risks labelled)`,
+    'M-FAIR-VALUE, M-AREA-RANKING, M-ASSET-QUALITY, M-LIQUIDITY': 'INACTIVE — no approved method'
   };
   const limitations = [];
   if (gateWhy.length) limitations.push(`Not publishable: ${gateWhy.join('; ')}`);
@@ -81,12 +96,13 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
   for (const g of gaps) next.push(`Collect or state: ${g}`);
   if (finance.scenarios && finance.scenarios.base.roi.status !== 'OK') next.push('Complete the finance inputs listed under method eligibility');
   for (const x of exit.not_available) next.push(`Liquidity diligence: ${x.text}`);
+  if (sevOn) { for (const e of severity.errors) limitations.push(`Risk severity refused: ${e}`); const na = risks.filter(r => r.severity === 'NOT_ASSESSED').length; if (na) next.push(`Assess severity of ${na} risk(s) (RSV-1)`); }
   if (comparables.status === 'INSUFFICIENT_SAMPLE') next.push(`Collect at least ${comparables.min_sample - comparables.n} more eligible ${comparables.price_type} observations`);
 
   return {
     status: 'OK', version: RPT_VERSION, internal: true, generated_for: today, opportunity: oppId,
     overview: { title: o.title && o.title.en, project: p && `${p.name} (${p.id})`, developer: dev && `${dev.name} (${dev.id})`, district: dist && `${dist.name} (${dist.id})`, market: mk && `${mk.name} (${mk.id}, ${mk.activation})`, record_status: o.record_status, publishable: gateWhy.length === 0 },
-    facts, domains, findings: A.findings || [], risks, conflicts, gaps, methods, finance, comparables, fit, exit, provenance, limitations, next_steps: next,
+    facts, domains, findings: A.findings || [], risks, conflicts, gaps, methods, finance, comparables, position, fit, exit, provenance, limitations, next_steps: next,
     conclusion: gateWhy.length || gaps.length ? 'Assessment incomplete: see limitations and next steps. No recommendation is made on incomplete evidence.' : 'Evidence sufficient for publication review. Conclusions are limited to the supported findings above; no score or ranking is produced.'
   };
 }
@@ -103,7 +119,7 @@ export function reportMarkdown(r) {
   L.push('', '## 3. Domain assessments (evidence and research status)', '');
   for (const [d, x] of Object.entries(r.domains)) L.push(`### ${d}`, '', `Research blocks: ${x.research_blocks.map(b => `${b.id} closure ${b.research_closure} / completeness ${b.data_completeness}`).join('; ') || 'none'}`, '', ...x.evidence.map(e => `- ${e.claim} — ${e.label} (${e.id})`), '');
   L.push('## 4. Findings', '', ...(r.findings.length ? r.findings.map(f => `- **${f.type}** [${f.class}] ${f.text} — ${f.refs.join(', ')}`) : ['- none recorded']), '');
-  L.push('## 5. Risks', '', ...(r.risks.length ? r.risks.map(k => `- **${k.type}** ${k.title}${k.cause ? ` — cause: ${k.cause}` : ''}${k.mitigation ? `; mitigation: ${k.mitigation}` : ''}; severity ${k.severity}; evidence ${k.evidence.join(', ') || 'none'}`) : ['- none documented']), '');
+  L.push('## 5. Risks', '', ...(r.risks.length ? r.risks.map(k => `- **${k.type}** ${k.title}${k.cause ? ` — cause: ${k.cause}` : ''}${k.mitigation ? `; mitigation: ${k.mitigation}` : ''}; severity ${k.severity}${k.severity_rationale ? ` (${k.severity_rationale})` : ''}; evidence ${k.evidence.join(', ') || 'none'}`) : ['- none documented']), '');
   L.push('## 6. Conflicts and data gaps', '', ...r.conflicts.map(c => `- ${c.id} ${c.field}: ${c.status} (${c.evidence.join(', ')})`), ...r.gaps.map(g => `- ${g}`), ...(r.conflicts.length || r.gaps.length ? [] : ['- none']), '');
   L.push('## 7. Method eligibility (Engine 1)', '', ...Object.entries(r.methods).map(([k, v]) => `- **${k}:** ${v}`), '');
   L.push(`## 8. Financial scenarios (internal; ${FIN_VERSION})`, '');
@@ -125,6 +141,11 @@ export function reportMarkdown(r) {
   if (r.comparables.status === 'OK') L.push(`${r.comparables.n} ${r.comparables.price_type} observations, ${r.comparables.area_basis} area, ${r.comparables.currency}/m²: median ${n(r.comparables.stats.median)}, interquartile ${n(r.comparables.stats.p25)}–${n(r.comparables.stats.p75)}. No adjustments; not a fair value.`, '');
   else L.push(`${r.comparables.status}${r.comparables.missing ? ': ' + r.comparables.missing.join(', ') : ` — ${r.comparables.n} eligible of ${r.comparables.min_sample} required`}`, '');
   for (const x of r.comparables.excluded || []) L.push(`- excluded ${x.id}: ${x.reasons.join('; ')}`);
+  if (r.position && r.position.status !== 'INACTIVE') {
+    L.push('', '## 9a. Price position (PPO-1)', '');
+    if (r.position.status === 'OK') L.push(`Asking price ${n(r.position.subject_price_per_m2)} ${r.position.currency}/m² (${r.position.area_basis}; ${r.position.refs.join(', ')}) sits **${r.position.band.replace(/_/g, ' ').toLowerCase()}** of ${r.position.n} ${r.position.price_type} comparables: ${pct(r.position.vs_median)} against the median; ${pct(r.position.share_of_comparables_below)} of comparables are lower. ${r.position.note}`, '');
+    else L.push(`Not run — ${(r.position.missing || []).join(', ')}`, '');
+  }
   L.push('', '## 9b. Liquidity and exit (EXR-1, qualitative)', '', r.exit.statement, '');
   for (const x of r.exit.weakening) L.push(`- weakens: ${x.type} — ${x.text} (${x.ref})`);
   for (const x of r.exit.supporting) L.push(`- supports: ${x.text} (${x.ref})`);
