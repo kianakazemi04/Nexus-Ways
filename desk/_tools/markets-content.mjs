@@ -48,8 +48,8 @@ export const MKC = {
     admin: { DISTRICT: 'District', SUB_DISTRICT: 'Neighbourhood', COMMUNITY: 'Community' },
     reqs: {
       'IST-TITLE-STATUS': 'Title status in the land registry (TKGM)', 'IST-BUILDING-PERMIT': 'Building permit, for projects not yet completed',
-      'DXB-PROJECT-REGISTRATION': 'Project registration and status with the Dubai Land Department', 'DXB-ESCROW-ACCOUNT': 'Escrow account, for off-plan projects', 'DXB-ADVERTISING-PERMIT': 'Advertising permit for the project page',
-      'AUH-PROJECT-REGISTRATION': 'Project registration and status with ADREC', 'AUH-ESCROW-ACCOUNT': 'Escrow arrangements, for off-plan projects', 'AUH-LISTING-PERMIT': 'Listing permit for the project page'
+      'DXB-PROJECT-REGISTRATION': 'Project registration and status with the Dubai Land Department', 'DXB-ESCROW-ACCOUNT': 'Escrow account, for off-plan projects',
+      'AUH-PROJECT-REGISTRATION': 'Project registration and status with ADREC', 'AUH-ESCROW-ACCOUNT': 'Escrow arrangements, for off-plan projects'
     }
   },
   tr: {
@@ -72,8 +72,8 @@ export const MKC = {
     admin: { DISTRICT: 'İlçe', SUB_DISTRICT: 'Mahalle', COMMUNITY: 'Bölge' },
     reqs: {
       'IST-TITLE-STATUS': 'Tapu kaydındaki durum (TKGM)', 'IST-BUILDING-PERMIT': 'Tamamlanmamış projeler için yapı ruhsatı',
-      'DXB-PROJECT-REGISTRATION': 'Dubai Arazi Dairesi’nde proje kaydı ve durumu', 'DXB-ESCROW-ACCOUNT': 'Off-plan projeler için emanet hesabı', 'DXB-ADVERTISING-PERMIT': 'Proje sayfası için reklam izni',
-      'AUH-PROJECT-REGISTRATION': 'ADREC’de proje kaydı ve durumu', 'AUH-ESCROW-ACCOUNT': 'Off-plan projeler için emanet düzenlemesi', 'AUH-LISTING-PERMIT': 'Proje sayfası için ilan izni'
+      'DXB-PROJECT-REGISTRATION': 'Dubai Arazi Dairesi’nde proje kaydı ve durumu', 'DXB-ESCROW-ACCOUNT': 'Off-plan projeler için emanet hesabı',
+      'AUH-PROJECT-REGISTRATION': 'ADREC’de proje kaydı ve durumu', 'AUH-ESCROW-ACCOUNT': 'Off-plan projeler için emanet düzenlemesi'
     }
   },
   ar: {
@@ -96,8 +96,8 @@ export const MKC = {
     admin: { DISTRICT: 'حي', SUB_DISTRICT: 'حي فرعي', COMMUNITY: 'مجتمع' },
     reqs: {
       'IST-TITLE-STATUS': 'حالة الملكية في سجل الطابو (TKGM)', 'IST-BUILDING-PERMIT': 'رخصة البناء، للمشاريع غير المكتملة',
-      'DXB-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى دائرة الأراضي والأملاك', 'DXB-ESCROW-ACCOUNT': 'حساب الضمان، للمشاريع على الخارطة', 'DXB-ADVERTISING-PERMIT': 'تصريح الإعلان لصفحة المشروع',
-      'AUH-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى مركز أبوظبي العقاري', 'AUH-ESCROW-ACCOUNT': 'ترتيبات الضمان، للمشاريع على الخارطة', 'AUH-LISTING-PERMIT': 'تصريح الإعلان لصفحة المشروع'
+      'DXB-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى دائرة الأراضي والأملاك', 'DXB-ESCROW-ACCOUNT': 'حساب الضمان، للمشاريع على الخارطة',
+      'AUH-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى مركز أبوظبي العقاري', 'AUH-ESCROW-ACCOUNT': 'ترتيبات الضمان، للمشاريع على الخارطة'
     }
   }
 };

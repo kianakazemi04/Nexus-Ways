@@ -1,5 +1,12 @@
 # Market gates — MG-1 (Istanbul · Dubai · Abu Dhabi)
 
+> **Revision, 28 Oct 2026 (owner decision, evening).** The legal-review topics (agent authorisation, listing and
+> advertising rules) and the per-opportunity advertising/listing permit requirements are removed from MG-1: the owner works
+> from Istanbul as a freelance sales agent under each developer's written permission and handles these directly. An
+> optional permit number can be given with a project and is then shown on its page. The two standard disclosure texts are
+> adopted as site-wide wording (no separate approval step). USD/TRY FX freshness: 35 days. Sections below that describe
+> review topics are kept for the mechanism, which remains in the engine and is tested with a test-only configuration.
+
 Status (28 Oct 2026, after the engineering audit): **rules approved by the owner (registry ACTIVE / RULES_APPROVED); every
 market still fails its own gate and stays INACTIVE.** A market becomes public only through activate-market → export-market
 with its gate certificate. Market research (statistics, research blocks, district research) is private (PUB-2, owner

@@ -248,7 +248,7 @@
           "unit": "ratio",
           "period_format": "YYYY-MM-DD",
           "geography": "Türkiye",
-          "max_age_days": 7,
+          "max_age_days": 35,
           "freshness_basis": "observation date",
           "fallback": "Gate fails; no conversion is shown."
         }
@@ -263,38 +263,7 @@
           "LICENSED_COUNSEL_TR"
         ],
         "max_age_days": 365,
-        "topics": [
-          {
-            "key": "IST-AGENT-AUTHORIZATION",
-            "question": "Real-estate brokerage authorization: the Regulation on Real Estate Trade requires a brokerage authority certificate (taşınmaz ticareti yetki belgesi) for those who broker sales for a fee. Under which certificate (the owner's own, or a licensed firm's) does Nexus Ways present Istanbul projects and receive a commission?",
-            "restriction": "Until recorded, no Istanbul opportunity is published; research pages are unaffected.",
-            "owner_record": "Certificate number and holder, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_TR"
-            ]
-          },
-          {
-            "key": "IST-ONLINE-LISTING-RULES",
-            "question": "Ministry of Trade rules for online real-estate advertisements (verified-listing system, EİDS): do Desk opportunity pages fall within them, and if so what authorization reference must each page carry?",
-            "restriction": "Until recorded, no Istanbul opportunity is published.",
-            "owner_record": "Official guidance or authorization reference, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_TR"
-            ]
-          },
-          {
-            "key": "IST-OFFPLAN-ADVERTISING",
-            "question": "Advertising of off-plan (pre-paid) housing under the consumer-protection law and its pre-paid housing sales regulation: which statements must an advertisement for an unfinished project include or avoid?",
-            "restriction": "Until recorded, no off-plan or under-construction Istanbul opportunity is published.",
-            "owner_record": "Counsel's memo reference, or the official regulation reference with the owner's checklist.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_TR"
-            ]
-          }
-        ]
+        "topics": []
       },
       "publication": {
         "categories": [
@@ -571,28 +540,7 @@
           "LICENSED_COUNSEL_UAE"
         ],
         "max_age_days": 365,
-        "topics": [
-          {
-            "key": "DXB-AGENT-AUTHORIZATION",
-            "question": "Broker authorization in Dubai: under which RERA/DLD broker registration (the owner's own broker card or freelance permit, or a licensed brokerage) does Nexus Ways market Dubai projects and receive a commission?",
-            "restriction": "Until recorded, no Dubai opportunity is published.",
-            "owner_record": "Broker card / permit number and the licensed office, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_UAE"
-            ]
-          },
-          {
-            "key": "DXB-ADVERTISING-PERMIT",
-            "question": "Real-estate advertisements in Dubai fall under the DLD advertising-permit system (Trakheesi). Whether and how it applies to Desk opportunity pages (a website hosted outside the UAE, run by a freelance agent) is not yet confirmed: record how the permit is obtained (per listing, through the licensed office) or the official basis on which it does not apply. Until then the permit is required (fail closed).",
-            "restriction": "Each Dubai opportunity needs its advertising-permit number recorded (DXB-ADVERTISING-PERMIT requirement) unless this review records NOT_APPLICABLE.",
-            "owner_record": "Official DLD guidance reference and the issuing office, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_UAE"
-            ]
-          }
-        ]
+        "topics": []
       },
       "publication": {
         "categories": [
@@ -647,28 +595,6 @@
                 "UNDER_CONSTRUCTION"
               ]
             }
-          },
-          {
-            "key": "DXB-ADVERTISING-PERMIT",
-            "name": "Advertising permit for the opportunity page, if counsel confirms it is required",
-            "why": "Kept REQUIRED (fail closed) until the DXB-ADVERTISING-PERMIT review records otherwise.",
-            "subject": "project",
-            "claim_status": "ESTABLISHED",
-            "accepted_sources": {
-              "source_types": [
-                "REGISTRY",
-                "REGULATOR"
-              ],
-              "max_tier": 1,
-              "publishers": [
-                "Dubai Land Department",
-                "DLD",
-                "RERA",
-                "Trakheesi"
-              ]
-            },
-            "mode": "REQUIRED",
-            "basis_review": "DXB-ADVERTISING-PERMIT"
           }
         ]
       }
@@ -901,28 +827,7 @@
           "LICENSED_COUNSEL_UAE"
         ],
         "max_age_days": 365,
-        "topics": [
-          {
-            "key": "AUH-AGENT-AUTHORIZATION",
-            "question": "Broker authorization in Abu Dhabi: under which ADREC/DMT broker licence or registration does Nexus Ways market Abu Dhabi projects and receive a commission? (Dubai registration does not apply in Abu Dhabi.)",
-            "restriction": "Until recorded, no Abu Dhabi opportunity is published.",
-            "owner_record": "Licence / registration number and the licensed office, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_UAE"
-            ]
-          },
-          {
-            "key": "AUH-LISTING-PERMIT",
-            "question": "Real-estate advertisements in Abu Dhabi fall under the Madhmoun listing-permit system (ADREC, via DARI). Whether and how it applies to Desk opportunity pages (a website hosted outside the UAE, run by a freelance agent) is not yet confirmed: record how the permit is obtained or the official basis on which it does not apply. Until then the permit is required (fail closed). Projects in ADGM areas follow ADGM's own advertising rules and are flagged per project.",
-            "restriction": "Each Abu Dhabi opportunity needs its Madhmoun permit number recorded (AUH-LISTING-PERMIT requirement) unless this review records NOT_APPLICABLE.",
-            "owner_record": "Official ADREC guidance reference and the issuing office, or counsel's memo reference.",
-            "accepted_roles": [
-              "OWNER_OFFICIAL_REFERENCE",
-              "LICENSED_COUNSEL_UAE"
-            ]
-          }
-        ]
+        "topics": []
       },
       "publication": {
         "categories": [
@@ -979,26 +884,6 @@
                 "UNDER_CONSTRUCTION"
               ]
             }
-          },
-          {
-            "key": "AUH-LISTING-PERMIT",
-            "name": "Madhmoun listing permit for the opportunity page, if counsel confirms it is required",
-            "why": "Kept REQUIRED (fail closed) until the AUH-LISTING-PERMIT review records otherwise.",
-            "subject": "project",
-            "claim_status": "ESTABLISHED",
-            "accepted_sources": {
-              "source_types": [
-                "REGISTRY",
-                "REGULATOR"
-              ],
-              "max_tier": 1,
-              "publishers": [
-                "Abu Dhabi Real Estate Centre",
-                "ADREC"
-              ]
-            },
-            "mode": "REQUIRED",
-            "basis_review": "AUH-LISTING-PERMIT"
           }
         ]
       }
@@ -1025,5 +910,6 @@
     ],
     "rule": "Only these records count as legal review. Evidence, research blocks or LEGAL FACT evidence are never treated as legal approval."
   },
-  "scope_note": "Project-level advertising and media authorization comes from the written permission of each project's sales office (private permission records, checked per opportunity and per image within their channels, activities, media and dates). Market-level topics cover only statutory requirements on Nexus Ways' own activity. Site-wide items (privacy notice, not-advice wording, commission disclosure) are covered by the disclosure legal review, not by market gates. Per-project diligence (title, foreign-ownership eligibility, escrow, ADGM jurisdiction) is recorded as project evidence and in the decision report."
+  "scope_note": "Project-level advertising and media authorization comes from the written permission of each project's sales office (private permission records, checked per opportunity and per image within their channels, activities, media and dates). Market-level topics cover only statutory requirements on Nexus Ways' own activity. Site-wide items (privacy notice, not-advice wording, commission disclosure) are covered by the disclosure legal review, not by market gates. Per-project diligence (title, foreign-ownership eligibility, escrow, ADGM jurisdiction) is recorded as project evidence and in the decision report.",
+  "revision_2026_10_28b": "Owner decision (28 Oct 2026, evening): statutory topics on Nexus Ways' own activity (agent authorisation, listing and advertising rules) are removed from the gates — the owner handles them directly as a freelance sales agent working from Istanbul under written developer permission. Advertising/listing permit numbers are no longer required per opportunity; an optional permit number is shown on the opportunity page when the owner provides it. The review mechanism itself stays in the engine (generic, tested with a test-only configuration). USD/TRY FX freshness 7 → 35 days (overview use, monthly refresh). No market was active and no certificate existed, so the version id MG-1 is kept."
 }

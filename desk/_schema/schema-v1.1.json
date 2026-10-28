@@ -6,287 +6,1615 @@
   "x-schema-version": "1.1",
   "x-gate-version": "G3-v1",
   "type": "object",
-  "required": ["schema_version", "collection", "records"],
+  "required": [
+    "schema_version",
+    "collection",
+    "records"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": "1.1" },
-    "collection": { "$ref": "#/$defs/collection" },
-    "records": { "type": "array" }
+    "schema_version": {
+      "const": "1.1"
+    },
+    "collection": {
+      "$ref": "#/$defs/collection"
+    },
+    "records": {
+      "type": "array"
+    }
   },
   "$defs": {
-    "collection": { "enum": ["categories", "markets", "districts", "areas", "developers", "projects", "assets", "opportunities", "evidence", "sources", "conflicts", "risks", "research_blocks", "media", "disclosures"] },
-
-    "research_closure": { "enum": ["YES", "CONDITIONAL", "NO"] },
-    "data_completeness": { "enum": ["YES", "PARTIAL", "NO"] },
-    "missing_data_status": { "enum": ["DATA NOT AVAILABLE", "ACCESSIBLE BUT NOT YET COLLECTED", "PROFESSIONAL DD REQUIRED", "NOT APPLICABLE"] },
-    "evidence_class": { "enum": ["FACT", "LEGAL FACT", "ESTIMATE", "PROJECTION", "INTERPRETATION", "HYPOTHESIS", "OPINION", "DATA NOT AVAILABLE"] },
-    "verification_status": { "enum": ["VERIFIED", "CORROBORATED", "SOURCE-REPORTED", "DEVELOPER-CLAIM", "UNVERIFIED"] },
-    "source_tier": { "enum": [1, 2, 3, 4] },
-    "record_status": { "enum": ["DRAFT", "RESEARCH_IN_PROGRESS", "READY_FOR_REVIEW", "PUBLISHED", "WITHHELD", "ARCHIVED"] },
-
-    "category": { "enum": ["real_estate", "startup_private", "franchise", "web3_digital_assets"] },
-    "activation": { "enum": ["ACTIVE", "INACTIVE"] },
-    "domain": { "enum": ["MARKET", "DISTRICT", "AREA", "PROJECT_ASSET", "DEVELOPER", "RISK", "PRICING", "RENTAL", "LIQUIDITY", "MACRO_FX"] },
-    "delivery_status": { "enum": ["OFF_PLAN", "UNDER_CONSTRUCTION", "COMPLETED"] },
-    "asset_type": { "enum": ["APARTMENT", "VILLA", "TOWNHOUSE", "RESIDENCE", "MIXED_USE"] },
-    "admin_level": { "enum": ["DISTRICT", "SUB_DISTRICT", "COMMUNITY"] },
-    "source_type": { "enum": ["OFFICIAL_STATISTICS", "REGULATOR", "REGISTRY", "DEVELOPER_MATERIAL", "BROKER_LISTING", "MEDIA", "RESEARCH_REPORT", "SITE_VISIT", "OTHER"] },
-    "unit": { "enum": ["m2", "index", "percent", "count", "years", "months", "date", "ratio", "text"] },
-    "area_basis": { "enum": ["GROSS", "NET"] },
-    "risk_type": { "enum": ["MARKET", "LEGAL_TITLE", "REGULATORY", "DEVELOPER_COUNTERPARTY", "CONSTRUCTION_DELIVERY", "LIQUIDITY_EXIT", "CURRENCY_FX", "SEISMIC_PHYSICAL", "TAX", "OTHER"] },
-    "qualitative": { "enum": ["LOW", "MODERATE", "HIGH"] },
-    "severity": { "enum": ["LOW", "MODERATE", "HIGH", "CRITICAL"] },
-    "horizon": { "enum": ["SHORT", "MEDIUM", "LONG"] },
-    "controllability": { "enum": ["CONTROLLABLE", "PARTIAL", "EXTERNAL"] },
-    "risk_status": { "enum": ["OPEN", "MONITORING", "MITIGATED", "CLOSED"] },
-    "conflict_status": { "enum": ["OPEN", "EXPLAINED", "RESOLVED"] },
-    "media_type": { "enum": ["PHOTO", "RENDERING", "FLOOR_PLAN", "SITE_PLAN", "CONSTRUCTION_PROGRESS", "ILLUSTRATIVE", "MAP"] },
-    "content_category": { "enum": ["exterior", "interior", "amenity", "plan", "progress", "location", "other"] },
-    "permission_status": { "enum": ["NOT_REQUESTED", "REQUESTED", "GRANTED_WRITTEN", "GRANTED_VERBAL", "RESTRICTED", "DENIED", "EXPIRED", "REVOKED"] },
-    "permission_scope": { "enum": ["desk_web", "corporate_web", "social"] },
-    "media_role": { "enum": ["cover", "gallery"] },
-    "disclosure_kind": { "enum": ["COMMERCIAL_RELATIONSHIP", "COMMISSION", "CONFLICT_OF_INTEREST", "LEGAL_NOTICE"] },
-    "legal_review": { "enum": ["PENDING", "APPROVED"] },
-    "subject_type": { "enum": ["market", "district", "area", "developer", "project", "asset", "opportunity"] },
-
-    "date": { "type": "string", "format": "date" },
-    "date_or_null": { "type": ["string", "null"], "format": "date" },
-    "text": {
-      "description": "i18n-ready text. English required; tr/ar added later without schema change.",
-      "type": "object", "required": ["en"], "additionalProperties": false,
-      "properties": { "en": { "type": "string", "minLength": 1 }, "tr": { "type": "string" }, "ar": { "type": "string" } }
-    },
-    "text_or_null": { "oneOf": [{ "$ref": "#/$defs/text" }, { "type": "null" }] },
-    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-    "ref": {
-      "type": "object", "required": ["type", "id"], "additionalProperties": false,
-      "properties": { "type": { "$ref": "#/$defs/subject_type" }, "id": { "type": "string" } }
-    },
-    "ids": { "type": "array", "items": { "type": "string" } },
-    "field_state": {
-      "type": "object", "required": ["field", "state"], "additionalProperties": false,
-      "properties": { "field": { "type": "string", "pattern": "^[a-z_][a-z0-9_.]*$" }, "state": { "$ref": "#/$defs/missing_data_status" }, "note": { "$ref": "#/$defs/text_or_null" } }
-    },
-    "field_states": { "type": "array", "items": { "$ref": "#/$defs/field_state" } },
-    "review": {
-      "oneOf": [
-        { "type": "null" },
-        { "type": "object", "required": ["approved_by", "approved_at", "gate_version"], "additionalProperties": false,
-          "properties": { "approved_by": { "type": "string", "pattern": "^(owner|reviewer)$" }, "approved_at": { "$ref": "#/$defs/date" }, "gate_version": { "type": "string" } } }
+    "collection": {
+      "enum": [
+        "categories",
+        "markets",
+        "districts",
+        "areas",
+        "developers",
+        "projects",
+        "assets",
+        "opportunities",
+        "evidence",
+        "sources",
+        "conflicts",
+        "risks",
+        "research_blocks",
+        "media",
+        "disclosures"
       ]
     },
-
-    "categories": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "key", "slug", "name", "activation", "is_illustrative"],
+    "research_closure": {
+      "enum": [
+        "YES",
+        "CONDITIONAL",
+        "NO"
+      ]
+    },
+    "data_completeness": {
+      "enum": [
+        "YES",
+        "PARTIAL",
+        "NO"
+      ]
+    },
+    "missing_data_status": {
+      "enum": [
+        "DATA NOT AVAILABLE",
+        "ACCESSIBLE BUT NOT YET COLLECTED",
+        "PROFESSIONAL DD REQUIRED",
+        "NOT APPLICABLE"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "FACT",
+        "LEGAL FACT",
+        "ESTIMATE",
+        "PROJECTION",
+        "INTERPRETATION",
+        "HYPOTHESIS",
+        "OPINION",
+        "DATA NOT AVAILABLE"
+      ]
+    },
+    "verification_status": {
+      "enum": [
+        "VERIFIED",
+        "CORROBORATED",
+        "SOURCE-REPORTED",
+        "DEVELOPER-CLAIM",
+        "UNVERIFIED"
+      ]
+    },
+    "source_tier": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "record_status": {
+      "enum": [
+        "DRAFT",
+        "RESEARCH_IN_PROGRESS",
+        "READY_FOR_REVIEW",
+        "PUBLISHED",
+        "WITHHELD",
+        "ARCHIVED"
+      ]
+    },
+    "category": {
+      "enum": [
+        "real_estate",
+        "startup_private",
+        "franchise",
+        "web3_digital_assets"
+      ]
+    },
+    "activation": {
+      "enum": [
+        "ACTIVE",
+        "INACTIVE"
+      ]
+    },
+    "domain": {
+      "enum": [
+        "MARKET",
+        "DISTRICT",
+        "AREA",
+        "PROJECT_ASSET",
+        "DEVELOPER",
+        "RISK",
+        "PRICING",
+        "RENTAL",
+        "LIQUIDITY",
+        "MACRO_FX"
+      ]
+    },
+    "delivery_status": {
+      "enum": [
+        "OFF_PLAN",
+        "UNDER_CONSTRUCTION",
+        "COMPLETED"
+      ]
+    },
+    "asset_type": {
+      "enum": [
+        "APARTMENT",
+        "VILLA",
+        "TOWNHOUSE",
+        "RESIDENCE",
+        "MIXED_USE"
+      ]
+    },
+    "admin_level": {
+      "enum": [
+        "DISTRICT",
+        "SUB_DISTRICT",
+        "COMMUNITY"
+      ]
+    },
+    "source_type": {
+      "enum": [
+        "OFFICIAL_STATISTICS",
+        "REGULATOR",
+        "REGISTRY",
+        "DEVELOPER_MATERIAL",
+        "BROKER_LISTING",
+        "MEDIA",
+        "RESEARCH_REPORT",
+        "SITE_VISIT",
+        "OTHER"
+      ]
+    },
+    "unit": {
+      "enum": [
+        "m2",
+        "index",
+        "percent",
+        "count",
+        "years",
+        "months",
+        "date",
+        "ratio",
+        "text"
+      ]
+    },
+    "area_basis": {
+      "enum": [
+        "GROSS",
+        "NET"
+      ]
+    },
+    "risk_type": {
+      "enum": [
+        "MARKET",
+        "LEGAL_TITLE",
+        "REGULATORY",
+        "DEVELOPER_COUNTERPARTY",
+        "CONSTRUCTION_DELIVERY",
+        "LIQUIDITY_EXIT",
+        "CURRENCY_FX",
+        "SEISMIC_PHYSICAL",
+        "TAX",
+        "OTHER"
+      ]
+    },
+    "qualitative": {
+      "enum": [
+        "LOW",
+        "MODERATE",
+        "HIGH"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "LOW",
+        "MODERATE",
+        "HIGH",
+        "CRITICAL"
+      ]
+    },
+    "horizon": {
+      "enum": [
+        "SHORT",
+        "MEDIUM",
+        "LONG"
+      ]
+    },
+    "controllability": {
+      "enum": [
+        "CONTROLLABLE",
+        "PARTIAL",
+        "EXTERNAL"
+      ]
+    },
+    "risk_status": {
+      "enum": [
+        "OPEN",
+        "MONITORING",
+        "MITIGATED",
+        "CLOSED"
+      ]
+    },
+    "conflict_status": {
+      "enum": [
+        "OPEN",
+        "EXPLAINED",
+        "RESOLVED"
+      ]
+    },
+    "media_type": {
+      "enum": [
+        "PHOTO",
+        "RENDERING",
+        "FLOOR_PLAN",
+        "SITE_PLAN",
+        "CONSTRUCTION_PROGRESS",
+        "ILLUSTRATIVE",
+        "MAP"
+      ]
+    },
+    "content_category": {
+      "enum": [
+        "exterior",
+        "interior",
+        "amenity",
+        "plan",
+        "progress",
+        "location",
+        "other"
+      ]
+    },
+    "permission_status": {
+      "enum": [
+        "NOT_REQUESTED",
+        "REQUESTED",
+        "GRANTED_WRITTEN",
+        "GRANTED_VERBAL",
+        "RESTRICTED",
+        "DENIED",
+        "EXPIRED",
+        "REVOKED"
+      ]
+    },
+    "permission_scope": {
+      "enum": [
+        "desk_web",
+        "corporate_web",
+        "social"
+      ]
+    },
+    "media_role": {
+      "enum": [
+        "cover",
+        "gallery"
+      ]
+    },
+    "disclosure_kind": {
+      "enum": [
+        "COMMERCIAL_RELATIONSHIP",
+        "COMMISSION",
+        "CONFLICT_OF_INTEREST",
+        "LEGAL_NOTICE"
+      ]
+    },
+    "legal_review": {
+      "enum": [
+        "PENDING",
+        "APPROVED"
+      ]
+    },
+    "subject_type": {
+      "enum": [
+        "market",
+        "district",
+        "area",
+        "developer",
+        "project",
+        "asset",
+        "opportunity"
+      ]
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "date_or_null": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "text": {
+      "description": "i18n-ready text. English required; tr/ar added later without schema change.",
+      "type": "object",
+      "required": [
+        "en"
+      ],
+      "additionalProperties": false,
       "properties": {
-        "id": { "type": "string" }, "key": { "$ref": "#/$defs/category" }, "slug": { "$ref": "#/$defs/slug" }, "name": { "$ref": "#/$defs/text" },
-        "activation": { "$ref": "#/$defs/activation" }, "description": { "$ref": "#/$defs/text_or_null" },
-        "is_illustrative": { "type": "boolean" }
+        "en": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tr": {
+          "type": "string"
+        },
+        "ar": {
+          "type": "string"
+        }
+      }
+    },
+    "text_or_null": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "ref": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/subject_type"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "field_state": {
+      "type": "object",
+      "required": [
+        "field",
+        "state"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_.]*$"
+        },
+        "state": {
+          "$ref": "#/$defs/missing_data_status"
+        },
+        "note": {
+          "$ref": "#/$defs/text_or_null"
+        }
+      }
+    },
+    "field_states": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/field_state"
+      }
+    },
+    "review": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "approved_by",
+            "approved_at",
+            "gate_version"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "approved_by": {
+              "type": "string",
+              "pattern": "^(owner|reviewer)$"
+            },
+            "approved_at": {
+              "$ref": "#/$defs/date"
+            },
+            "gate_version": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "slug",
+        "name",
+        "activation",
+        "is_illustrative"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "$ref": "#/$defs/category"
+        },
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "activation": {
+          "$ref": "#/$defs/activation"
+        },
+        "description": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "markets": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "slug", "name", "country", "currency", "category", "activation", "record_status", "research_block_ids", "evidence_ids", "field_states", "last_reviewed", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "name",
+        "country",
+        "currency",
+        "category",
+        "activation",
+        "record_status",
+        "research_block_ids",
+        "evidence_ids",
+        "field_states",
+        "last_reviewed",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "slug": { "$ref": "#/$defs/slug" }, "name": { "type": "string" },
-        "country": { "type": "string", "pattern": "^[A-Z]{2}$" }, "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
-        "category": { "$ref": "#/$defs/category" }, "activation": { "$ref": "#/$defs/activation" },
-        "record_status": { "$ref": "#/$defs/record_status" },
-        "summary": { "$ref": "#/$defs/text_or_null" },
-        "research_block_ids": { "$ref": "#/$defs/ids" }, "evidence_ids": { "$ref": "#/$defs/ids" },
-        "field_states": { "$ref": "#/$defs/field_states" }, "last_reviewed": { "$ref": "#/$defs/date_or_null" },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }, "gate_certificate": { "description": "S-16 (minimised by PUB-2): non-confidential market gate certificate written by activate-market (owner decisions D11/D12): versions, evaluation time, validity horizon and waived per-opportunity requirements only. Required by the validator for an ACTIVE real market.", "oneOf": [ { "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["gate_version", "engine_version", "evaluated_at", "activated_at", "valid_until", "waived_requirements"], "properties": { "gate_version": { "type": "string" }, "engine_version": { "type": "string" }, "evaluated_at": { "type": "string", "minLength": 10 }, "activated_at": { "$ref": "#/$defs/date" }, "valid_until": { "$ref": "#/$defs/date" }, "waived_requirements": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]*$" } } } } ] }
+        "id": {
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "activation": {
+          "$ref": "#/$defs/activation"
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "summary": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "research_block_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "last_reviewed": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        },
+        "gate_certificate": {
+          "description": "S-16 (minimised by PUB-2): non-confidential market gate certificate written by activate-market (owner decisions D11/D12): versions, evaluation time, validity horizon and waived per-opportunity requirements only. Required by the validator for an ACTIVE real market.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "gate_version",
+                "engine_version",
+                "evaluated_at",
+                "activated_at",
+                "valid_until",
+                "waived_requirements"
+              ],
+              "properties": {
+                "gate_version": {
+                  "type": "string"
+                },
+                "engine_version": {
+                  "type": "string"
+                },
+                "evaluated_at": {
+                  "type": "string",
+                  "minLength": 10
+                },
+                "activated_at": {
+                  "$ref": "#/$defs/date"
+                },
+                "valid_until": {
+                  "$ref": "#/$defs/date"
+                },
+                "waived_requirements": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "districts": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "market_id", "slug", "name", "admin_level", "record_status", "research_block_ids", "evidence_ids", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "market_id",
+        "slug",
+        "name",
+        "admin_level",
+        "record_status",
+        "research_block_ids",
+        "evidence_ids",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "market_id": { "type": "string" }, "slug": { "$ref": "#/$defs/slug" }, "name": { "type": "string" },
-        "admin_level": { "$ref": "#/$defs/admin_level" }, "record_status": { "$ref": "#/$defs/record_status" },
-        "research_block_ids": { "$ref": "#/$defs/ids" }, "evidence_ids": { "$ref": "#/$defs/ids" },
-        "field_states": { "$ref": "#/$defs/field_states" }, "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "id": {
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "type": "string"
+        },
+        "admin_level": {
+          "$ref": "#/$defs/admin_level"
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "research_block_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
       }
     },
     "areas": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "market_id", "district_id", "slug", "name", "record_status", "evidence_ids", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "market_id",
+        "district_id",
+        "slug",
+        "name",
+        "record_status",
+        "evidence_ids",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "market_id": { "type": "string" }, "district_id": { "type": ["string", "null"] },
-        "slug": { "$ref": "#/$defs/slug" }, "name": { "type": "string" }, "record_status": { "$ref": "#/$defs/record_status" },
-        "evidence_ids": { "$ref": "#/$defs/ids" }, "field_states": { "$ref": "#/$defs/field_states" },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "id": {
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "district_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "type": "string"
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
       }
     },
     "developers": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "name", "legal_entity_name", "verification_status", "record_status", "evidence_ids", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "legal_entity_name",
+        "verification_status",
+        "record_status",
+        "evidence_ids",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" }, "legal_entity_name": { "type": ["string", "null"] },
-        "verification_status": { "$ref": "#/$defs/verification_status" }, "record_status": { "$ref": "#/$defs/record_status" },
-        "summary": { "$ref": "#/$defs/text_or_null" },
-        "evidence_ids": { "$ref": "#/$defs/ids" }, "field_states": { "$ref": "#/$defs/field_states" },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "legal_entity_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verification_status": {
+          "$ref": "#/$defs/verification_status"
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "summary": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
       }
     },
     "projects": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "category", "market_id", "developer_id", "name", "slug", "district_id", "area_id", "delivery_status", "asset_types", "record_status", "research_block_ids", "evidence_ids", "risk_ids", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "market_id",
+        "developer_id",
+        "name",
+        "slug",
+        "district_id",
+        "area_id",
+        "delivery_status",
+        "asset_types",
+        "record_status",
+        "research_block_ids",
+        "evidence_ids",
+        "risk_ids",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "category": { "$ref": "#/$defs/category" }, "market_id": { "type": "string" },
-        "developer_id": { "type": ["string", "null"] }, "name": { "type": "string" }, "slug": { "$ref": "#/$defs/slug" },
-        "district_id": { "type": ["string", "null"] }, "area_id": { "type": ["string", "null"] },
-        "delivery_status": { "oneOf": [{ "$ref": "#/$defs/delivery_status" }, { "type": "null" }] },
-        "expected_delivery": { "type": ["string", "null"], "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2]))?$" },
-        "asset_types": { "type": "array", "items": { "$ref": "#/$defs/asset_type" } },
-        "description": { "$ref": "#/$defs/text_or_null" },
-        "record_status": { "$ref": "#/$defs/record_status" },
-        "research_block_ids": { "$ref": "#/$defs/ids" }, "evidence_ids": { "$ref": "#/$defs/ids" }, "risk_ids": { "$ref": "#/$defs/ids" },
-        "field_states": { "$ref": "#/$defs/field_states" }, "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "developer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/$defs/slug"
+        },
+        "district_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "area_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "delivery_status": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/delivery_status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_delivery": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2]))?$"
+        },
+        "asset_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/asset_type"
+          }
+        },
+        "description": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "research_block_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "risk_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
       }
     },
     "assets": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "project_id", "unit_type", "gross_area_m2", "net_area_m2", "delivery_status", "evidence_ids", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "project_id",
+        "unit_type",
+        "gross_area_m2",
+        "net_area_m2",
+        "delivery_status",
+        "evidence_ids",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "project_id": { "type": "string" },
-        "unit_type": { "type": ["string", "null"], "pattern": "^(STUDIO|[0-9]\\+[0-9]|[0-9]\\+[0-9]\\+[0-9]|OTHER)$" },
-        "unit_ref": { "type": ["string", "null"] },
-        "gross_area_m2": { "type": ["number", "null"], "minimum": 0 }, "net_area_m2": { "type": ["number", "null"], "minimum": 0 },
-        "delivery_status": { "oneOf": [{ "$ref": "#/$defs/delivery_status" }, { "type": "null" }] },
-        "evidence_ids": { "$ref": "#/$defs/ids" }, "field_states": { "$ref": "#/$defs/field_states" },
-        "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "unit_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(STUDIO|[0-9]\\+[0-9]|[0-9]\\+[0-9]\\+[0-9]|OTHER)$"
+        },
+        "unit_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gross_area_m2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "net_area_m2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "delivery_status": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/delivery_status"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "opportunities": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "category", "subject", "market_id", "asset_id", "title", "record_status", "disclosure_ids", "evidence_ids", "risk_ids", "field_states", "last_verified", "is_illustrative", "review"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "subject",
+        "market_id",
+        "asset_id",
+        "title",
+        "record_status",
+        "disclosure_ids",
+        "evidence_ids",
+        "risk_ids",
+        "field_states",
+        "last_verified",
+        "is_illustrative",
+        "review"
+      ],
       "properties": {
-        "id": { "type": "string" }, "category": { "$ref": "#/$defs/category" }, "subject": { "$ref": "#/$defs/ref" },
-        "market_id": { "type": "string" }, "asset_id": { "type": ["string", "null"] },
-        "title": { "$ref": "#/$defs/text" }, "summary": { "$ref": "#/$defs/text_or_null" },
-        "investor_objective_tags": { "type": "array", "items": { "enum": ["capital_preservation", "income", "long_term_hold", "relocation", "diversification"] } },
-        "record_status": { "$ref": "#/$defs/record_status" },
-        "disclosure_ids": { "$ref": "#/$defs/ids" }, "evidence_ids": { "$ref": "#/$defs/ids" }, "risk_ids": { "$ref": "#/$defs/ids" },
-        "field_states": { "$ref": "#/$defs/field_states" }, "last_verified": { "$ref": "#/$defs/date_or_null" },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/category"
+        },
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "asset_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "summary": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "investor_objective_tags": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "capital_preservation",
+              "income",
+              "long_term_hold",
+              "relocation",
+              "diversification"
+            ]
+          }
+        },
+        "record_status": {
+          "$ref": "#/$defs/record_status"
+        },
+        "disclosure_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "risk_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "last_verified": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        },
+        "advertising_permit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 60,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ./#:-]{0,59}$",
+          "description": "Optional advertising/listing permit number provided by the owner (for example a Trakheesi or Madhmoun number); shown on the opportunity page when present. Never required (owner decision 28 Oct 2026)."
+        }
       }
     },
     "sources": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "name", "publisher", "url", "tier", "source_type", "accessed_at", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "publisher",
+        "url",
+        "tier",
+        "source_type",
+        "accessed_at",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "name": { "type": "string" }, "publisher": { "type": "string" },
-        "url": { "type": ["string", "null"], "pattern": "^https://" }, "tier": { "$ref": "#/$defs/source_tier" },
-        "source_type": { "$ref": "#/$defs/source_type" }, "accessed_at": { "$ref": "#/$defs/date_or_null" },
-        "notes": { "$ref": "#/$defs/text_or_null" }, "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://"
+        },
+        "tier": {
+          "$ref": "#/$defs/source_tier"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "accessed_at": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "notes": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "evidence": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "source_id", "subject", "field", "claim", "value", "unit", "currency", "geography", "period", "evidence_class", "verification_status", "source_tier", "retrieved_at", "conflict_ids", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_id",
+        "subject",
+        "field",
+        "claim",
+        "value",
+        "unit",
+        "currency",
+        "geography",
+        "period",
+        "evidence_class",
+        "verification_status",
+        "source_tier",
+        "retrieved_at",
+        "conflict_ids",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "source_id": { "type": "string" }, "subject": { "$ref": "#/$defs/ref" },
-        "field": { "type": ["string", "null"], "pattern": "^[a-z_][a-z0-9_.]*$" },
-        "claim": { "$ref": "#/$defs/text" },
-        "value": { "type": ["string", "number", "boolean", "null"] },
-        "unit": { "oneOf": [{ "$ref": "#/$defs/unit" }, { "type": "null" }] },
-        "currency": { "type": ["string", "null"], "pattern": "^[A-Z]{3}$" },
-        "geography": { "type": "string", "minLength": 1 }, "geo_code": { "type": ["string", "null"] },
-        "period": { "type": ["string", "null"] }, "topic": { "type": ["string", "null"], "pattern": "^[A-Z0-9][A-Z0-9-]*$", "description": "S-15: market-gate topic key (a named statistic of the market configuration, or a per-opportunity requirement). Optional." },
-        "period": { "type": ["string", "null"] }, "series_id": { "type": ["string", "null"] }, "base_period": { "type": ["string", "null"] },
-        "method_note": { "$ref": "#/$defs/text_or_null" },
-        "area_basis": { "oneOf": [{ "$ref": "#/$defs/area_basis" }, { "type": "null" }] },
-        "evidence_class": { "$ref": "#/$defs/evidence_class" }, "verification_status": { "$ref": "#/$defs/verification_status" },
-        "source_tier": { "$ref": "#/$defs/source_tier" },
-        "published_at": { "$ref": "#/$defs/date_or_null" }, "retrieved_at": { "$ref": "#/$defs/date" }, "last_verified": { "$ref": "#/$defs/date_or_null" },
-        "source_url": { "type": ["string", "null"], "pattern": "^https://" }, "source_locator": { "type": ["string", "null"] },
-        "limitations": { "$ref": "#/$defs/text_or_null" }, "next_review_trigger": { "type": ["string", "null"] },
-        "conflict_ids": { "$ref": "#/$defs/ids" }, "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z_][a-z0-9_.]*$"
+        },
+        "claim": {
+          "$ref": "#/$defs/text"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "unit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/unit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z]{3}$"
+        },
+        "geography": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geo_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "period": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topic": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z0-9][A-Z0-9-]*$",
+          "description": "S-15: market-gate topic key (a named statistic of the market configuration, or a per-opportunity requirement). Optional."
+        },
+        "series_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "base_period": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method_note": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "area_basis": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/area_basis"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "verification_status": {
+          "$ref": "#/$defs/verification_status"
+        },
+        "source_tier": {
+          "$ref": "#/$defs/source_tier"
+        },
+        "published_at": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "retrieved_at": {
+          "$ref": "#/$defs/date"
+        },
+        "last_verified": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "source_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://"
+        },
+        "source_locator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limitations": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "next_review_trigger": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conflict_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "conflicts": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "subject", "field", "evidence_ids", "description", "status", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject",
+        "field",
+        "evidence_ids",
+        "description",
+        "status",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "subject": { "$ref": "#/$defs/ref" }, "field": { "type": ["string", "null"] },
-        "evidence_ids": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
-        "description": { "$ref": "#/$defs/text" }, "status": { "$ref": "#/$defs/conflict_status" },
-        "note": { "$ref": "#/$defs/text_or_null" }, "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "status": {
+          "$ref": "#/$defs/conflict_status"
+        },
+        "note": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "risks": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "subject", "risk_type", "title", "cause", "evidence_ids", "severity", "probability", "horizon", "controllability", "mitigation", "residual_uncertainty", "status", "field_states", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject",
+        "risk_type",
+        "title",
+        "cause",
+        "evidence_ids",
+        "severity",
+        "probability",
+        "horizon",
+        "controllability",
+        "mitigation",
+        "residual_uncertainty",
+        "status",
+        "field_states",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "subject": { "$ref": "#/$defs/ref" }, "risk_type": { "$ref": "#/$defs/risk_type" },
-        "title": { "$ref": "#/$defs/text" }, "cause": { "$ref": "#/$defs/text_or_null" }, "evidence_ids": { "$ref": "#/$defs/ids" },
-        "severity": { "oneOf": [{ "$ref": "#/$defs/severity" }, { "type": "null" }] },
-        "probability": { "description": "Qualitative only, never numeric; non-null requires evidence.", "oneOf": [{ "$ref": "#/$defs/qualitative" }, { "type": "null" }] },
-        "horizon": { "oneOf": [{ "$ref": "#/$defs/horizon" }, { "type": "null" }] },
-        "controllability": { "oneOf": [{ "$ref": "#/$defs/controllability" }, { "type": "null" }] },
-        "mitigation": { "$ref": "#/$defs/text_or_null" }, "residual_uncertainty": { "$ref": "#/$defs/text_or_null" },
-        "status": { "$ref": "#/$defs/risk_status" }, "field_states": { "$ref": "#/$defs/field_states" },
-        "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "risk_type": {
+          "$ref": "#/$defs/risk_type"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "cause": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/ids"
+        },
+        "severity": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/severity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probability": {
+          "description": "Qualitative only, never numeric; non-null requires evidence.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/qualitative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "horizon": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/horizon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "controllability": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/controllability"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mitigation": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "residual_uncertainty": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "status": {
+          "$ref": "#/$defs/risk_status"
+        },
+        "field_states": {
+          "$ref": "#/$defs/field_states"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "research_blocks": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "subject", "domain", "research_closure", "data_completeness", "last_reviewed", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject",
+        "domain",
+        "research_closure",
+        "data_completeness",
+        "last_reviewed",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "subject": { "$ref": "#/$defs/ref" }, "domain": { "$ref": "#/$defs/domain" },
-        "research_closure": { "$ref": "#/$defs/research_closure" }, "data_completeness": { "$ref": "#/$defs/data_completeness" },
-        "last_reviewed": { "$ref": "#/$defs/date_or_null" }, "next_review_trigger": { "type": ["string", "null"] },
-        "note": { "$ref": "#/$defs/text_or_null" }, "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "domain": {
+          "$ref": "#/$defs/domain"
+        },
+        "research_closure": {
+          "$ref": "#/$defs/research_closure"
+        },
+        "data_completeness": {
+          "$ref": "#/$defs/data_completeness"
+        },
+        "last_reviewed": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "next_review_trigger": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "$ref": "#/$defs/text_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     },
     "media": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "subject", "media_type", "content_category", "caption", "alt", "depicted_date", "provenance", "verification_status", "permission", "attribution", "role", "order", "file", "is_illustrative", "review"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject",
+        "media_type",
+        "content_category",
+        "caption",
+        "alt",
+        "depicted_date",
+        "provenance",
+        "verification_status",
+        "permission",
+        "attribution",
+        "role",
+        "order",
+        "file",
+        "is_illustrative",
+        "review"
+      ],
       "properties": {
-        "id": { "type": "string" }, "subject": { "$ref": "#/$defs/ref" },
-        "media_type": { "$ref": "#/$defs/media_type" }, "content_category": { "$ref": "#/$defs/content_category" },
-        "caption": { "$ref": "#/$defs/text" }, "alt": { "$ref": "#/$defs/text" },
-        "depicted_date": { "type": ["string", "null"], "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2])(-[0-3][0-9])?)?$" },
-        "provenance": {
-          "type": "object", "additionalProperties": false, "required": ["source_id", "provided_by_role", "received_at"],
-          "properties": { "source_id": { "type": "string" }, "provided_by_role": { "type": "string", "maxLength": 60 }, "received_at": { "$ref": "#/$defs/date" }, "media_kit_ref": { "type": ["string", "null"] } }
+        "id": {
+          "type": "string"
         },
-        "verification_status": { "$ref": "#/$defs/verification_status" },
-        "permission": {
-          "type": "object", "additionalProperties": false, "required": ["status", "scope", "evidence_ref", "granted_at", "expires_at"],
+        "subject": {
+          "$ref": "#/$defs/ref"
+        },
+        "media_type": {
+          "$ref": "#/$defs/media_type"
+        },
+        "content_category": {
+          "$ref": "#/$defs/content_category"
+        },
+        "caption": {
+          "$ref": "#/$defs/text"
+        },
+        "alt": {
+          "$ref": "#/$defs/text"
+        },
+        "depicted_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}(-(0[1-9]|1[0-2])(-[0-3][0-9])?)?$"
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "provided_by_role",
+            "received_at"
+          ],
           "properties": {
-            "status": { "$ref": "#/$defs/permission_status" },
-            "scope": { "type": "array", "items": { "$ref": "#/$defs/permission_scope" } },
-            "evidence_ref": { "type": ["string", "null"], "description": "Pointer to the private store (e.g. PRIV-PERM-…); never the document itself." },
-            "granted_at": { "$ref": "#/$defs/date_or_null" }, "expires_at": { "$ref": "#/$defs/date_or_null" },
-            "revoked_at": { "$ref": "#/$defs/date_or_null", "description": "S-14: date the permission was revoked (status REVOKED). Optional." }
+            "source_id": {
+              "type": "string"
+            },
+            "provided_by_role": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "received_at": {
+              "$ref": "#/$defs/date"
+            },
+            "media_kit_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "verification_status": {
+          "$ref": "#/$defs/verification_status"
+        },
+        "permission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "scope",
+            "evidence_ref",
+            "granted_at",
+            "expires_at"
+          ],
+          "properties": {
+            "status": {
+              "$ref": "#/$defs/permission_status"
+            },
+            "scope": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/permission_scope"
+              }
+            },
+            "evidence_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Pointer to the private store (e.g. PRIV-PERM-…); never the document itself."
+            },
+            "granted_at": {
+              "$ref": "#/$defs/date_or_null"
+            },
+            "expires_at": {
+              "$ref": "#/$defs/date_or_null"
+            },
+            "revoked_at": {
+              "$ref": "#/$defs/date_or_null",
+              "description": "S-14: date the permission was revoked (status REVOKED). Optional."
+            }
           }
         },
         "attribution": {
-          "type": "object", "additionalProperties": false, "required": ["required", "text"],
-          "properties": { "required": { "type": "boolean" }, "text": { "type": ["string", "null"] } }
-        },
-        "role": { "$ref": "#/$defs/media_role" }, "order": { "type": "integer", "minimum": 0 },
-        "file": {
-          "type": "object", "additionalProperties": false, "required": ["public_path", "width", "height", "sha256"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "text"
+          ],
           "properties": {
-            "public_path": { "type": "string" }, "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 },
-            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            "required": {
+              "type": "boolean"
+            },
+            "text": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "role": {
+          "$ref": "#/$defs/media_role"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "public_path",
+            "width",
+            "height",
+            "sha256"
+          ],
+          "properties": {
+            "public_path": {
+              "type": "string"
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        },
+        "review": {
+          "$ref": "#/$defs/review"
+        }
       }
     },
     "disclosures": {
-      "type": "object", "additionalProperties": false,
-      "required": ["id", "subject", "kind", "text", "legal_review", "is_illustrative"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "subject",
+        "kind",
+        "text",
+        "legal_review",
+        "is_illustrative"
+      ],
       "properties": {
-        "id": { "type": "string" }, "subject": { "oneOf": [{ "$ref": "#/$defs/ref" }, { "type": "null" }] },
-        "kind": { "$ref": "#/$defs/disclosure_kind" }, "text": { "$ref": "#/$defs/text" },
-        "legal_review": { "$ref": "#/$defs/legal_review" }, "approved_at": { "$ref": "#/$defs/date_or_null" },
-        "is_illustrative": { "type": "boolean" }
+        "id": {
+          "type": "string"
+        },
+        "subject": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/disclosure_kind"
+        },
+        "text": {
+          "$ref": "#/$defs/text"
+        },
+        "legal_review": {
+          "$ref": "#/$defs/legal_review"
+        },
+        "approved_at": {
+          "$ref": "#/$defs/date_or_null"
+        },
+        "is_illustrative": {
+          "type": "boolean"
+        }
       }
     }
   }

@@ -390,7 +390,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   const oppId = `${fx}OPP-${K}${o.key ? '-' + code(o.key) : ''}`;
   const opp = upsert('opportunities', {
     id: oppId, category: pkg.category, subject: { type: 'project', id: project.id }, market_id: market.id, asset_id: o.asset_key ? assetId[o.asset_key] : null,
-    title: o.title || { en: p.name }, summary: o.summary ?? null, investor_objective_tags: o.investor_objective_tags || [], record_status: 'RESEARCH_IN_PROGRESS',
+    title: o.title || { en: p.name }, summary: o.summary ?? null, investor_objective_tags: o.investor_objective_tags || [], advertising_permit: o.advertising_permit ? String(o.advertising_permit).trim() : null, record_status: 'RESEARCH_IN_PROGRESS',
     disclosure_ids: [], evidence_ids: [], risk_ids: [], field_states: [], last_verified: null, is_illustrative: isIll, review: null
   });
 
@@ -493,7 +493,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
     const d = tpl ? { kind: tpl.kind, text: tpl.text } : d0;
     const ok = tpl ? approvedTemplate(store, tpl) : null;
     store.collections.disclosures.push({ id, subject: { type: 'opportunity', id: opp.id }, kind: d.kind, text: d.text, legal_review: ok ? 'APPROVED' : 'PENDING', approved_at: ok ? ok.approved_at : null, is_illustrative: isIll });
-    if (tpl) R.disclosures = (R.disclosures || []).concat(`${id} from template ${tpl.id}: ${ok ? `APPROVED (template approval ${ok.approved_at})` : 'PENDING — template not approved yet (approve-disclosure-template --by owner)'}`);
+    if (tpl) R.disclosures = (R.disclosures || []).concat(`${id} from template ${tpl.id}: ${ok ? `APPROVED (${ok.adopted ? 'standard text adopted' : 'template approval'} ${ok.approved_at})` : 'PENDING — template not approved yet (approve-disclosure-template --by owner)'}`);
     opp.disclosure_ids.push(id); R.created.push(id);
     if (d.legal_review === 'APPROVED') note(`${id}: package marks legal review as APPROVED; ingestion records PENDING — legal approval is recorded only by the owner`);
   }
@@ -688,7 +688,11 @@ export function disclosureTemplate(id) { try { return JSON.parse(fs.readFileSync
 const textHash = (text) => sha256(Buffer.from(JSON.stringify(text)));
 // the approval applies only to the exact text it was given for
 function approvedTemplate(store, tpl) {
-  return (store.private.disclosure_approvals || []).filter(a => a.template_id === tpl.id && a.text_sha256 === textHash(tpl.text)).pop() || null;
+  const rec = (store.private.disclosure_approvals || []).filter(a => a.template_id === tpl.id && a.text_sha256 === textHash(tpl.text)).pop();
+  if (rec) return rec;
+  // a standard text the owner adopted as site-wide wording (owner decision 28 Oct 2026), bound to its exact text
+  const a = tpl.adopted;
+  return a && a.by === 'owner' && a.at && a.text_sha256 === textHash(tpl.text) ? { approved_at: a.at, adopted: true } : null;
 }
 export function approveDisclosureTemplate({ storeDir, id, by, reference = null, today, fixture = false, repoRoot = path.resolve(HERE, '../..') }) {
   requireOwner(by, 'approval of a standard disclosure text (after your own or counsel review)');

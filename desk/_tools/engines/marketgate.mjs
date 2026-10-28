@@ -75,7 +75,8 @@ export function configProblems(cfg, marketId) {
   if (!m.fx || !m.fx.reference || !stats.some(s => s.key === m.fx.reference && s.kind === 'fx' && s.required)) out.push('FX reference statistic not configured as a required fx statistic');
   if (!m.fx || m.fx.currency !== m.currency || !m.fx.convention) out.push('FX convention not defined for the market currency');
   const rr = m.regulatory_review || {};
-  if (!(rr.topics || []).length || !(rr.reviewer_roles || []).length || !(rr.max_age_days > 0)) out.push('regulatory review topics, reviewer roles or validity not configured');
+  // Legal-review topics are optional (owner decision 28 Oct 2026: none in MG-1). A configured topic needs roles and a validity.
+  if (!Array.isArray(rr.topics) || ((rr.topics || []).length && (!(rr.reviewer_roles || []).length || !(rr.max_age_days > 0)))) out.push('regulatory review topics, reviewer roles or validity not configured');
   if (!m.publication || !m.publication.financial_figures) out.push('publication restrictions not configured');
   for (const r of (m.publication && m.publication.opportunity_requirements) || []) if (r.basis_review && !(rr.topics || []).some(t => t.key === r.basis_review)) out.push(`requirement ${r.key}: basis review ${r.basis_review} is not a configured review topic`);
   return out;
