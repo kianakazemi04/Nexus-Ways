@@ -22,7 +22,8 @@
   ],
   "project": {
     "name": "Illustrative Residence A",
-    "slug": "illustrative-residence-a"
+    "slug": "illustrative-residence-a",
+    "ref": "FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A"
   },
   "facts": [],
   "media": [

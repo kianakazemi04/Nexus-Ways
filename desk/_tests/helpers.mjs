@@ -28,13 +28,22 @@ export const PRJ = 'PRJ-TST-ILLUSTRATIVE-RESIDENCE-A';
 export const DSC1 = 'DSC-TST-ILLUSTRATIVE-RESIDENCE-A-01';
 export const MED = (n) => `MED-TST-ILLUSTRATIVE-RESIDENCE-A-00${n}`;
 
+// The market gate (M-MARKET-GATE) is framework only and INACTIVE in the real registry, so no real market can be activated.
+// Lifecycle tests need one active market: inside a throw-away copy only, the registry entry is switched to a simulated
+// approved state. Nothing in the committed repository is changed.
+export function enableTestMarketGate(repo) {
+  const p = path.join(repo, 'desk/data/methods.json'); const t = fs.readFileSync(p, 'utf8');
+  const a = '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "INACTIVE", "documented": false, "validation_status": "FRAMEWORK_ONLY", "implemented": false';
+  if (!t.includes(a)) throw new Error('M-MARKET-GATE registry entry not found');
+  fs.writeFileSync(p, t.replace(a, '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "ACTIVE", "documented": true, "validation_status": "RULES_APPROVED", "implemented": true, "test_only": "simulated approval in a temporary copy"'));
+}
 // A TEST-ONLY real store beside a temporary repository, with a package derived from fixture A.
-export function realSetup({ mutate } = {}) {
+export function realSetup({ mutate, marketGate = true } = {}) {
   const repo = tmpRepo(); const store = tmp('desk-t-store-'); const pkgs = tmp('desk-t-pkgs-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
   const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
-  mk.records.push(tst); writeJson(mp, mk);
-  validateRepo(repo, { today: TODAY, writeIndex: true });
+  mk.records.push(tst); writeJson(mp, mk); if (marketGate) enableTestMarketGate(repo);
+  if (marketGate) validateRepo(repo, { today: TODAY, writeIndex: true });
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });
   const mkPkg = (name, fn) => {

@@ -1,6 +1,6 @@
 // Opportunity profile: one data-driven template for every opportunity. Everything is resolved from the opportunity ID only.
 import { ready } from './core.js';
-import { esc, tx, lab, chip, vs, freshness, freshChip, qualifier, fmtDate, gallery, bindGallery, factRows, bindEvidence, researchBlocks, gaps, conflicts, risks, unavailable, reveal, openDrawer } from './ui.js';
+import { esc, tx, lab, chip, vs, freshness, freshChip, qualifier, fmtDate, gallery, bindGallery, factRows, bindEvidence, researchBlocks, gaps, conflicts, risks, riskEvidence, unavailable, reveal, openDrawer } from './ui.js';
 
 const D = await ready;
 const host = document.getElementById('opp');
@@ -32,7 +32,7 @@ if (!o) {
   const gapItems = [];
   for (const [rec, label] of [[p, 'Project'], [dev, 'Developer'], [a, 'Unit'], [o, 'Opportunity']]) if (rec) for (const s of rec.field_states || []) gapItems.push({ label: `${label} · ${s.field.replace(/_/g, ' ')}`, state: s.state, note: s.note });
   const rks = D.risksFor(o, p);
-  const riskKeys = {}; rks.forEach((r, i) => { riskKeys['r' + i] = { title: tx(r.title), evs: r.evidence_ids.map(x => D.byId(x)).filter(Boolean) }; });
+  const riskKeys = {}; rks.forEach((r, i) => { riskKeys['r' + i] = { title: tx(r.title), evs: riskEvidence(D, r) }; });
   const ctxEv = refs.flatMap(r => D.evidence(r.type, r.id).filter(e => !e.field));
   const dsc = D.disclosures(o);
   const consult = D.withFixtureFlag(`/desk/consultation/?ref=${encodeURIComponent(o.id)}&market=${encodeURIComponent(o.market_id)}`);

@@ -12,7 +12,8 @@
         "en": "Fictional developer used for testing."
       },
       "evidence_ids": [
-        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0002"
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0002",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0013"
       ],
       "field_states": [],
       "is_illustrative": true,
@@ -52,7 +53,8 @@
         "en": "Fictional developer used for testing."
       },
       "evidence_ids": [
-        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0002"
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0002",
+        "FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-C-0012"
       ],
       "field_states": [],
       "is_illustrative": true,

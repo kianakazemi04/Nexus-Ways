@@ -25,14 +25,13 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
 import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
-import { claimPublication, isPublicClaim, deriveLastVerified } from '../assets/js/policy.js';
+import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness } from '../assets/js/policy.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
 const TYPE_TO_COLL = { market: 'markets', district: 'districts', area: 'areas', developer: 'developers', project: 'projects', asset: 'assets', opportunity: 'opportunities' };
 const DOMAIN_OF = { market: 'MARKET', district: 'DISTRICT', area: 'AREA', project: 'PROJECT_ASSET', asset: 'PROJECT_ASSET', developer: 'DEVELOPER', opportunity: 'PROJECT_ASSET' };
 const PRIVATE_DOMAINS = new Set(['PRICING', 'RENTAL', 'LIQUIDITY', 'MACRO_FX']);
-const STALE_DAYS = 365;
 
 const code = (s) => String(s).normalize('NFKD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '');
 const slugify = (s) => code(s).toLowerCase();
@@ -40,7 +39,7 @@ const sha256 = (b) => crypto.createHash('sha256').update(b).digest('hex');
 const pad = (n, w) => String(n).padStart(w, '0');
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+const normName = (s) => String(s || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 // ------------------------------------------------------------ store location guard (audit B3)
 // A real research store must never sit anywhere inside the public repository (not only under desk/): anything
@@ -87,9 +86,9 @@ export function loadStore(dir) {
     const f = path.join(dir, 'data', `${c}.json`);
     collections[c] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).records : [];
   }
-  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log']) {
+  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index']) {
     const f = path.join(dir, 'private', `${n}.json`);
-    files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (n === 'media_index' ? {} : []);
+    files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (['media_index', 'entity_index'].includes(n) ? {} : []);
   }
   return { dir, collections, private: files, recovered };
 }
@@ -120,6 +119,15 @@ export function validatePackage(pkg, pkgDir) {
   inEnum('package', pkg.category, 'category');
   if (!pkg.market || !pkg.market.slug) E('market.slug required');
   if (!pkg.project || !pkg.project.name) E('project.name required');
+  // identity: an existing record is referenced by ID (ref) or a separate record is requested explicitly (new)
+  for (const k of ['developer', 'district', 'area', 'project']) {
+    const x = pkg[k]; if (x === undefined || x === null) continue;
+    if (typeof x !== 'object') { E(`${k} must be an object`); continue; }
+    if (x.ref !== undefined && x.ref !== null && (typeof x.ref !== 'string' || !/^(FIX-)?[A-Z]{2,3}-[A-Z0-9-]+$/.test(x.ref))) E(`${k}.ref must be an existing record ID`);
+    if (x.new !== undefined && x.new !== null && typeof x.new !== 'boolean') E(`${k}.new must be true or false`);
+    if (x.ref && x.new) E(`${k}: use either ref (existing record) or new (separate record), not both`);
+    if (!x.ref && !(typeof x.name === 'string' && x.name.trim())) E(`${k}.name required (or ${k}.ref to an existing record)`);
+  }
   const srcKeys = new Set();
   for (const [i, x] of (pkg.sources || []).entries()) {
     const w = `sources[${i}]${x && x.key ? ` (${x.key})` : ''}`;
@@ -244,43 +252,65 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   const srcId = {};
   for (const s of pkg.sources || []) {
     const ex = find(store, 'sources', x => (s.url && x.url === s.url) || (x.name === s.name && x.publisher === s.publisher));
+    if (ex && (ex.tier !== s.tier || ex.source_type !== s.source_type)) { fail(`source ${s.key} matches existing ${ex.id} by ${s.url && ex.url === s.url ? 'URL' : 'name and publisher'} but its tier/type differ (${ex.tier}/${ex.source_type} vs ${s.tier}/${s.source_type}); not linked — correct the package or the source record`); continue; }
     if (ex) { srcId[s.key] = ex.id; R.reused.push(ex.id); continue; }
     const rec = { id: `${fx}SRC-${code(pkg.package_id.replace(/^FIX-/, ''))}-${code(s.key)}`, name: s.name, publisher: s.publisher, url: s.url ?? null, tier: s.tier, source_type: s.source_type, accessed_at: s.accessed_at ?? received, notes: s.notes ?? null, is_illustrative: isIll };
     srcId[s.key] = upsert('sources', rec).id;
   }
 
-  // developer — reuse by legal entity, then by name
-  let developer = null;
-  if (pkg.developer) {
-    const d = pkg.developer;
-    developer = find(store, 'developers', x => (d.legal_entity_name && x.legal_entity_name && x.legal_entity_name.toLowerCase() === d.legal_entity_name.toLowerCase()) || x.name.toLowerCase() === d.name.toLowerCase());
-    if (developer) R.reused.push(developer.id);
-    else developer = upsert('developers', { id: `${fx}DEV-${code(d.name)}`, name: d.name, legal_entity_name: null, verification_status: 'UNVERIFIED', record_status: 'RESEARCH_IN_PROGRESS', summary: d.summary ?? null, evidence_ids: [], field_states: [], is_illustrative: isIll, review: null });
-  }
-  // district / area — reuse by market + slug
-  let district = null;
-  if (pkg.district) {
-    const slug = pkg.district.slug || slugify(pkg.district.name);
-    district = find(store, 'districts', x => x.market_id === market.id && x.slug === slug)
-      || upsert('districts', { id: `${fx}DST-${MK}-${code(slug)}`, market_id: market.id, slug, name: pkg.district.name, admin_level: pkg.district.admin_level || 'DISTRICT', record_status: 'RESEARCH_IN_PROGRESS', research_block_ids: [], evidence_ids: [], field_states: [], is_illustrative: isIll, review: null });
-  }
-  let area = null;
-  if (pkg.area) {
-    const slug = pkg.area.slug || slugify(pkg.area.name);
-    area = find(store, 'areas', x => x.market_id === market.id && x.slug === slug)
-      || upsert('areas', { id: `${fx}ARE-${MK}-${code(slug)}`, market_id: market.id, district_id: district ? district.id : null, slug, name: pkg.area.name, record_status: 'RESEARCH_IN_PROGRESS', evidence_ids: [], field_states: [], is_illustrative: isIll, review: null });
-  }
-  // project — reuse by market + slug
+  // ---- identity resolution (closure Task 4). Records are linked only by stable IDs; a matching name is never enough.
+  //   <entity>.ref  = an existing record ID → linked to that record (type and market are checked)
+  //   <entity>.new  = true → a separate record is created even though a record with the same name exists
+  //   otherwise a record with the same name/slug/legal entity (or the same derived ID) is an UNRESOLVED IDENTITY and the
+  //   package is refused — except when that record was created by this same package (a re-ingestion, not a guess).
+  const identity = []; const unresolved = [];
+  const created = (coll, rec) => { const r = upsert(coll, rec); store.private.entity_index[r.id] = { created_by: pkg.package_id, received_at: received }; return r; };
+  const uniqueId = (coll, id) => { let n = 1; let out = id; while (store.collections[coll].some(r => r.id === out)) out = `${id}-${++n}`; return out; };
+  const resolve = (type, coll, spec, label, candidatesOf, scopeOk, make) => {
+    if (!spec) return null;
+    if (spec.ref) {
+      const rec = store.collections[coll].find(r => r.id === spec.ref);
+      if (!rec) { const other = byId(store, spec.ref); unresolved.push(`${type}.ref ${spec.ref} ${other ? `is not a ${type} record` : 'does not exist in this store'}`); return null; }
+      const bad = scopeOk(rec); if (bad) { unresolved.push(`${type}.ref ${spec.ref}: ${bad}`); return null; }
+      identity.push(`${type} ${rec.id} — linked by explicit ref${normName(rec.name) !== normName(label) && label ? ` (package name "${label}" differs from the record name "${rec.name}"; the record is not renamed)` : ''}`);
+      R.reused.push(rec.id); return rec;
+    }
+    const proposed = make(null).id;
+    const cands = store.collections[coll].filter(r => r.id === proposed || candidatesOf(r));
+    if (!cands.length) { const rec = created(coll, make(proposed)); identity.push(`${type} ${rec.id} — new record`); return rec; }
+    // provenance, not the name: exactly one candidate was created by this same package → this is a re-ingestion
+    const own = cands.filter(c => (store.private.entity_index[c.id] || {}).created_by === pkg.package_id);
+    if (own.length === 1 && !spec.new) { identity.push(`${type} ${own[0].id} — created earlier by this same package (re-ingestion)`); R.reused.push(own[0].id); return own[0]; }
+    if (spec.new === true) { const rec = created(coll, make(uniqueId(coll, proposed))); identity.push(`${type} ${rec.id} — new record by explicit instruction; same name as ${cands.map(c => c.id).join(', ')} (not merged)`); return rec; }
+    unresolved.push(`${type} "${label}" matches existing ${cands.map(c => `${c.id} ("${c.name}")`).join(', ')} — set ${type}.ref to the existing ID if it is the same ${type}, or ${type}.new: true if it is a different one; nothing was linked by name`);
+    return null;
+  };
+  const d0 = pkg.developer;
+  const developer = resolve('developer', 'developers', d0, d0 && d0.name,
+    (x) => normName(x.name) === normName(d0.name) || (d0.legal_entity_name && x.legal_entity_name && normName(x.legal_entity_name) === normName(d0.legal_entity_name)),
+    () => null,
+    (id) => ({ id: id || `${fx}DEV-${code(d0.name)}`, name: d0.name, legal_entity_name: null, verification_status: 'UNVERIFIED', record_status: 'RESEARCH_IN_PROGRESS', summary: d0.summary ?? null, evidence_ids: [], field_states: [], is_illustrative: isIll, review: null }));
+  const inMarket = (x) => x.market_id === market.id ? null : `belongs to market ${x.market_id}, not ${market.id}`;
+  const ds0 = pkg.district; const dslug = ds0 && (ds0.slug || slugify(ds0.name));
+  const district = resolve('district', 'districts', ds0, ds0 && ds0.name,
+    (x) => x.market_id === market.id && (x.slug === dslug || normName(x.name) === normName(ds0.name)), inMarket,
+    (id) => ({ id: id || `${fx}DST-${MK}-${code(dslug)}`, market_id: market.id, slug: dslug, name: ds0.name, admin_level: ds0.admin_level || 'DISTRICT', record_status: 'RESEARCH_IN_PROGRESS', research_block_ids: [], evidence_ids: [], field_states: [], is_illustrative: isIll, review: null }));
+  const ar0 = pkg.area; const aslug = ar0 && (ar0.slug || slugify(ar0.name));
+  const area = resolve('area', 'areas', ar0, ar0 && ar0.name,
+    (x) => x.market_id === market.id && (x.slug === aslug || normName(x.name) === normName(ar0.name)), inMarket,
+    (id) => ({ id: id || `${fx}ARE-${MK}-${code(aslug)}`, market_id: market.id, district_id: district ? district.id : null, slug: aslug, name: ar0.name, record_status: 'RESEARCH_IN_PROGRESS', evidence_ids: [], field_states: [], is_illustrative: isIll, review: null }));
   const p = pkg.project; const pslug = p.slug || slugify(p.name);
-  const K = `${MK}-${code(pslug)}`;
-  let project = find(store, 'projects', x => x.market_id === market.id && x.slug === pslug);
-  if (project) R.reused.push(project.id);
-  else project = upsert('projects', {
-    id: `${fx}PRJ-${K}`, category: pkg.category, market_id: market.id, developer_id: developer ? developer.id : null, name: p.name, slug: pslug,
-    district_id: district ? district.id : null, area_id: area ? area.id : null, delivery_status: null, expected_delivery: null,
-    asset_types: p.asset_types || [], description: p.description ?? null, record_status: 'RESEARCH_IN_PROGRESS',
-    research_block_ids: [], evidence_ids: [], risk_ids: [], field_states: [], is_illustrative: isIll, review: null
-  });
+  const project = resolve('project', 'projects', p, p.name,
+    (x) => x.market_id === market.id && (x.slug === pslug || normName(x.name) === normName(p.name)), inMarket,
+    (id) => ({ id: id || `${fx}PRJ-${MK}-${code(pslug)}`, category: pkg.category, market_id: market.id, developer_id: developer ? developer.id : null, name: p.name, slug: pslug,
+      district_id: district ? district.id : null, area_id: area ? area.id : null, delivery_status: null, expected_delivery: null,
+      asset_types: p.asset_types || [], description: p.description ?? null, record_status: 'RESEARCH_IN_PROGRESS',
+      research_block_ids: [], evidence_ids: [], risk_ids: [], field_states: [], is_illustrative: isIll, review: null }));
+  if (unresolved.length) {
+    const report = `# Ingestion report · ${pkg.package_id}\n\n**REFUSED — unresolved identity; nothing was written.** Records are linked by ID only, never by a matching name.\n\n${unresolved.map(e => `- UNRESOLVED IDENTITY: ${e}`).join('\n')}\n`;
+    return { report, opp: null, project: null, blocked: [], errors: unresolved, disputed: [], privateFacts: [], gateErrors: [], written: false, unresolved };
+  }
+  const K = project.id.replace(/^(FIX-)?PRJ-/, '');
   if (project.developer_id && developer && project.developer_id !== developer.id) fail(`package developer ${developer.id} differs from the project's existing developer ${project.developer_id}; not changed`);
   if (!project.developer_id && developer) { project.developer_id = developer.id; R.updated.push(`${project.id}.developer_id`); }
   if (!project.district_id && district) { project.district_id = district.id; R.updated.push(`${project.id}.district_id`); }
@@ -454,7 +484,8 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   const groups = {}; for (const e of evid) if (e.field) (groups[`${e.subject.id}.${e.field}`] ||= []).push(e);
   const devClaimOnly = Object.entries(groups).filter(([, es]) => es.every(e => e.verification_status === 'DEVELOPER-CLAIM')).map(([k]) => k);
   const tier4Only = Object.entries(groups).filter(([, es]) => es.every(e => e.source_tier === 4)).map(([k]) => k);
-  const stale = evid.filter(e => daysBetween(e.retrieved_at, today) > STALE_DAYS || (/^\d{4}-\d{2}-\d{2}$/.test(e.next_review_trigger || '') && e.next_review_trigger < today)).map(e => e.id);
+  // review policy RP-1 (the same function the gate and the pages use): review due, expired, or no valid date
+  const stale = evid.map(e => [e, evidenceFreshness(e, today, (find(store, 'sources', x => x.id === e.source_id) || {}).source_type || null)]).filter(([, f]) => f.state !== 'CURRENT').map(([e, f]) => `${e.id} (${f.state})`);
   const missing = [];
   for (const s of subjects) {
     const coll = Object.entries(store.collections).find(([, recs]) => recs.includes(s))[0];
@@ -481,6 +512,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   if (recovered) md.push(`Recovered an interrupted earlier write before this run: ${recovered} file(s) restored to their previous state.`, '');
   md.push(`**Opportunity:** ${opp.id} · **Project:** ${project.id} · **Developer:** ${developer ? developer.id : '—'} · **Market:** ${market.id} (${market.activation})`, '');
   md.push('**Publication:** not published. Ingestion never publishes; publication requires a passing gate, the owner\'s explicit approval and an export.', '');
+  md.push('## 0. Identity (linked by ID only; never by a matching name)', '', ...identity.map(x => `- ${x}`), '');
   md.push('## 1. Records', '', `Created (${R.created.length}): ${R.created.join(', ') || '—'}`, '', `Reused (${[...new Set(R.reused)].length}): ${[...new Set(R.reused)].join(', ') || '—'}`, '', `Values set: ${R.updated.join(', ') || '—'}`, '');
   md.push('## 2. Fact mapping (intelligence domain → owning record)', '', '| Fact | Domain | Owner record.field | Evidence | Class | Verification | Tier |', '|---|---|---|---|---|---|---|');
   for (const f of R.facts) md.push(`| ${f.label} | ${f.domain} | ${f.subject}${f.field ? '.' + f.field : ''} | ${f.evidence} | ${f.class} | ${f.verification} | ${f.tier} |`);
@@ -494,7 +526,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   md.push(`- Corroborated: ${[...new Set(R.corroborated)].join(', ') || 'none'}`);
   md.push(`- Developer claims only (unverified): ${devClaimOnly.join(', ') || 'none'}`);
   md.push(`- Tier 4 only: ${tier4Only.join(', ') || 'none'}`);
-  md.push(`- Stale evidence (> ${STALE_DAYS} days or review date passed): ${stale.join(', ') || 'none'}`);
+  md.push(`- Stale evidence (review policy RP-1: review due, expired or no valid date): ${stale.join(', ') || 'none'}`);
   md.push(`- Professional due diligence required: ${ddRequired.join(', ') || 'none'}`);
   md.push(`- Ingestion errors: ${R.errors.join('; ') || 'none'}`);
   md.push(`- Notes: ${R.notes.join('; ') || 'none'}`, '');

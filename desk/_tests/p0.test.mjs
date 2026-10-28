@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateDataset, validateRepo, commercialTextHits } from '../_tools/validate.mjs';
 import { assertStorePath, StorePathError } from '../_tools/ingest.mjs';
+import { enableTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TODAY = '2026-10-27';
@@ -37,7 +38,7 @@ function realStoreSetup({ mutate } = {}) {
   const repo = tmpRepo(); const store = tmp('desk-p0-store-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
   const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
-  mk.records.push(tst); writeJson(mp, mk);
+  mk.records.push(tst); writeJson(mp, mk); enableTestMarketGate(repo);
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });
   const pkg = path.join(store, 'pkg'); fs.cpSync(path.join(repo, 'desk/_fixtures/packages/FIX-PKG-A'), pkg, { recursive: true });
@@ -65,7 +66,7 @@ const base = () => ({
   }
 });
 const dsc = (id, kind, legal_review, extra = {}) => ({ id, subject: { type: 'opportunity', id: 'OPP-T-A' }, kind, text: { en: `${kind} text` }, legal_review, approved_at: legal_review === 'APPROVED' ? TODAY : null, is_illustrative: false, ...extra });
-const gate = (ds, mode = 'private') => validateDataset(ds, { mode, today: TODAY, methods: { 'M-RISK-SEVERITY': 'INACTIVE' } });
+const gate = (ds, mode = 'private') => validateDataset(ds, { mode, today: TODAY, methods: { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' } });
 const discReasons = (r) => r.eligibility.opportunities['OPP-T-A'].filter(w => /disclosure/.test(w));
 
 test('B1 regression: an approved generic notice no longer covers a pending COMMISSION disclosure', () => {

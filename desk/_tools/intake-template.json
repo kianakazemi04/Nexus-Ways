@@ -19,16 +19,19 @@
     }
   ],
   "developer": {
+    "ref": null,
     "name": "",
     "summary": null
   },
   "district": {
+    "ref": null,
     "name": "",
     "slug": null,
     "admin_level": "DISTRICT"
   },
   "area": null,
   "project": {
+    "ref": null,
     "name": "",
     "slug": null,
     "asset_types": [
@@ -147,5 +150,6 @@
         "text": null
       }
     }
-  ]
+  ],
+  "_identity_note": "Existing developer/district/area/project records are linked only by ID: set <entity>.ref to the existing record ID (e.g. DEV-…, PRJ-…). A record with the same name is never re-used automatically; the package is refused as an unresolved identity. Set <entity>.new: true only if it is a different entity that happens to share the name."
 }

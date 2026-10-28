@@ -8,6 +8,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { validateDataset, validateRepo, schemaErrors } from '../_tools/validate.mjs';
+import { enableTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TODAY = '2026-10-27';
@@ -65,7 +66,7 @@ const base = () => ({
   }
 });
 const ev = (o) => ({ id: 'EVD-T-1', source_id: 'SRC-T1', subject: { type: 'project', id: 'PRJ-T-A' }, field: null, claim: { en: 'c' }, value: null, unit: null, currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'UNVERIFIED', source_tier: 4, retrieved_at: '2026-10-01', conflict_ids: [], is_illustrative: false, ...o });
-const run = (ds, mode = 'public') => validateDataset(ds, { mode, today: TODAY, methods: { 'M-RISK-SEVERITY': 'INACTIVE' } });
+const run = (ds, mode = 'public') => validateDataset(ds, { mode, today: TODAY, methods: { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' } });
 
 test('V00 schema allow-list rejects unknown fields (e.g. a price field)', () => {
   const ds = base(); ds.collections.projects[0].unit_price = 1;
@@ -196,7 +197,7 @@ test('lifecycle: a real (non-fixture) store exports only approved, public-safe d
     // temporary test market, active only inside this throw-away copy
     const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
     const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
-    mk.records.push(tst); writeJson(mp, mk);
+    mk.records.push(tst); writeJson(mp, mk); enableTestMarketGate(repo);
     fs.mkdirSync(path.join(store, 'data'), { recursive: true });
     writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });
     // build a TEST-ONLY package from fixture A, renamed and stripped of FIX ids

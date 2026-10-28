@@ -14,7 +14,7 @@ library functions it exports) resolves the store path — `..`, relative segment
 it if it lies anywhere inside the repository, equals `desk/_fixtures` without `--fixture`, or contains the repository.
 Unresolvable paths are refused (exit code 2).
 
-Tests: `node --test desk/_tests/desk.test.mjs`
+Tests: `node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs desk/_tests/phase2.test.mjs desk/_tests/p1.test.mjs desk/_tests/closure.test.mjs` (CI runs every `*.test.mjs` file; a test checks the list).
 
 ## Real project intake (Stage 3)
 
@@ -75,8 +75,8 @@ Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingest
 
 - **Evidence freshness (review policy RP-1).** Each evidence record is CURRENT, REVIEW_DUE, EXPIRED or INVALID,
   computed from its verification date (or, if none, its retrieval date) against a review interval per field, source
-  type or evidence class. Expired means "re-review required", not "false". For material fields (project name,
-  delivery status, expected delivery, developer legal entity, unit facts) EXPIRED/INVALID blocks new publication;
+  type or evidence class. Expired means "re-review required", not "false". For material fields (see below)
+  EXPIRED/INVALID blocks new publication;
   REVIEW_DUE is published with a "Review due" label (warning W02). An already-published opportunity whose evidence
   ages is reported (W01), not withdrawn automatically — that policy is an open owner decision (D4). Dates in the
   future or impossible dates are errors (V18). The validator uses the UTC date; fixtures use `desk/_fixtures/clock.json`.
@@ -104,3 +104,28 @@ Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingest
   after a crash, and never runs underneath a live operation. Symbolic links inside a transaction root are refused.
 - **CI.** `fixture-browser-check` runs the browser checks in fixture mode from the source tree, separately from
   `pages-build-check` (production build, fixtures absent).
+
+## Final technical closure (28 Oct 2026)
+
+- **Field-level evidence.** Every record field rendered on an opportunity page, a card or Compare is a material field
+  (`MATERIAL_FIELDS` in `desk/assets/js/policy.js`): project name, developer, district, delivery status, expected
+  delivery, asset types; developer name and legal entity; unit layout, gross/net area, unit delivery status. A material
+  field with a value needs publishable evidence about that exact subject and field; identity fields (project name,
+  developer legal entity, the project–developer relationship) need ESTABLISHED evidence. An empty material field needs
+  an explicit missing-data state. "No evidence linked" / "Not recorded" are display states, never a substitute for these
+  gate rules. `closure.test.mjs` fails if a page renders a field that is not classified. Risk evidence is shown through
+  the claim policy, and a risk may cite only evidence about its own project (V03).
+- **Market gate (M-MARKET-GATE).** Not implemented: the registry marks it INACTIVE, `FRAMEWORK_ONLY`,
+  `implemented: false`, and M01 refuses to activate a method without an implementation. Fail closed: while it is not
+  ACTIVE no real market may be ACTIVE or PUBLISHED (V21), no opportunity in a real market is eligible, and
+  `published.json` lists no market. Istanbul, Dubai and Abu Dhabi stay INACTIVE (owner decisions D1, D3). Tests switch
+  the entry on only inside temporary copies (`enableTestMarketGate`).
+- **Freshness.** The ingestion report uses review policy RP-1 (the same function as the gate and the pages). No
+  scheduled job exists: stale-evidence alerts are not implemented.
+- **Identity.** Ingestion links an existing developer, district, area or project only by ID (`<entity>.ref`). A record
+  with the same name, slug or legal entity is never re-used automatically: the package is refused as an UNRESOLVED
+  IDENTITY and nothing is written, unless the record was created by this same package (provenance in
+  `private/entity_index.json`) or the package says `<entity>.new: true` (a separate record with a distinct ID; the
+  validator then reports the possible duplicate, W03). A source matching an existing one but with another tier or type
+  is refused. The report starts with an "Identity" section listing every decision.
+

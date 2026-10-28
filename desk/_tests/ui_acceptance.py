@@ -81,6 +81,16 @@ async def run():
         srcs = await pg.evaluate("[...document.querySelectorAll('#gal img')].map(i => i.getAttribute('src'))")
         check(srcs and all('RESIDENCE-A/' in s for s in srcs), f'gallery of A shows only A images ({len(srcs)})')
         await pg.click('.gal .main'); check(await pg.evaluate("!!document.querySelector('.lb img')"), 'lightbox opens'); await pg.keyboard.press('Escape')
+        # field-level evidence (closure Task 1): a gate-passing opportunity has evidence behind every rendered fact,
+        # and a developer claim stays visibly qualified in its evidence drawer
+        await pg.goto(B + f'/desk/opportunities/preview/?id={FIX_C}&fixtures=1', wait_until='networkidle')
+        facts = await pg.inner_text('#facts')
+        check('No evidence linked' not in facts and 'Not recorded' not in facts, 'gate-passing opportunity: every rendered fact has linked evidence or an explicit state')
+        await pg.locator('#facts [data-ev="f1"]').click(); await pg.wait_for_timeout(100)
+        dr = (await pg.inner_text('#dr')).lower()
+        q = 'developer claim' in dr and 'not independently verified' in dr
+        check(q, 'developer-reported fact stays qualified in the evidence drawer' + ('' if q else f' ({dr[:160]!r})'))
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
         # missing data
         await pg.goto(B + f'/desk/opportunities/preview/?id={FIX_B}&fixtures=1', wait_until='networkidle')
         t = (await pg.inner_text('main')).upper()

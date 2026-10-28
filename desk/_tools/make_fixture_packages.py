@@ -75,13 +75,18 @@ def complete_package(pid, letter, tone):
         'provided_by_role': 'Sales manager (fictional)',
         'sources': sources(name),
         'developer': {'name': f'Illustrative Developer {letter}', 'summary': {'en': 'Fictional developer used for testing.'}},
-        'district': {'name': 'Illustrative District North', 'slug': 'illustrative-district-north', 'admin_level': 'DISTRICT'},
+        # C is ingested after A into the same store: its district is linked by ID, never by the matching name
+        'district': {'name': 'Illustrative District North', 'slug': 'illustrative-district-north', 'admin_level': 'DISTRICT', **({'ref': 'FIX-DST-ILL-ILLUSTRATIVE-DISTRICT-NORTH'} if letter != 'A' else {})},
         'project': {'name': name, 'asset_types': ['APARTMENT'], 'description': {'en': f'{name} is a fictional residential project used to test the Nexus Desk ingestion and rendering lifecycle.'}},
         'assets': [{'key': 'A1'}],
         'opportunity': {'title': {'en': f'{name} — 2+1 apartments (illustrative)'}, 'summary': {'en': 'Illustrative opportunity record. Not a real project and not real market data.'}, 'asset_key': 'A1', 'investor_objective_tags': ['long_term_hold']},
         'facts': [
             {'key': 'F-NAME', 'subject': 'project', 'field': 'name', 'value': name, 'unit': 'text', 'claim': {'en': 'Project name as registered.'}, 'source': 'S1', 'evidence_class': 'FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative District North', 'period': None, 'locator': 'extract p.1'},
             {'key': 'F-LEGAL', 'subject': 'developer', 'field': 'legal_entity_name', 'value': f'Illustrative Developer {letter} Ltd (fictional)', 'unit': 'text', 'claim': {'en': 'Legal entity of the developer.'}, 'source': 'S1', 'evidence_class': 'LEGAL FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative Market', 'period': None},
+            {'key': 'F-DEVREL', 'subject': 'project', 'field': 'developer_id', 'value': None, 'unit': None, 'claim': {'en': f'Registry extract names Illustrative Developer {letter} Ltd (fictional) as the developer of the project.'}, 'source': 'S1', 'evidence_class': 'LEGAL FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative District North', 'period': None, 'locator': 'extract p.1'},
+            {'key': 'F-DISTRICT', 'subject': 'project', 'field': 'district_id', 'value': None, 'unit': None, 'claim': {'en': 'Registry extract places the plot in Illustrative District North (fictional).'}, 'source': 'S1', 'evidence_class': 'FACT', 'verification_status': 'VERIFIED', 'geography': 'Illustrative District North', 'period': None, 'locator': 'extract p.1'},
+            {'key': 'F-DEVNAME', 'subject': 'developer', 'field': 'name', 'value': f'Illustrative Developer {letter}', 'unit': 'text', 'claim': {'en': 'Trading name used in the developer media kit.'}, 'source': 'S2', 'evidence_class': 'FACT', 'verification_status': 'DEVELOPER-CLAIM', 'geography': 'Illustrative Market', 'period': '2026-10'},
+            {'key': 'F-TYPES', 'subject': 'project', 'field': 'asset_types', 'value': None, 'unit': None, 'claim': {'en': 'Media kit describes the project as apartments.'}, 'source': 'S2', 'evidence_class': 'FACT', 'verification_status': 'DEVELOPER-CLAIM', 'geography': 'Illustrative District North', 'period': '2026-10'},
             {'key': 'F-STATUS', 'subject': 'project', 'field': 'delivery_status', 'value': 'UNDER_CONSTRUCTION', 'unit': 'text', 'claim': {'en': 'Construction is under way.'}, 'source': 'S2', 'evidence_class': 'FACT', 'verification_status': 'DEVELOPER-CLAIM', 'geography': 'Illustrative District North', 'period': '2026-10', 'limitations': {'en': 'Stated by the developer; not yet independently inspected.'}},
             {'key': 'F-DELIVERY', 'subject': 'project', 'field': 'expected_delivery', 'value': '2028-06', 'unit': 'date', 'claim': {'en': 'Developer-stated expected delivery.'}, 'source': 'S2', 'evidence_class': 'PROJECTION', 'verification_status': 'DEVELOPER-CLAIM', 'geography': 'Illustrative District North', 'period': '2026-10', 'next_review_trigger': '2027-04-01'},
             {'key': 'F-TYPE', 'subject': 'asset:A1', 'field': 'unit_type', 'value': '2+1', 'unit': 'text', 'claim': {'en': 'Unit layout.'}, 'source': 'S2', 'evidence_class': 'FACT', 'verification_status': 'DEVELOPER-CLAIM', 'geography': 'Illustrative District North', 'period': '2026-10'},
@@ -146,7 +151,7 @@ def update_package():
         'package_id': pid, 'received_at': '2026-10-26', 'category': 'real_estate', 'market': {'slug': 'illustrative-market'},
         'provided_by_role': 'Analyst (fictional)',
         'sources': [S4],
-        'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a'},
+        'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a', 'ref': 'FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A'},
         'facts': [
             {'key': 'F-DELIVERY2', 'subject': 'project', 'field': 'expected_delivery', 'value': '2029-03', 'unit': 'date', 'claim': {'en': 'Report states a later expected delivery.'}, 'source': 'S4', 'evidence_class': 'FACT', 'verification_status': 'SOURCE-REPORTED', 'geography': 'Illustrative District North', 'period': '2026-10'},
         ],
@@ -159,7 +164,7 @@ def borrowed_image_package():
     write(d, {
         'package_id': pid, 'received_at': '2026-10-26', 'category': 'real_estate', 'market': {'slug': 'illustrative-market'},
         'provided_by_role': 'Analyst (fictional)', 'sources': [S4],
-        'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a'}, 'facts': [],
+        'project': {'name': 'Illustrative Residence A', 'slug': 'illustrative-residence-a', 'ref': 'FIX-PRJ-ILL-ILLUSTRATIVE-RESIDENCE-A'}, 'facts': [],
         'media': [
             {'file': 'raw/borrowed.jpg', 'source': 'S4', 'media_type': 'RENDERING', 'content_category': 'exterior', 'role': 'gallery', 'caption': {'en': 'Should be rejected: belongs to another project'}, 'alt': {'en': 'Placeholder'}, 'permission': {'status': 'GRANTED_WRITTEN', 'scope': ['desk_web'], 'evidence_ref': 'PRIV-PERM-FIX-3', 'granted_at': '2026-10-26', 'expires_at': None}, 'attribution': {'required': False, 'text': None}},
         ],

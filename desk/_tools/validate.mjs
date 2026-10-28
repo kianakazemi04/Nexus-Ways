@@ -202,10 +202,46 @@ export function validateDataset(ds, opts) {
   }
   for (const r of C('evidence')) { subj(r.id, r.subject); refTo(r.id, r.source_id, 'sources'); (r.conflict_ids || []).forEach(i => refTo(r.id, i, 'conflicts')); }
   for (const r of C('conflicts')) { subj(r.id, r.subject); (r.evidence_ids || []).forEach(i => refTo(r.id, i, 'evidence')); }
-  for (const r of C('risks')) { subj(r.id, r.subject); (r.evidence_ids || []).forEach(i => refTo(r.id, i, 'evidence')); }
+  // records that belong to one project: the project, its developer, its assets and its opportunities
+  const projectClosure = (ref) => {
+    let pid = null;
+    if (ref && ref.type === 'project') pid = ref.id;
+    else if (ref && ref.type === 'opportunity') { const o = get(ref.id); pid = o && o.r.subject && o.r.subject.type === 'project' ? o.r.subject.id : null; }
+    const p = pid && get(pid); if (!p || p.coll !== 'projects') return null;
+    const out = new Set([`project:${pid}`]);
+    if (p.r.developer_id) out.add(`developer:${p.r.developer_id}`);
+    for (const a of C('assets')) if (a.project_id === pid) out.add(`asset:${a.id}`);
+    for (const o of C('opportunities')) if (o.subject && o.subject.type === 'project' && o.subject.id === pid) out.add(`opportunity:${o.id}`);
+    return out;
+  };
+  for (const r of C('risks')) {
+    subj(r.id, r.subject);
+    const cl = projectClosure(r.subject);
+    (r.evidence_ids || []).forEach(i => { const e = refTo(r.id, i, 'evidence'); if (e && cl && e.subject && !cl.has(`${e.subject.type}:${e.subject.id}`)) E('V03', r.id, `${i} is evidence about ${e.subject.type} ${e.subject.id}, outside this risk's project`); });
+  }
   for (const r of C('research_blocks')) subj(r.id, r.subject);
   for (const r of C('media')) { subj(r.id, r.subject); refTo(r.id, r.provenance && r.provenance.source_id, 'sources'); }
   for (const r of C('disclosures')) subj(r.id, r.subject, true);
+
+  // W03 — possible duplicate identities. Records are linked only by stable IDs; equal names never merge records.
+  // Two records that share a normalised name are reported so a person resolves the identity (ingestion refuses to
+  // guess, see ingest.mjs "identity resolution"); they are not merged and not treated as an error, because distinct
+  // entities can share a trading name.
+  {
+    const nk = (s) => String(s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const dup = (coll, keyOf, what) => {
+      const seen = new Map();
+      for (const r of C(coll)) for (const k of keyOf(r).filter(Boolean)) {
+        const p = seen.get(k);
+        if (p && p !== r.id) W('W03', r.id, `possible duplicate identity: same ${what} as ${p}; records are not merged — confirm whether they are the same entity`);
+        else seen.set(k, r.id);
+      }
+    };
+    dup('developers', r => [...new Set([r.name && 'n:' + nk(r.name), r.legal_entity_name && 'l:' + nk(r.legal_entity_name)])], 'developer name or legal entity');
+    dup('projects', r => [r.name && `${r.market_id}:${nk(r.name)}`], 'project name in this market');
+    dup('districts', r => [r.name && `${r.market_id}:${nk(r.name)}`], 'district name in this market');
+    dup('areas', r => [r.name && `${r.market_id}:${nk(r.name)}`], 'area name in this market');
+  }
 
   // V05 — explicit missing-data states
   for (const [coll, recs] of Object.entries(ds.collections)) {
@@ -249,6 +285,10 @@ export function validateDataset(ds, opts) {
   }
   // V09 — risks: no unsupported qualitative judgement
   const sevActive = !!(opts.methods && opts.methods['M-RISK-SEVERITY'] === 'ACTIVE');
+  // market gate (Spec v1 §8): not implemented — the registry marks it INACTIVE / FRAMEWORK_ONLY. Fail closed: unless the
+  // registry passed in says ACTIVE, no real market can be activated and no opportunity in a real market is eligible.
+  // Illustrative fixture markets (FIX-) simulate an activated market for the local development view only.
+  const marketGateOn = !!(opts.methods && opts.methods['M-MARKET-GATE'] === 'ACTIVE');
   for (const r of C('risks')) {
     if ((r.probability !== null || r.severity !== null) && isEmpty(r.evidence_ids)) E('V09', r.id, 'severity/probability requires supporting evidence');
     const isPublic = ds.origin ? ds.origin[r.id] === 'public' : mode === 'public';
@@ -335,6 +375,7 @@ export function validateDataset(ds, opts) {
     if (!r.review || r.review.gate_version !== GATE_VERSION) why.push(`no ${GATE_VERSION} review`);
     const m = get(r.market_id); const cat = C('categories').find(c => c.key === r.category);
     if (!m || m.r.activation !== 'ACTIVE') why.push('market inactive');
+    if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) why.push('market gate not operational (M-MARKET-GATE is framework only)');
     if (!cat || cat.activation !== 'ACTIVE') why.push('category inactive');
     const p = r.subject && get(r.subject.id); const pr = p && p.r;
     if (!pr) why.push('subject missing');
@@ -344,6 +385,8 @@ export function validateDataset(ds, opts) {
       if (!strong({ type: 'project', id: pr.id }, 'name')) why.push('project identity not verified (Tier 1–3)');
       const dv = pr.developer_id && get(pr.developer_id);
       if (!dv || !dv.r.legal_entity_name || !strong({ type: 'developer', id: dv.r.id }, 'legal_entity_name')) why.push('developer legal entity not verified');
+      // Spec v1 §8 developer gate: the project–developer relationship itself must be verified, not only the developer
+      if (dv && !strong({ type: 'project', id: pr.id }, 'developer_id')) why.push('project–developer relationship not verified (Tier 1–3)');
       const subjects = [{ type: 'project', id: pr.id }, { type: 'opportunity', id: r.id }].concat(pr.developer_id ? [{ type: 'developer', id: pr.developer_id }] : []).concat(r.asset_id ? [{ type: 'asset', id: r.asset_id }] : []);
       if (C('conflicts').some(c => c.status === 'OPEN' && subjects.some(s => sameRef(s, c.subject)))) why.push('open conflict');
       for (const d of ['PROJECT_ASSET', 'DEVELOPER', 'RISK']) if (!C('research_blocks').some(b => sameRef(b.subject, { type: 'project', id: pr.id }) && b.domain === d)) why.push(`no ${d} research block`);
@@ -351,7 +394,8 @@ export function validateDataset(ds, opts) {
       // claim policy CP-1 and review policy RP-1 for every material field that carries a value
       const recs = [{ type: 'project', rec: pr }, { type: 'developer', rec: pr.developer_id && get(pr.developer_id) ? get(pr.developer_id).r : null }, { type: 'asset', rec: r.asset_id && get(r.asset_id) ? get(r.asset_id).r : null }];
       for (const { type, rec } of recs) if (rec) for (const f of MATERIAL_FIELDS[type]) {
-        if (isEmpty(rec[f])) continue;
+        // a rendered field without a value must say why ("No evidence linked" / "Not recorded" is not a control)
+        if (isEmpty(rec[f])) { if (!(rec.field_states || []).some(s => s.field === f)) why.push(`${rec.id}:${f} is empty without an explicit missing-data state`); continue; }
         const evs = C('evidence').filter(e => sameRef(e.subject, { type, id: rec.id }) && e.field === f);
         const pub = evs.filter(isPublicClaim);
         if (!(IDENTITY_FIELDS[type] || []).includes(f) && !pub.length) { why.push(`${rec.id}:${f} has no publishable evidence (${evs.length ? 'unverified or Tier 4 only' : 'no evidence'})`); continue; }
@@ -393,6 +437,8 @@ export function validateDataset(ds, opts) {
   }
   for (const r of C('markets')) {
     if (r.record_status === 'PUBLISHED' && (!r.review || r.activation !== 'ACTIVE')) E('V12', r.id, 'market PUBLISHED requires activation ACTIVE and a review');
+    // V21 — fail closed: no real market may be active or published while the market gate is not operational
+    if (!marketGateOn && !String(r.id).startsWith('FIX-') && (r.activation === 'ACTIVE' || r.record_status === 'PUBLISHED')) E('V21', r.id, 'market activation/publication requires the market gate (M-MARKET-GATE), which is not operational (framework only); markets stay INACTIVE');
   }
   for (const r of C('opportunities')) {
     const m = get(r.market_id);
@@ -502,6 +548,7 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
       if (!['ACTIVE', 'INACTIVE'].includes(m.status)) errors.push({ code: 'M01', id: m.id, msg: 'status must be ACTIVE or INACTIVE' });
       if (m.status === 'ACTIVE' && (!m.documented || !['RULES_APPROVED', 'VALIDATED'].includes(m.validation_status))) errors.push({ code: 'M01', id: m.id, msg: 'active method must be documented and approved/validated' });
       if (m.status === 'ACTIVE' && m.publication === 'PROHIBITED_IN_MVP') errors.push({ code: 'M01', id: m.id, msg: 'method prohibited in the MVP cannot be active' });
+      if (m.status === 'ACTIVE' && m.implemented === false) errors.push({ code: 'M01', id: m.id, msg: 'method has no implementation (framework only) and cannot be active' });
     }
   } catch (e) { errors.push({ code: 'M01', id: 'methods.json', msg: `method registry unreadable: ${e.message}` }); }
   report.methods = methods;
@@ -541,7 +588,7 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
     note: 'Generated by desk/_tools/validate.mjs --write-index. Do not edit by hand.',
     opportunities: Object.entries(prod.eligibility.opportunities).filter(([id, why]) => !why.length && (pub.collections.opportunities || []).find(o => o.id === id).record_status === 'PUBLISHED').map(([id]) => id).sort(),
     media: Object.entries(prod.eligibility.media).filter(([, why]) => !why.length).map(([id]) => id).sort(),
-    markets: (pub.collections.markets || []).filter(m => m.record_status === 'PUBLISHED' && m.review && m.activation === 'ACTIVE').map(m => m.id).sort()
+    markets: (pub.collections.markets || []).filter(m => methods['M-MARKET-GATE'] === 'ACTIVE' && m.record_status === 'PUBLISHED' && m.review && m.activation === 'ACTIVE').map(m => m.id).sort()
   };
   // fixture gate report for the local development view (never published: lives under desk/_fixtures)
   const gatePath = path.join(desk, '_fixtures/gate.json');

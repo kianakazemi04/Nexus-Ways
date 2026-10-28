@@ -25,7 +25,7 @@ const base = (o = {}) => ({
   }
 });
 const ev = (o) => ({ id: 'EVD-T-1', source_id: 'SRC-T3', subject: { type: 'project', id: 'PRJ-T-A' }, field: 'delivery_status', claim: { en: 'c' }, value: 'UNDER_CONSTRUCTION', unit: 'text', currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'DEVELOPER-CLAIM', source_tier: 3, retrieved_at: '2026-10-01', last_verified: null, conflict_ids: [], is_illustrative: false, ...o });
-const run = (ds, mode = 'private', today = TODAY) => validateDataset(ds, { mode, today, methods: { 'M-RISK-SEVERITY': 'INACTIVE' } });
+const run = (ds, mode = 'private', today = TODAY) => validateDataset(ds, { mode, today, methods: { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' } });
 const why = (r, id = 'OPP-T-A') => r.eligibility.opportunities[id];
 
 // ================================================================== B1 evidence freshness
@@ -77,7 +77,7 @@ test('B1: "last verified" comes from evidence verification dates only — never 
   assert.ok(!run(ds, 'public').errors.some(e => e.code === 'V19'));
 });
 test('B1 (end to end): owner approval derives last verified from the package evidence, not today', () => {
-  const s = realSetup({ mutate: (i) => { for (const f of i.facts) if (f.key === 'F-NAME' || f.key === 'F-STATUS' || f.key === 'F-DELIVERY') f.last_verified = '2026-10-25'; for (const f of i.facts) if (['F-TYPE', 'F-GROSS', 'F-NET', 'F-ADELIV', 'F-LEGAL'].includes(f.key)) f.last_verified = '2026-10-23'; } });
+  const s = realSetup({ mutate: (i) => { for (const f of i.facts) if (f.key === 'F-NAME' || f.key === 'F-STATUS' || f.key === 'F-DELIVERY') f.last_verified = '2026-10-25'; for (const f of i.facts) if (['F-TYPE', 'F-GROSS', 'F-NET', 'F-ADELIV', 'F-LEGAL', 'F-DEVREL', 'F-DISTRICT', 'F-DEVNAME', 'F-TYPES'].includes(f.key)) f.last_verified = '2026-10-23'; } });
   try {
     assert.equal(cli(s.repo, ['ingest', '--package', s.base, ...s.S, '--apply']).code, 0);
     cli(s.repo, ['approve-disclosure', ...s.S, '--id', DSC1, '--by', 'owner']); approveImages(s);
@@ -226,7 +226,7 @@ test('B4: an interrupted or failed withdrawal leaves no partial public tree, and
 // ================================================================== B5 conflict resolution
 function conflictSetup() {
   const s = publishedSetup();
-  const u = s.mkPkg('PKG-2', (i) => { i.sources = [{ key: 'S4', name: 'TEST-ONLY report', publisher: 'TEST-ONLY News', url: null, tier: 2, source_type: 'MEDIA', accessed_at: '2026-10-26' }]; i.facts = [{ key: 'F-D2', subject: 'project', field: 'expected_delivery', value: '2029-03', unit: 'date', claim: { en: 'Later delivery reported.' }, source: 'S4', evidence_class: 'FACT', verification_status: 'SOURCE-REPORTED', geography: 'T', period: '2026-10' }]; for (const k of ['media', 'risks', 'disclosures', 'research_blocks', 'documents', 'unknowns', 'assets']) delete i[k]; delete i.developer; delete i.district; delete i.opportunity; });
+  const u = s.mkPkg('PKG-2', (i) => { i.sources = [{ key: 'S4', name: 'TEST-ONLY report', publisher: 'TEST-ONLY News', url: null, tier: 2, source_type: 'MEDIA', accessed_at: '2026-10-26' }]; i.facts = [{ key: 'F-D2', subject: 'project', field: 'expected_delivery', value: '2029-03', unit: 'date', claim: { en: 'Later delivery reported.' }, source: 'S4', evidence_class: 'FACT', verification_status: 'SOURCE-REPORTED', geography: 'T', period: '2026-10' }]; for (const k of ['media', 'risks', 'disclosures', 'research_blocks', 'documents', 'unknowns', 'assets']) delete i[k]; delete i.developer; delete i.district; delete i.opportunity; i.project.ref = PRJ; });
   const r = cli(s.repo, ['ingest', '--package', u, ...s.S, '--apply']); if (r.code !== 0) throw new Error(r.out);
   const cf = readJson(path.join(s.store, 'data/conflicts.json')).records.find(c => c.status === 'OPEN');
   return { s, cf };

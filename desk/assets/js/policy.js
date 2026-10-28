@@ -45,13 +45,19 @@ export const REVIEW_POLICY = {
   }
 };
 
-// Fields rendered as facts on an opportunity page; their evidence decides publication.
+// Every field rendered as a fact on an opportunity page, a card or Compare is material: its evidence decides
+// publication (Spec v1 §8 project gate: identity, location, developer, status, supported characteristics; developer
+// gate: legal identity and project relationship verified, marketing claims labelled). desk/_tests/closure.test.mjs
+// fails if a page renders a record field that is not listed here.
+//   - a material field WITH a value needs publishable evidence (QUALIFIED or better; identity fields: ESTABLISHED)
+//   - a material field WITHOUT a value needs an explicit missing-data state (field_states)
 export const MATERIAL_FIELDS = {
-  project: ['name', 'delivery_status', 'expected_delivery'],
-  developer: ['legal_entity_name'],
+  project: ['name', 'developer_id', 'district_id', 'delivery_status', 'expected_delivery', 'asset_types'],
+  developer: ['name', 'legal_entity_name'],
   asset: ['unit_type', 'gross_area_m2', 'net_area_m2', 'delivery_status']
 };
-export const IDENTITY_FIELDS = { project: ['name'], developer: ['legal_entity_name'] };
+// Identity fields must rest on ESTABLISHED evidence (verified/corroborated fact from a Tier 1–3 source).
+export const IDENTITY_FIELDS = { project: ['name', 'developer_id'], developer: ['legal_entity_name'] };
 
 const DAY = 86400000;
 export function isIsoDate(v) {

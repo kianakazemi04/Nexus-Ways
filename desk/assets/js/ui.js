@@ -1,5 +1,5 @@
 // Nexus Desk UI components. Data-driven: every component receives records for ONE subject only.
-import { evidenceFreshness, claimPublication } from './policy.js';
+import { evidenceFreshness, claimPublication, isPublicClaim } from './policy.js';
 const TODAY = new Date().toISOString().slice(0, 10); // UTC calendar date, as in the validator
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LANG = (document.documentElement.lang || 'en').slice(0, 2).toLowerCase(); // language comes from the URL path (/desk/, later /desk/tr/, /desk/ar/)
@@ -195,6 +195,8 @@ export function conflicts(list) {
   if (!list.length) return '';
   return list.map(c => `<div class="cf"><b>Sources disagree · ${esc(c.field || 'record')}</b><p>${tx(c.description)}</p><span class="lab">Status: ${esc(c.status)} · ${c.evidence_ids.length} sources · values are not reconciled silently</span></div>`).join('');
 }
+// claim policy CP-1 applies to risk evidence too (defence in depth: the validator already keeps it out of public data)
+export const riskEvidence = (D, r) => (r.evidence_ids || []).map(id => D.byId(id)).filter(e => e && isPublicClaim(e));
 export function risks(D, list) {
   if (!list.length) return `<div class="na"><b>No documented risks yet</b><p>An opportunity cannot be published without documented risks.</p></div>`;
   const sevOn = D.methods['M-RISK-SEVERITY'] && D.methods['M-RISK-SEVERITY'].status === 'ACTIVE';
@@ -206,7 +208,7 @@ export function risks(D, list) {
     <div><dt>Controllability</dt><dd>${r.controllability ? lab('controllability', r.controllability) : '<span class="mut">Not stated</span>'}</dd></div>
     <div><dt>Mitigation / diligence</dt><dd>${r.mitigation ? tx(r.mitigation) : '<span class="mut">Not documented</span>'}</dd></div>
     <div><dt>Residual uncertainty</dt><dd>${r.residual_uncertainty ? tx(r.residual_uncertainty) : '<span class="mut">Not documented</span>'}</dd></div>
-  </dl>${r.evidence_ids.length ? `<div>${evidenceButton(r.evidence_ids.map(id => D.byId(id)).filter(Boolean), 'r' + i)}</div>` : '<span class="lab">No evidence linked</span>'}</article>`).join('')}</div>`;
+  </dl>${riskEvidence(D, r).length ? `<div>${evidenceButton(riskEvidence(D, r), 'r' + i)}</div>` : '<span class="lab">No evidence linked</span>'}</article>`).join('')}</div>`;
 }
 export function unavailable(D, ids) {
   return `<div class="nas">${ids.map(id => { const m = D.methods[id]; if (!m) return ''; return `<div class="na"><span class="lab">${m.status === 'ACTIVE' ? 'Active' : 'Not available in MVP'}</span><b>${esc(m.name)}</b><p>${m.status === 'ACTIVE' ? '' : 'Not calculated. The methodology is not yet approved, so no result is shown or implied.'}</p></div>`; }).join('')}</div>`;

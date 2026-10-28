@@ -53,7 +53,8 @@
   "district": {
     "name": "Illustrative District North",
     "slug": "illustrative-district-north",
-    "admin_level": "DISTRICT"
+    "admin_level": "DISTRICT",
+    "ref": "FIX-DST-ILL-ILLUSTRATIVE-DISTRICT-NORTH"
   },
   "project": {
     "name": "Illustrative Residence C",
@@ -112,6 +113,68 @@
       "verification_status": "VERIFIED",
       "geography": "Illustrative Market",
       "period": null
+    },
+    {
+      "key": "F-DEVREL",
+      "subject": "project",
+      "field": "developer_id",
+      "value": null,
+      "unit": null,
+      "claim": {
+        "en": "Registry extract names Illustrative Developer C Ltd (fictional) as the developer of the project."
+      },
+      "source": "S1",
+      "evidence_class": "LEGAL FACT",
+      "verification_status": "VERIFIED",
+      "geography": "Illustrative District North",
+      "period": null,
+      "locator": "extract p.1"
+    },
+    {
+      "key": "F-DISTRICT",
+      "subject": "project",
+      "field": "district_id",
+      "value": null,
+      "unit": null,
+      "claim": {
+        "en": "Registry extract places the plot in Illustrative District North (fictional)."
+      },
+      "source": "S1",
+      "evidence_class": "FACT",
+      "verification_status": "VERIFIED",
+      "geography": "Illustrative District North",
+      "period": null,
+      "locator": "extract p.1"
+    },
+    {
+      "key": "F-DEVNAME",
+      "subject": "developer",
+      "field": "name",
+      "value": "Illustrative Developer C",
+      "unit": "text",
+      "claim": {
+        "en": "Trading name used in the developer media kit."
+      },
+      "source": "S2",
+      "evidence_class": "FACT",
+      "verification_status": "DEVELOPER-CLAIM",
+      "geography": "Illustrative Market",
+      "period": "2026-10"
+    },
+    {
+      "key": "F-TYPES",
+      "subject": "project",
+      "field": "asset_types",
+      "value": null,
+      "unit": null,
+      "claim": {
+        "en": "Media kit describes the project as apartments."
+      },
+      "source": "S2",
+      "evidence_class": "FACT",
+      "verification_status": "DEVELOPER-CLAIM",
+      "geography": "Illustrative District North",
+      "period": "2026-10"
     },
     {
       "key": "F-STATUS",

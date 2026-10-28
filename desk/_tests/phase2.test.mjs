@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { validateRepo } from '../_tools/validate.mjs';
 import { validatePackage } from '../_tools/ingest.mjs';
 import { Txn, withTxn, recover } from '../_tools/txn.mjs';
+import { enableTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TODAY = '2026-10-27';
@@ -41,7 +42,7 @@ function realSetup() {
   const repo = tmpRepo(); const store = tmp('desk-p2-store-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
   const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
-  mk.records.push(tst); writeJson(mp, mk);
+  mk.records.push(tst); writeJson(mp, mk); enableTestMarketGate(repo);
   validateRepo(repo, { today: TODAY, writeIndex: true }); // baseline: a valid public tree with the TEST-ONLY market
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });
@@ -70,6 +71,7 @@ const updatePkg = (s, name = 'PKG-2', extra) => s.mkPkg(name, (i) => {
   i.facts = [{ key: 'F-D2', subject: 'project', field: 'expected_delivery', value: '2029-03', unit: 'date', claim: { en: 'Report states a later expected delivery.' }, source: 'S4', evidence_class: 'FACT', verification_status: 'SOURCE-REPORTED', geography: 'TEST', period: '2026-10' }];
   for (const k of ['media', 'risks', 'disclosures', 'research_blocks', 'documents', 'unknowns', 'assets']) delete i[k];
   delete i.developer; delete i.district; delete i.opportunity;
+  i.project.ref = 'PRJ-TST-ILLUSTRATIVE-RESIDENCE-A'; // same project: linked by ID, never by its name (closure Task 4)
   if (extra) extra(i);
 });
 
