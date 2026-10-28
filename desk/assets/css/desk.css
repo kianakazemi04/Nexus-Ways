@@ -482,3 +482,48 @@ ul.plain li::before { content: ""; position: absolute; inset-inline-start: 0; to
 .rb.wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)) }
 .rb.wide .rbx { align-content: start; padding: 22px }
 .mk > .chip { justify-self: start; align-self: start; width: max-content; max-width: 100% }
+
+/* Markets & Intelligence pages (owner brief 28 Oct 2026) */
+.pi .tags { margin-top: 26px }
+.tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px }
+.tags li { font: 500 11px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; padding: 8px 11px; border: 1px solid var(--line2); border-radius: 999px; color: var(--fg2) }
+.tags.big li { font-size: 12px; padding: 10px 14px; color: var(--fg) }
+.hws.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+.mkx { gap: 14px }
+.mk-fig { margin: -6px -6px 4px; border: 1px solid var(--line); border-radius: calc(var(--r) - 4px); background: var(--bg2); overflow: hidden; position: relative }
+.mk-fig img { display: block; width: 100%; height: auto; aspect-ratio: 640 / 300; max-width: 100% }
+.mk-fig figcaption { position: absolute; inset-inline-end: 10px; bottom: 8px; font-size: 9.5px }
+.mk-meta { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--mut) }
+.mk-dl { display: grid; gap: 12px; margin: 0 }
+.mk-dl dt { font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: 4px }
+.mk-dl dd { margin: 0; font-size: 14px; color: var(--fg2) }
+.mk .chip { white-space: normal }
+.notice.std { margin-top: 12px }
+.h4 { font-size: 17px; letter-spacing: -.01em }
+.rbx .s { display: flex; flex-wrap: wrap; gap: 6px }
+.dom.gtab td:last-child { color: var(--mut) }
+.cta-a { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px }
+.dom3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) }
+.mchips { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px }
+.mchips .chip { white-space: normal; max-width: 100%; text-align: start; line-height: 1.35 }
+.mfilt { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px }
+.mfilt[hidden] { display: none }
+.mf { font: 500 12px Inter, sans-serif; padding: 9px 14px; border: 1px solid var(--line2); border-radius: 999px; background: transparent; color: var(--fg2); cursor: pointer; display: inline-flex; gap: 8px; align-items: center }
+.mf[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg) }
+.mf:focus-visible, .mth summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }
+.mf-n { font: 500 10.5px var(--mono); opacity: .75 }
+.mths { display: grid; gap: 8px }
+.mth { border: 1px solid var(--line); border-radius: var(--r); background: var(--panel) }
+.mth[hidden] { display: none }
+.mth summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 16px 18px; min-width: 0 }
+.mth summary::-webkit-details-marker { display: none }
+.mth-n { font-size: 15.5px; color: var(--fg); min-width: 0; flex: 1 1 260px }
+.mth-n::before { content: "+"; display: inline-block; width: 18px; font-family: var(--mono); color: var(--mut) }
+.mth[open] .mth-n::before { content: "−" }
+.mth summary .chip { white-space: normal }
+.mth-d { margin: 0; padding: 0 18px 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px 22px; border-top: 1px solid var(--line); padding-top: 16px }
+.mth-d dt { font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mut); margin-bottom: 4px }
+.mth-d dd { margin: 0; font-size: 14px; color: var(--fg2) }
+.lims li { color: var(--fg2) }
+@media (max-width: 960px) { .hws.c3 { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+@media (max-width: 640px) { .hws.c3 { grid-template-columns: minmax(0, 1fr) } }

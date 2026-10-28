@@ -480,6 +480,9 @@ test('commands (simulated owner approval): activate → export-market publishes 
     const v = validateRepo(repo, { today: TODAY }); assert.deepEqual(v.errors, []);
     assert.deepEqual(v.report.index.markets, ['MKT-DXB']);
     assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-market-status="open"/);
+    const idx = fs.readFileSync(path.join(repo, 'desk/markets/index.html'), 'utf8');
+    assert.match(idx, /data-market-card="MKT-DXB" data-market-status="open"/); assert.match(idx, /data-gate-market="MKT-DXB" data-market-status="open"/);
+    assert.match(idx, /data-market-card="MKT-AUH" data-market-status="preparing"/, 'Abu Dhabi is not opened by Dubai');
     for (const id of ['MKT-IST', 'MKT-AUH']) assert.equal(readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === id).activation, 'INACTIVE', `${id} unaffected`);
     // rollback
     assert.notEqual(cli(repo, ['deactivate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']).code, 0, '--reason required');
@@ -488,6 +491,7 @@ test('commands (simulated owner approval): activate → export-market publishes 
     assert.equal(pm2.activation, 'INACTIVE'); assert.equal(pm2.gate_certificate, null); assert.equal(pm2.review, null);
     assert.deepEqual(validateRepo(repo, { today: TODAY }).errors, []);
     assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-market-status="preparing"/);
+    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/index.html'), 'utf8'), /data-gate-market="MKT-DXB" data-market-status="preparing"/);
     const audit = readJson(path.join(store, 'private/audit_log.json')).map(a => a.action);
     for (const a of ['activate-market', 'export-market', 'deactivate-market']) assert.ok(audit.includes(a), a);
   } finally { for (const x of [repo, store, pkgDir]) fs.rmSync(x, { recursive: true, force: true }); }

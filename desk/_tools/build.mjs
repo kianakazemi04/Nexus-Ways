@@ -7,7 +7,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LANGS, T, localize, labels } from '../assets/js/i18n.js';
-import { MKC, HOW, SOURCES, marketCoverage } from './markets-content.mjs';
+import { MKC, SOURCES, marketCoverage } from './markets-content.mjs';
+import { MP, IP, methodState } from './pages-content.mjs';
+import { METHOD_TEXT } from './method-texts.mjs';
 import { loadGateConfig } from './engines/marketgate.mjs';
 import { DESK_CONTACT } from '../assets/js/contact.js';
 
@@ -15,7 +17,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESK = path.resolve(HERE, '..');
 const read = (p) => JSON.parse(fs.readFileSync(path.join(DESK, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ASSET_V = '6';
+const ASSET_V = '7';
 
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
@@ -112,7 +114,7 @@ export function pages() {
     const tx = (o) => o ? (o[lang] || o.en || '') : '';
     const mname = (m) => t('mkt.' + m.slug) === 'mkt.' + m.slug ? m.name : t('mkt.' + m.slug);
     const page = (rest, o) => { out[base + (rest ? rest + 'index.html' : 'index.html')] = layout({ lang, rest, ...o }); };
-    const pi = ({ eb, h1, lead, crumbs = [] }) => `<section class="pi"><div class="w">${crumbs.length ? `<div class="crumb">${crumbs.map((c, i) => i === 0 ? `<a href="${c[1]}">${esc(c[0])}</a>` : c[1] ? `<span><a href="${c[1]}">${esc(c[0])}</a></span>` : `<span>${esc(c[0])}</span>`).join('')}</div>` : ''}<div class="eb">${esc(eb)}</div><h1 style="margin-top:20px">${h1}</h1>${lead ? `<p class="lead">${lead}</p>` : ''}</div></section>`;
+    const pi = ({ eb, h1, lead, crumbs = [], tags = [] }) => `<section class="pi"><div class="w">${crumbs.length ? `<div class="crumb">${crumbs.map((c, i) => i === 0 ? `<a href="${c[1]}">${esc(c[0])}</a>` : c[1] ? `<span><a href="${c[1]}">${esc(c[0])}</a></span>` : `<span>${esc(c[0])}</span>`).join('')}</div>` : ''}<div class="eb">${esc(eb)}</div><h1 style="margin-top:20px">${h1}</h1>${lead ? `<p class="lead">${lead}</p>` : ''}${tags.length ? `<ul class="tags">${tags.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div></section>`;
     const nojs = `<noscript><div class="w"><div class="notice"><b>${esc(t('nojsT'))}</b><p>${esc(t('nojsP'))}</p></div></div></noscript>`;
     const loading = `<p class="loading">${esc(t('loading'))}</p>`;
     const desk = [t('deskNav'), u('/desk/')];
@@ -137,20 +139,38 @@ export function pages() {
 ${nojs}
 <div class="tray" id="tray" aria-live="polite"><div class="w"><span class="lab">${esc(t('compare'))}</span><div class="its"></div><button type="button" class="lnk">${esc(t('f.clear'))}</button><a class="btn sm" href="${u('/desk/compare/')}" aria-disabled="true"><span>${esc(t('compareN', { n: 0 }))}</span> <i aria-hidden="true">→</i></a><p class="msg" role="status"></p></div></div>` });
 
-    // Markets (PUB-2): status from the market record; requirements and sources from MG-1; area names only.
+    // Markets index (owner brief 28 Oct 2026, within PUB-2): market status from the published market record and its gate
+    // certificate (deterministic: no clock), research scope and sources from MG-1/SOURCES, no figure and no gate detail.
     const st = (m) => m.activation === 'ACTIVE' ? t('mk.active') : t('mk.research');
-    const K = MKC[lang] || MKC.en; const H = HOW[lang] || HOW.en; const SRC = SOURCES[lang] || SOURCES.en; const LB = labels(lang);
-    const cta = (h, p, btn) => `<section class="sec" aria-label="${esc(h)}"><div class="w"><div class="notice cta"><div><h2 class="h3">${esc(h)}</h2><p>${esc(p)}</p></div><a class="btn" href="${u('/desk/consultation/')}"><span>${esc(btn)}</span> <i aria-hidden="true">→</i></a></div></div></section>`;
+    const K = MKC[lang] || MKC.en; const M = MP[lang] || MP.en; const I = IP[lang] || IP.en; const SRC = SOURCES[lang] || SOURCES.en; const LB = labels(lang);
+    const fmtD = (d) => { try { return new Intl.DateTimeFormat(LANGS[lang].locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(d + 'T00:00:00Z')); } catch { return d; } };
+    const fill = (str, v) => Object.entries(v).reduce((a, [k, x]) => a.split(`{${k}}`).join(String(x)), str);
+    const cta = (h, p, btn, href = u('/desk/consultation/'), alt = null) => `<section class="sec" aria-label="${esc(h)}"><div class="w"><div class="notice cta"><div><h2 class="h3">${esc(h)}</h2><p>${esc(p)}</p></div><div class="cta-a"><a class="btn" href="${href}"><span>${esc(btn)}</span> <i aria-hidden="true">→</i></a>${alt ? `<a class="lnk" href="${alt[1]}">${esc(alt[0])}</a>` : ''}</div></div></div></section>`;
     const list = (items) => `<ul class="plain">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
-    page('markets/', { title: t('mk.title'), description: t('mk.desc'), current: 'markets',
-      body: `${pi({ eb: t('mk.eb'), h1: t('mk.h1'), lead: esc(t('mk.lead')), crumbs: [desk, [t('markets')]] })}
-<section class="sec"><div class="w"><div class="sh"><div><span class="lab">${esc(K.idxLab)}</span><h2>${esc(K.idxH)}</h2></div><p>${esc(K.idxP)}</p></div>
-<div class="mkts">${markets.map(m => `<article class="mk ${m.activation === 'ACTIVE' ? '' : 'off'} rv" data-market-card="${esc(m.id)}"><span class="chip ${m.activation === 'ACTIVE' ? 'on' : ''}">${esc(st(m))}</span><h3><a href="${u('/desk/markets/' + m.slug + '/')}">${esc(mname(m))}</a></h3><p>${esc(tx(m.summary))}</p><span class="go">${esc(t('mk.view'))}</span></article>`).join('')}</div>
-<p class="gnote" style="margin-top:18px">${esc(t('mk.note'))}</p></div></section>
-<section class="sec hw"><div class="w"><div class="sh"><div><span class="lab">${esc(K.procLab)}</span><h2>${esc(K.procH)}</h2></div></div>
-<ol class="hws">${[1, 2, 3, 4].map(i => `<li class="rv"><span class="n">0${i}</span><h3>${esc(K['p' + i + 't'])}</h3><p>${esc(K['p' + i + 'p'])}</p></li>`).join('')}</ol>
-<a class="btn o" href="${u('/desk/intelligence/')}">${esc(t('hw.cta'))} <i aria-hidden="true">→</i></a></div></section>
-${cta(H.ctaH, H.ctaP, H.ctaBtn)}` });
+    const pubState = (m) => m.activation === 'ACTIVE' && m.gate_certificate && m.review ? 'open' : 'closed';
+    const vl = (k) => (LB.verification && LB.verification[k]) || k;
+    const anyOpen = markets.some(m => pubState(m) === 'open');
+    page('markets/', { title: M.title, description: M.desc, current: 'markets',
+      body: `${pi({ eb: M.eb, h1: M.h1, lead: esc(M.lead), crumbs: [desk, [t('markets')]], tags: M.tags })}
+<section class="sec" aria-labelledby="sc-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.scopeLab)}</span><h2 id="sc-h">${esc(M.scopeH)}</h2></div><p>${esc(M.scopeP)}</p></div>
+<div class="mkts">${markets.map(m => { const ps = pubState(m); return `<article class="mk mkx ${ps === 'open' ? '' : 'off'} rv" data-market-card="${esc(m.id)}" data-market-status="${ps === 'open' ? 'open' : 'preparing'}">
+${fs.existsSync(path.join(DESK, `assets/img/markets/${m.slug}.svg`)) ? `<figure class="mk-fig"><img src="/desk/assets/img/markets/${esc(m.slug)}.svg" alt="${esc(M.imgAlt[m.id] || mname(m))}" width="640" height="300" loading="lazy" decoding="async"><figcaption class="lab">${esc(M.illus)}</figcaption></figure>` : ''}
+<h3><a href="${u('/desk/markets/' + m.slug + '/')}">${esc(mname(m))}</a></h3><p class="mk-meta">${esc(M.region[m.id] || '')} · ${esc(M.focus)}</p>
+<dl class="mk-dl"><div><dt>${esc(M.focusLbl)}</dt><dd>${esc(M.focusText[m.id] || '')}</dd></div><div><dt>${esc(M.gateLbl)}</dt><dd><span class="chip ${ps === 'open' ? 'on' : ''}">${esc(M.st[ps])}</span></dd></div></dl>
+<p class="gnote">${esc(M.cardNote[m.id] || '')}</p><span class="go">${esc(M.view)} →</span></article>`; }).join('')}</div>
+<div class="notice std" data-standard><b>${esc(M.std[0])}</b><p>${esc(M.std[1])}</p></div>
+<p class="gnote" style="margin-top:14px">${esc(t('mk.note'))}</p></div></section>
+<section class="sec hw" aria-labelledby="ex-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.exLab)}</span><h2 id="ex-h">${esc(M.exH)}</h2></div><p>${esc(M.exP)}</p></div>
+<ol class="hws c3">${M.ex.map(([h, p], i) => `<li class="rv"><span class="n">0${i + 1}</span><h3>${esc(h)}</h3><p>${esc(p)}</p></li>`).join('')}</ol></div></section>
+<section class="sec" aria-labelledby="ev-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.evLab)}</span><h2 id="ev-h">${esc(M.evH)}</h2></div><p>${esc(M.evP)}</p></div>
+<div class="rb wide">${M.ev.map(([h, p, ks], i) => `<div class="rbx" data-evidence-state="${i + 1}"><h3 class="h4">${esc(h)}</h3><p class="mut">${esc(p)}</p><div class="s">${ks.map(k => `<span class="vs" data-v="${esc(k)}">${esc(vl(k))}</span>`).join('')}${i === 2 ? M.evExtra.map(x => `<span class="chip dim">${esc(x)}</span>`).join('') : ''}</div></div>`).join('')}</div></div></section>
+<section class="sec" aria-labelledby="g-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.gLab)}</span><h2 id="g-h">${esc(M.gH)}</h2></div><p>${esc(M.gP)}</p></div>
+<div class="tw"><table class="dom gtab"><thead><tr><th scope="col">${esc(M.gThMarket)}</th><th scope="col">${esc(M.gThStatus)}</th><th scope="col">${esc(M.gThMeaning)}</th></tr></thead><tbody>${markets.map(m => { const ps = pubState(m); const c = m.gate_certificate || {}; return `<tr data-gate-market="${esc(m.id)}" data-market-status="${ps === 'open' ? 'open' : 'preparing'}"><th scope="row"><a class="lnk" href="${u('/desk/markets/' + m.slug + '/')}">${esc(mname(m))}</a></th><td><span class="chip ${ps === 'open' ? 'on' : ''}">${esc(M.st[ps])}</span></td><td>${esc(fill(M.gWhy[ps], { a: c.activated_at ? fmtD(c.activated_at) : '—', u: c.valid_until ? fmtD(c.valid_until) : '—' }))}</td></tr>`; }).join('')}</tbody></table></div>
+<p class="gnote">${esc(M.gNote)}</p></div></section>
+<section class="sec" aria-labelledby="src-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.sLab)}</span><h2 id="src-h">${esc(M.sH)}</h2></div><p>${esc(M.sP)}</p></div>
+<div class="rb wide">${markets.map(m => `<div class="rbx" data-sources="${esc(m.id)}"><div class="lab">${esc(mname(m))}</div>${list(SRC[m.id] || [])}</div>`).join('')}</div><p class="gnote">${esc(SRC.common)}</p>
+${anyOpen ? '' : `<div class="notice"><p>${esc(M.sLimit)}</p></div>`}</div></section>
+${cta(M.ctaH, M.ctaP, M.ctaBtn, u('/desk/intelligence/'), [M.ctaAlt, u('/desk/consultation/')])}` });
 
     for (const m of markets) {
       const c = cover[m.id];
@@ -214,20 +234,32 @@ ${cta(K.ctaH, K.ctaP, K.ctaBtn)}` });
       body: `${pi({ eb: t('ds.eb'), h1: esc(t('ds.h1')), lead: esc(t('ds.lead')), crumbs: [desk, [t('disclosures')]] })}
 <section class="sec"><div class="w"><div class="prose">${['a', 'b', 'c', 'd', 'e'].map(k => `<h2>${esc(t('ds.h2' + k))}</h2><p>${esc(t('ds.p' + k))}</p>`).join('\n')}</div></div></section>` });
 
-    // How we evaluate (PUB-2): one plain-language page. Internal method names, contracts and statuses stay in the
-    // method registry and the private reports; they are not public copy.
-    const vl = (k) => (LB.verification && LB.verification[k]) || k;
-    page('intelligence/', { title: t('in.title'), description: t('in.desc'), current: 'intel',
-      body: `${pi({ eb: t('intel'), h1: t('in.h1'), lead: esc(t('in.lead')), crumbs: [desk, [t('intel')]] })}
-<section class="sec hw" aria-labelledby="st-h"><div class="w"><div class="sh"><div><span class="lab">${esc(H.stLab)}</span><h2 id="st-h">${esc(H.stH)}</h2></div></div>
-<ol class="hws">${H.steps.map(([h, p], i) => `<li class="rv"><span class="n">0${i + 1}</span><h3>${esc(h)}</h3><p>${esc(p)}</p></li>`).join('')}</ol></div></section>
-<section class="sec" aria-labelledby="sp-h"><div class="w"><div class="sh"><div><span class="lab">${esc(H.splitLab)}</span><h2 id="sp-h">${esc(H.splitH)}</h2></div></div>
-<div class="rb wide"><div class="rbx" data-split="public"><div class="lab">${esc(H.pubH)}</div>${list(H.pub)}</div><div class="rbx" data-split="private"><div class="lab">${esc(H.privH)}</div>${list(H.priv)}<p class="mut" style="font-size:13.5px">${esc(H.privP)}</p></div></div></div></section>
-<section class="sec" aria-labelledby="lb-h"><div class="w"><div class="sh"><div><span class="lab">${esc(H.lblLab)}</span><h2 id="lb-h">${esc(H.lblH)}</h2></div></div>
-<div class="tw"><table class="dom"><tbody>${Object.entries(H.lbls).map(([k, d]) => `<tr><th scope="row"><span class="vs" data-v="${esc(k)}">${esc(vl(k))}</span></th><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div></div></section>
-<section class="sec" aria-labelledby="src-h"><div class="w"><div class="sh"><div><span class="lab">${esc(H.srcLab)}</span><h2 id="src-h">${esc(H.srcH)}</h2></div><p>${esc(H.srcP)}</p></div>
-<div class="rb wide">${markets.map(m => `<div class="rbx" data-sources="${esc(m.id)}"><div class="lab">${esc(mname(m))}</div>${list(SRC[m.id] || [])}</div>`).join('')}</div><p class="gnote">${esc(SRC.common)}</p></div></section>
-${cta(H.ctaH, H.ctaP, H.ctaBtn)}` });
+    // Intelligence (owner brief 28 Oct 2026): workflow, domains, the method registry (status from methods.json, text from
+    // method-texts.mjs), financial discipline, limitations, governance. Methods are described, never their private results.
+    const registry = read('data/methods.json').methods;
+    const mName = (m) => lang === 'en' ? m.name : t('mn.' + m.id);
+    const ORDER = { public: 0, control: 1, internal: 2, inactive: 3 };
+    const chipCls = (s) => s === 'public' ? ' on' : s === 'inactive' ? ' dim' : '';
+    const MT = METHOD_TEXT[lang] || METHOD_TEXT.en;
+    const methodsSorted = [...registry].sort((a, b) => ORDER[methodState(a)] - ORDER[methodState(b)] || mName(a).localeCompare(mName(b), LANGS[lang].locale));
+    const mDetails = methodsSorted.map(m => { const s = methodState(m); const [pu, inp, outp, lim] = MT[m.id] || ['', '', '', '']; return `<details class="mth" data-method="${esc(m.id)}" data-state="${s}"><summary><span class="mth-n">${esc(mName(m))}</span><span class="chip${chipCls(s)}">${esc(I.stat[s])}</span></summary>
+<dl class="mth-d"><div><dt>${esc(I.fld.purpose)}</dt><dd>${esc(pu)}</dd></div><div><dt>${esc(I.fld.inputs)}</dt><dd>${esc(inp)}</dd></div><div><dt>${esc(I.fld.output)}</dt><dd>${esc(outp)}</dd></div><div><dt>${esc(I.fld.limits)}</dt><dd>${esc(lim)}</dd></div><div><dt>${esc(I.fld.status)}</dt><dd>${esc(I.stat[s])}</dd></div><div><dt>${esc(I.fld.pub)}</dt><dd>${esc(I.pub[m.publication] || m.publication)}</dd></div></dl></details>`; }).join('');
+    page('intelligence/', { title: I.title, description: I.desc, current: 'intel', script: 'intel',
+      body: `${pi({ eb: I.eb, h1: I.h1, lead: esc(I.lead), crumbs: [desk, [t('intel')]], tags: I.tags })}
+<section class="sec hw" aria-labelledby="how-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.howLab)}</span><h2 id="how-h">${esc(I.howH)}</h2></div></div>
+<ol class="hws c3">${I.how.map(([h, p], i) => `<li class="rv"><span class="n">0${i + 1}</span><h3>${esc(h)}</h3><p>${esc(p)}</p></li>`).join('')}</ol></div></section>
+<section class="sec" aria-labelledby="dom-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.domLab)}</span><h2 id="dom-h">${esc(I.domH)}</h2></div><p>${esc(I.domP)}</p></div>
+<div class="ilinks dom3">${I.dom.map(([h, p, ids]) => `<article class="il rv"><h3>${esc(h)}</h3><p>${esc(p)}</p><ul class="mchips">${ids.map(id => registry.find(x => x.id === id)).filter(Boolean).map(m => { const s = methodState(m); return `<li><span class="chip${chipCls(s)}" data-wf-method="${esc(m.id)}" data-state="${s}">${esc(mName(m))} · ${esc(I.stat[s])}</span></li>`; }).join('')}</ul></article>`).join('')}</div></div></section>
+<section class="sec" aria-labelledby="reg-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.regLab)}</span><h2 id="reg-h">${esc(I.regH)}</h2></div><p>${esc(I.regP)}</p></div>
+<div class="mfilt" role="group" aria-label="${esc(I.regLab)}" hidden>${['all', 'public', 'control', 'internal', 'inactive'].map((k, i) => `<button type="button" class="mf" data-filter="${k}" aria-pressed="${i === 0}">${esc(I.filt[k])} <span class="mf-n">${k === 'all' ? registry.length : registry.filter(m => methodState(m) === k).length}</span></button>`).join('')}</div>
+<div class="mths" id="mths">${mDetails}</div><p class="gnote">${esc(I.regNote)}</p></div></section>
+<section class="sec" aria-labelledby="fin-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.finLab)}</span><h2 id="fin-h">${esc(I.finH)}</h2></div><p>${esc(I.finP)}</p></div>
+<ul class="tags big">${I.fin.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="gnote">${esc(I.finNote)}</p></div></section>
+<section class="sec" aria-labelledby="lim-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.limLab)}</span><h2 id="lim-h">${esc(I.limH)}</h2></div></div>
+<ul class="plain lims">${I.lim.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div></section>
+<section class="sec" aria-labelledby="gov-h"><div class="w"><div class="sh"><div><span class="lab">${esc(I.govLab)}</span><h2 id="gov-h">${esc(I.govH)}</h2></div><p>${esc(I.govP)}</p></div>
+<div class="rb wide"><div class="rbx" data-split="public"><div class="lab">${esc(I.pubH)}</div>${list(I.pubL)}</div><div class="rbx" data-split="private"><div class="lab">${esc(I.privH)}</div>${list(I.privL)}</div></div></div></section>
+${cta(I.ctaH, I.ctaP, I.ctaBtn, u('/desk/markets/'), [I.ctaAlt, u('/desk/consultation/')])}` });
 
     out[base + '404.html'] = layout({ lang, rest: '404.html', title: t('nf.title'), description: t('nf.desc'), current: '',
       body: `${pi({ eb: t('nf.eb'), h1: t('nf.h1'), lead: esc(t('nf.lead')) })}<section class="sec"><div class="w"><a class="btn" href="${u('/desk/')}">${esc(t('goExplore'))} <i aria-hidden="true">→</i></a></div></section>` });
