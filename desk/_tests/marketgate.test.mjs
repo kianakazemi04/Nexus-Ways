@@ -316,6 +316,26 @@ for (const id of MARKETS) {
 }
 assert.equal(gateValidUntil(CFG, { pass: false }), null);
 
+// ------------------------------------------------------------------ K-1: one authoritative status
+test('MG-1 status mirrors the method registry (authoritative) and never contradicts it', () => {
+  const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods.find(m => m.id === 'M-MARKET-GATE');
+  assert.equal(CFG.status_authority, 'desk/data/methods.json#M-MARKET-GATE');
+  if (reg.status === 'ACTIVE') { assert.ok(CFG.status.startsWith(reg.validation_status), CFG.status); assert.doesNotMatch(CFG.status, /PROPOSED|pending owner/i); }
+  else assert.doesNotMatch(CFG.status, /RULES_APPROVED/);
+});
+
+test('registry semantics: an unknown publication value or an active blocked method is M01', () => {
+  const repo = tmpRepo();
+  try {
+    const p = path.join(repo, 'desk/data/methods.json'); const j = readJson(p);
+    j.methods.find(m => m.id === 'M-EVIDENCE').publication = 'SOMETIMES';
+    const blocked = j.methods.find(m => m.publication === 'BLOCKED_UNTIL_METHOD_APPROVED'); Object.assign(blocked, { status: 'ACTIVE', validation_status: 'RULES_APPROVED', documented: true });
+    writeJson(p, j);
+    const e = validateRepo(repo, { today: TODAY }).errors.filter(x => x.code === 'M01').map(x => x.id);
+    assert.ok(e.includes('M-EVIDENCE') && e.includes(blocked.id), JSON.stringify(e));
+  } finally { fs.rmSync(repo, { recursive: true, force: true }); }
+});
+
 // ------------------------------------------------------------------ the real repository
 test('real repository: gate rules approved (owner, 28 Oct 2026); all three markets INACTIVE and each fails closed on the public data', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods.find(m => m.id === 'M-MARKET-GATE');

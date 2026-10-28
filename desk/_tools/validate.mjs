@@ -629,6 +629,9 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
       if (!['ACTIVE', 'INACTIVE'].includes(m.status)) errors.push({ code: 'M01', id: m.id, msg: 'status must be ACTIVE or INACTIVE' });
       if (m.status === 'ACTIVE' && (!m.documented || !['RULES_APPROVED', 'VALIDATED'].includes(m.validation_status))) errors.push({ code: 'M01', id: m.id, msg: 'active method must be documented and approved/validated' });
       if (m.status === 'ACTIVE' && m.publication === 'PROHIBITED_IN_MVP') errors.push({ code: 'M01', id: m.id, msg: 'method prohibited in the MVP cannot be active' });
+      // registry semantics (28 Oct 2026): publication is one of a closed set; an operating method's result is public only if ALLOWED
+      if (!['ALLOWED', 'INTERNAL', 'PROHIBITED_IN_MVP', 'BLOCKED_UNTIL_METHOD_APPROVED'].includes(m.publication)) errors.push({ code: 'M01', id: m.id, msg: `publication ${m.publication} is not ALLOWED, INTERNAL, PROHIBITED_IN_MVP or BLOCKED_UNTIL_METHOD_APPROVED` });
+      if (m.status === 'ACTIVE' && m.publication === 'BLOCKED_UNTIL_METHOD_APPROVED') errors.push({ code: 'M01', id: m.id, msg: 'a method blocked until its methodology is approved cannot be active' });
       if (m.status === 'ACTIVE' && m.implemented === false) errors.push({ code: 'M01', id: m.id, msg: 'method has no implementation (framework only) and cannot be active' });
       // internal research engines: implemented, documented and tested; never public through this flag
       if (m.internal !== undefined && !['ACTIVE', 'INACTIVE'].includes(m.internal)) errors.push({ code: 'M01', id: m.id, msg: 'internal must be ACTIVE or INACTIVE' });
