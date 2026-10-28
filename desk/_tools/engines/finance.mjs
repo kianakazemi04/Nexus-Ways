@@ -42,13 +42,14 @@ export function checkInputs(x, { needDiscount = false } = {}) {
   const missing = []; const invalid = [];
   const need = (path, v, test, why) => { if (v === undefined || v === null) missing.push(path); else if (!test(v)) invalid.push(`${path}: ${why}`); };
   if (!x || typeof x !== 'object') return { ok: false, status: 'UNAVAILABLE', missing: ['inputs'], invalid };
-  if (x.financing !== undefined && x.financing !== null) return { ok: false, status: 'UNSUPPORTED', missing, invalid: ['financing: leverage is not supported in FIN-1'] };
+  if (x.financing !== undefined && x.financing !== null) return { ok: false, status: 'UNSUPPORTED', missing, invalid: ['financing: leverage is not supported in FIN-2'] };
   need('currency', x.currency, (v) => /^[A-Z]{3}$/.test(v), 'ISO 4217 code');
   need('horizon_years', x.horizon_years, (v) => Number.isInteger(v) && v >= 1 && v <= 50, 'integer 1–50');
   need('delivery_year', x.delivery_year, (v) => Number.isInteger(v) && v >= 0 && (!Number.isInteger(x.horizon_years) || v < x.horizon_years), 'integer, 0 ≤ delivery_year < horizon');
   const a = x.acquisition || {};
   need('acquisition.price', a.price, (v) => isNum(v) && v > 0, 'positive number');
   need('acquisition.payments', a.payments, (v) => Array.isArray(v) && v.length > 0, 'non-empty list');
+  if (Array.isArray(a.payments) && a.payments.length && a.payments.every(p => p && isNum(p.amount)) && a.payments.reduce((t, p) => t + p.amount, 0) <= 0) invalid.push('acquisition.payments: total invested must be greater than 0 (ROI and yield divide by it)');
   for (const [i, p] of (Array.isArray(a.payments) ? a.payments : []).entries()) {
     if (!p || !isNum(p.t) || p.t < 0 || (Number.isInteger(x.horizon_years) && p.t > x.horizon_years)) invalid.push(`acquisition.payments[${i}].t: time in years within the horizon (0 ≤ t ≤ N; decimals allowed)`);
     if (!p || !isNum(p.amount) || p.amount < 0) invalid.push(`acquisition.payments[${i}].amount: number ≥ 0`);
