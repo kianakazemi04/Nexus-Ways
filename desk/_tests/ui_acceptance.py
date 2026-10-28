@@ -45,8 +45,8 @@ async def run():
                         if 'noindex' not in robots: check(False, f'{tag} not noindex')
                         h1 = await pg.evaluate("document.querySelectorAll('h1').length")
                         if h1 != 1: check(False, f'{tag} h1 count {h1}')
-                    st = await pg.evaluate("[localStorage.length, sessionStorage.length, document.cookie.length]")
-                    if st != [0, 0, 0]: check(False, f'{tag} browser storage used {st}')
+                    st = await pg.evaluate("[Object.keys(localStorage).filter(k => !['nw-theme', 'nw-lang'].includes(k)).length, sessionStorage.length, document.cookie.length]")
+                    if st != [0, 0, 0]: check(False, f'{tag} browser storage beyond the two shared keys {st}')
                 check(not errs, f'no console/page/network errors @{w} {scheme}' + (f': {errs[:3]}' if errs else ''))
                 await ctx.close()
         check(True, f'{len(ROUTES)} routes + {len(FIXTURE_ROUTES)} fixture views checked at 1440/390 px, dark and light')
@@ -57,6 +57,47 @@ async def run():
         check('not published' in (await pg.inner_text('main')).lower(), 'fixture id without fixture mode renders "not published"')
         await pg.goto(B + '/desk/', wait_until='networkidle')
         check('No opportunity has passed publication review yet' in await pg.inner_text('main'), 'production Explore shows the honest empty state')
+        # theme (D-24): dark by default even on a light-preference device; a choice stays across Desk navigation
+        tctx = await b.new_context(viewport={'width': 1440, 'height': 900}, color_scheme='light')
+        tp = await tctx.new_page()
+        await tp.goto(B + '/desk/', wait_until='networkidle')
+        check(await tp.evaluate("document.documentElement.dataset.theme") == 'dark', 'Desk opens dark by default (as the company site)')
+        await tp.click('.thm')
+        seq = []
+        for sel in ['.nv a[href^="/desk/markets/"]', '.mkts a >> nth=0', '.nv a[href^="/desk/intelligence/"]', '.nv a.nl >> nth=0']:
+            await tp.click(sel); await tp.wait_for_load_state('networkidle'); seq.append(await tp.evaluate("document.documentElement.dataset.theme"))
+        check(seq == ['light'] * 4, f'light theme kept across 4 navigations ({seq})')
+        check('theme=' not in tp.url, f'no theme parameter left in the address ({tp.url})')
+        # Desk → company site: same theme
+        await tp.goto(B + '/', wait_until='networkidle')
+        check(await tp.evaluate("document.documentElement.getAttribute('data-theme')") == 'light', 'company site opens in the theme chosen on Desk')
+        # company site → Desk: switch on the company site, then open Desk
+        await tp.click('.thm >> visible=true'); await tp.goto(B + '/desk/', wait_until='networkidle')
+        check(await tp.evaluate("document.documentElement.dataset.theme") == 'dark', 'Desk opens in the theme chosen on the company site')
+        # language menu: switches language, keeps theme, Arabic is RTL, and is remembered for the company site
+        await tp.click('.lgb'); await tp.click('.lgm a[hreflang="ar"]'); await tp.wait_for_load_state('networkidle')
+        st = await tp.evaluate("[document.documentElement.lang, document.documentElement.dir, document.documentElement.dataset.theme, location.pathname]")
+        check(st == ['ar', 'rtl', 'dark', '/desk/ar/'], f'language menu → Arabic, RTL, theme kept ({st})')
+        await tp.click('.lgb'); await tp.click('.lgm a[hreflang="tr"]'); await tp.wait_for_load_state('networkidle')
+        st = await tp.evaluate("[document.documentElement.lang, location.pathname, document.documentElement.dataset.theme]")
+        check(st == ['tr', '/desk/tr/', 'dark'], f'language menu → Turkish, theme kept ({st})')
+        await tp.goto(B + '/', wait_until='networkidle')
+        check(await tp.evaluate("document.documentElement.lang") == 'tr', 'company site opens in the language chosen on Desk')
+        # company site language → Desk follows it (an English Desk address opens the remembered language)
+        await tp.evaluate("localStorage.setItem('nw-lang', 'ar')"); await tp.goto(B + '/desk/markets/', wait_until='networkidle')
+        check(await tp.evaluate("location.pathname") == '/desk/ar/markets/', 'Desk follows the company site language (/desk/markets/ → /desk/ar/markets/)')
+        await tp.click('.lgb'); await tp.click('.lgm a[hreflang="en"]'); await tp.wait_for_load_state('networkidle')
+        st = await tp.evaluate("[location.pathname, localStorage.getItem('nw-lang')]")
+        check(st == ['/desk/markets/', 'en'], f'choosing English on Desk sticks ({st})')
+        # every page in TR/AR: no untranslated English UI left in the visible chrome
+        for l, word in [('tr', 'Keşfet'), ('ar', 'استكشاف')]:
+            await tp.goto(B + f'/desk/{l}/', wait_until='networkidle')
+            nav = await tp.evaluate("[...document.querySelectorAll('.nv a.nl')].map(a => a.textContent.trim())")
+            check(nav and nav[0] == word and not any(x in ' '.join(nav) for x in ['Explore', 'Markets', 'Intelligence']), f'{l} navigation translated ({nav})')
+        if not PAGES_MODE:
+            await tp.goto(B + f'/desk/ar/opportunities/preview/?id={FIX_C}&fixtures=1', wait_until='networkidle')
+            body = await tp.inner_text('#opp')
+            check(all(w not in body for w in ['Project gallery', 'Documented risks', 'Facts and their evidence', 'Request a consultation']), 'Arabic profile has no untranslated section headings')
         if PAGES_MODE:
             for u in ['/desk/_fixtures/data/opportunities.json', '/desk/_fixtures/gate.json', '/desk/_tools/validate.mjs']:
                 r = await pg.goto(B + u); check(r.status == 404, f'{u} is not served (404) in the Pages build')

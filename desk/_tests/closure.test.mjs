@@ -37,7 +37,7 @@ const msgs = (r, code) => r.errors.filter(e => e.code === code).map(e => `${e.id
 test('T1: every record field rendered on opportunity pages and in Compare is classified as material in the policy', () => {
   const rendered = new Set();
   const opp = fs.readFileSync(path.join(ROOT, 'desk/assets/js/opportunity.js'), 'utf8');
-  for (const m of opp.matchAll(/\['[^']+', '(project|developer|asset)', \w+, '(\w+)'/g)) rendered.add(`${m[1]}.${m[2]}`);
+  for (const m of opp.matchAll(/\[(?:'[^']+'|t\('[^']+'\)), '(project|developer|asset)', \w+, '(\w+)'/g)) rendered.add(`${m[1]}.${m[2]}`);
   const cmp = fs.readFileSync(path.join(ROOT, 'desk/assets/js/compare.js'), 'utf8');
   for (const m of cmp.matchAll(/cell\('(project|developer|asset)', x\.\w+, '(\w+)'/g)) rendered.add(`${m[1]}.${m[2]}`);
   // values rendered directly (not through a fact row): developer name in Compare, delivery status and district on cards

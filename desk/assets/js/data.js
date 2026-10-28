@@ -2,7 +2,9 @@
 // Illustrative fixtures load only on a local development server (localhost / 127.0.0.1) with ?fixtures=1;
 // on GitHub Pages the _fixtures folder is not published at all, and any FIX id is rejected here as well.
 import { isPublicClaim } from './policy.js';
+import { localize } from './i18n.js';
 const BASE = '/desk/';
+const PAGE_LANG = (document.documentElement.lang || 'en').slice(0, 2);
 const COLLS = ['categories', 'markets', 'districts', 'areas', 'developers', 'projects', 'assets', 'opportunities', 'evidence', 'sources', 'conflicts', 'risks', 'research_blocks', 'media', 'disclosures'];
 const qs = new URLSearchParams(location.search);
 export const FIXTURE = ['localhost', '127.0.0.1'].includes(location.hostname) && qs.get('fixtures') === '1';
@@ -66,8 +68,8 @@ async function loadOnce() {
     withheldMedia: (o, p) => col.media.filter(m => (same(m.subject, { type: 'opportunity', id: o.id }) || (p && same(m.subject, { type: 'project', id: p.id }))) && !visibleMedia(m)),
     disclosures: (o) => col.disclosures.filter(d => o.disclosure_ids.includes(d.id) && (FIXTURE || d.legal_review === 'APPROVED')),
     gateFor: (id) => (gate && gate.opportunities && gate.opportunities[id]) || null,
-    oppUrl: (o) => FIXTURE ? `${BASE}opportunities/preview/?id=${encodeURIComponent(o.id)}&fixtures=1` : `${BASE}opportunities/${o.id.toLowerCase()}/`,
-    withFixtureFlag: (url) => FIXTURE ? url + (url.includes('?') ? '&' : '?') + 'fixtures=1' : url
+    oppUrl: (o) => FIXTURE ? `${localize(BASE + 'opportunities/preview/', PAGE_LANG)}?id=${encodeURIComponent(o.id)}&fixtures=1` : localize(`${BASE}opportunities/${o.id.toLowerCase()}/`, PAGE_LANG),
+    withFixtureFlag: (url) => { url = localize(url, PAGE_LANG); return FIXTURE ? url + (url.includes('?') ? '&' : '?') + 'fixtures=1' : url; }
   };
   return api;
 }

@@ -7,11 +7,15 @@
       "key": "real_estate",
       "slug": "real-estate",
       "name": {
-        "en": "Real Estate"
+        "en": "Real Estate",
+        "tr": "Gayrimenkul",
+        "ar": "العقارات"
       },
       "activation": "ACTIVE",
       "description": {
-        "en": "Residential real estate. Istanbul is the first market under research."
+        "en": "Residential real estate. Istanbul is the first market under research.",
+        "tr": "Konut gayrimenkulü. İstanbul, araştırılan ilk pazardır.",
+        "ar": "العقارات السكنية. إسطنبول هي أول سوق قيد البحث."
       },
       "is_illustrative": false
     },
@@ -20,11 +24,15 @@
       "key": "startup_private",
       "slug": "startups-private-companies",
       "name": {
-        "en": "Startups & Private Companies"
+        "en": "Startups & Private Companies",
+        "tr": "Girişimler ve Özel Şirketler",
+        "ar": "الشركات الناشئة والخاصة"
       },
       "activation": "INACTIVE",
       "description": {
-        "en": "Future category. Not yet operational."
+        "en": "Future category. Not yet operational.",
+        "tr": "Gelecek kategori. Henüz faaliyette değil.",
+        "ar": "فئة مستقبلية. غير مفعّلة بعد."
       },
       "is_illustrative": false
     },
@@ -33,11 +41,15 @@
       "key": "franchise",
       "slug": "franchise",
       "name": {
-        "en": "Franchise Opportunities"
+        "en": "Franchise Opportunities",
+        "tr": "Franchise Fırsatları",
+        "ar": "فرص الامتياز التجاري"
       },
       "activation": "INACTIVE",
       "description": {
-        "en": "Future category. Not yet operational."
+        "en": "Future category. Not yet operational.",
+        "tr": "Gelecek kategori. Henüz faaliyette değil.",
+        "ar": "فئة مستقبلية. غير مفعّلة بعد."
       },
       "is_illustrative": false
     }

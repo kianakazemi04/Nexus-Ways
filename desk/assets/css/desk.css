@@ -114,7 +114,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .nv .sep { display: none }
   .nv .ext { padding: 18px 0 }
   .nv .btn { margin-top: 18px; align-self: flex-start }
-  .hd .thm { margin-inline-start: auto }
+  .hd .lgw { margin-inline-start: auto }
 }
 
 /* ---------- illustrative banner ---------- */
@@ -356,3 +356,31 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0 }
 }
 .loading { color: var(--mut); font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 24px 0 }
 noscript .notice { margin-top: 16px }
+
+/* ---------- theme icon: shows the mode you can switch to ---------- */
+.thm .mo { display: none }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .thm .su { display: none } :root:not([data-theme="dark"]) .thm .mo { display: block } }
+:root[data-theme="light"] .thm .su { display: none }
+:root[data-theme="light"] .thm .mo { display: block }
+
+/* ---------- language menu (same pattern as the company site) ---------- */
+.lgw { position: relative; flex: none }
+.lgb { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--line2); background: none; cursor: pointer; font: 500 11px var(--mono); letter-spacing: .08em; color: var(--fg2); transition: border-color .3s, color .3s }
+.lgb:hover, .lgw.o .lgb { border-color: var(--fg); color: var(--fg) }
+.lgb svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4 }
+.lgm { position: absolute; top: calc(100% + 8px); inset-inline-end: 0; min-width: 180px; padding: 6px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line2); box-shadow: 0 24px 48px -18px #0000008c; display: grid; gap: 2px; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity .2s, transform .25s var(--ease), visibility 0s .25s; z-index: 80 }
+.lgw.o .lgm { opacity: 1; visibility: visible; transform: none; transition: opacity .2s, transform .25s var(--ease) }
+.lgm a { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 12px; border-radius: 8px; font: 400 14px Inter, 'IBM Plex Sans Arabic', sans-serif; color: var(--fg2) }
+.lgm a:hover { background: var(--chip); color: var(--fg) }
+.lgm a[aria-current="true"] { color: var(--fg); background: var(--chip) }
+.lgm small { font: 500 10.5px var(--mono); letter-spacing: .08em; color: var(--mut) }
+@media (max-width: 980px) { .lgb { padding: 0 10px; height: 40px } }
+
+/* ---------- Arabic / RTL: no letter-spacing (it breaks Arabic letter joining), Arabic-capable font for small labels ---------- */
+[dir="rtl"] :is(.lab, .eb, .mono, .chip, .vs, .fs, .rail, .crumb, .lnk, .cmpk, .mtag, .gtabs button, .evb, .rk dt, .ev dt, .ftr h4, .ftr .cp, .side-nav a, .nv .ext, .loading, .illb, .mk .go, .cmp tbody th, .dom thead th, .lb button) { letter-spacing: 0 !important; font-family: 'IBM Plex Sans Arabic', var(--mono) }
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4 { font-family: 'IBM Plex Sans Arabic', var(--disp); letter-spacing: 0 }
+[dir="rtl"] .nv a.nl, [dir="rtl"] .btn, [dir="rtl"] .kv b, [dir="rtl"] .fact .v, [dir="rtl"] .na b, [dir="rtl"] .notice b, [dir="rtl"] .cf b, [dir="rtl"] .cmp thead th { font-family: 'IBM Plex Sans Arabic', Inter, sans-serif }
+[dir="rtl"] .br .wm, [dir="rtl"] .br .bn { direction: ltr }
+[dir="rtl"] .ev dl { grid-template-columns: 110px minmax(0, 1fr) }
+[dir="rtl"] .mk .go, [dir="rtl"] .empty li::before { unicode-bidi: plaintext }
+[dir="rtl"] .br .by { direction: rtl; unicode-bidi: isolate; text-align: start }

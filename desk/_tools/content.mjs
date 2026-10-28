@@ -1,5 +1,5 @@
 // Methodology content for /desk/intelligence/. Describes only approved rules (Handoff §5–6, Spec v1, decision log); invents no method.
-export const INTEL = [
+const INTEL_EN = [
   {
     slug: 'evaluation', title: 'Evaluation framework', short: 'What Nexus Desk assesses, what it does not, and why.',
     body: `<p>Nexus Desk evaluates an opportunity by documenting it to one standard: identity, developer, location, project and unit facts, documented risks, research status, data gaps, media permissions and disclosures. Each fact is stored once, in the record that owns it, and linked to its evidence.</p>
@@ -56,3 +56,121 @@ export const INTEL = [
 <p>Missing data never becomes zero, a positive or negative score, or a match.</p>`
   }
 ];
+
+const INTEL_TR = [
+  {
+    slug: 'evaluation', title: 'Değerlendirme çerçevesi', short: 'Nexus Desk neyi değerlendirir, neyi değerlendirmez ve neden.',
+    body: `<p>Nexus Desk bir fırsatı tek bir standarda göre belgeleyerek değerlendirir: kimlik, geliştirici, konum, proje ve birim bilgileri, belgelenmiş riskler, araştırma durumu, veri boşlukları, görsel izinleri ve açıklamalar. Her bilgi, ait olduğu kayıtta bir kez saklanır ve kanıtına bağlanır.</p>
+<h2>MVP’de değerlendirilenler</h2>
+<ul><li><strong>Kimlik ve karşı taraf.</strong> Proje ve geliştiricinin tüzel kişiliği, yayından önce birincil veya yetkin kaynaklarla (Kademe 1–3) desteklenmelidir.</li>
+<li><strong>Proje ve birim bilgileri.</strong> Teslim durumu, beklenen teslim, daire tipi ve alan; her biri kaynağı, dönemi ve doğrulama durumuyla. Geliştirici açıklamaları geliştirici beyanı olarak etiketlenir.</li>
+<li><strong>Belgelenmiş riskler.</strong> Neden, kanıt, vade, kontrol edilebilirlik, azaltım ve kalan belirsizlik.</li>
+<li><strong>Araştırma durumu.</strong> Araştırma Kapanışı ve Veri Bütünlüğü, her istihbarat alanı için ayrı kaydedilir.</li></ul>
+<h2>MVP’de hesaplanmayanlar</h2>
+<p>Bileşik puan, sıralama, gerçeğe uygun değer, getiri projeksiyonu, büyüme tahmini, sayısal risk olasılığı veya yatırım uygunluğu sonucu yoktur. Varlık Kalitesi ve Yatırım Uygunluğu ayrı kavramlardır ve metodolojileri belgelenip test edilip onaylanana kadar pasif kalır. Yoklukları ima edilmez, açıkça gösterilir.</p>
+<h2>Yayın</h2>
+<p>Bir fırsat yalnızca hesaplanan kapı geçildiğinde ve sahibi açık bir inceleme kaydettiğinde yayımlanır. Kapı; kimliği, geliştiriciyi, zorunlu alanları, açık çelişkileri, araştırma bloklarını, belgelenmiş riskleri, onaylı açıklamaları, yazılı izinli kapak görselini ve galeriyi kontrol eder. Kapıyı bozan yeni kanıt, fırsatı yeniden incelenene kadar yayından kaldırır.</p>`
+  },
+  {
+    slug: 'evidence-sources', title: 'Kanıt ve kaynaklar', short: 'Kanıt sınıfları, kaynak kademeleri ve doğrulama etiketleri.',
+    body: `<p>Her önemli iddia bir kanıt kaydıdır: iddia, değeri ve birimi, coğrafya, dönem, kaynak, kaynak kademesi, kanıt sınıfı, doğrulama durumu, erişim tarihi, sınırlamalar ve sonraki inceleme. Çelişen kaynaklar yan yana tutulur ve çözülmemiş olarak işaretlenir; asla sessizce uzlaştırılmaz.</p>
+<h2>Kanıt sınıfları</h2>
+<div class="enum"><div><span class="chip">Olgu</span><p>Gözlemlenebilir ve belgelenmiş.</p></div><div><span class="chip">Hukuki olgu</span><p>Hukuki veya sicil belgesiyle sabit.</p></div><div><span class="chip">Tahmini değer</span><p>Yöntemi belirtilmiş hesaplanmış veya yaklaşık değer.</p></div><div><span class="chip">Projeksiyon</span><p>Beklenen teslim tarihi gibi ileriye dönük bir ifade.</p></div><div><span class="chip">Yorum</span><p>Olguların analitik okuması.</p></div><div><span class="chip">Hipotez</span><p>Henüz test edilecek bir önerme.</p></div><div><span class="chip">Görüş</span><p>Bir kaynağın görüşü; asla olgu sayılmaz.</p></div><div><span class="chip">Veri mevcut değil</span><p>Kullanılabilir kanıt yok; asla sıfır sayılmaz.</p></div></div>
+<h2>Kaynak kademeleri</h2>
+<div class="enum"><div><span class="chip on">Kademe 1</span><p>Birincil veya resmî: siciller, düzenleyiciler, resmî istatistikler.</p></div><div><span class="chip on">Kademe 2</span><p>Yetkin ikincil kaynaklar ve güvenilir haberler.</p></div><div><span class="chip">Kademe 3</span><p>Geliştirici tanıtım kitleri dahil piyasa ve ticari materyaller.</p></div><div><span class="chip dim">Kademe 4</span><p>Yalnızca keşif içindir. Bağımsız doğrulama olmadan yayımlanan önemli bir iddiayı destekleyemez.</p></div></div>
+<h2>Doğrulama etiketleri</h2>
+<div class="enum"><div><span class="vs" data-v="VERIFIED">Doğrulandı</span><p>Birincil kaynakla teyit edildi.</p></div><div><span class="vs" data-v="CORROBORATED">Teyit edildi</span><p>Bağımsız kaynaklar arasında tutarlı.</p></div><div><span class="vs" data-v="SOURCE-REPORTED">Kaynak bildirimi</span><p>Tek bir güvenilir kaynak bildirdi, bağımsız olarak teyit edilmedi.</p></div><div><span class="vs" data-v="DEVELOPER-CLAIM">Geliştirici beyanı</span><p>Geliştirici veya temsilcileri tarafından ifade edildi.</p></div><div><span class="vs" data-v="UNVERIFIED">Doğrulanmadı</span><p>Henüz kontrol edilmedi.</p></div></div>
+<p>Etiketler her zaman yazıyla gösterilir; asla yalnızca renge dayanmaz.</p>`
+  },
+  {
+    slug: 'pricing', title: 'Fiyatlama', short: 'Fiyat türleri, yorumlama kuralları ve proje fiyatlarının neden yayımlanmadığı.',
+    body: `<p>Nexus Desk proje fiyatlarını veya projeye özgü fiyat aralıklarını yayımlamaz. Güncel birim fiyatları sık değişir; birime, kata, manzaraya ve ödeme koşullarına bağlıdır ve en iyi doğrudan görüşülür. Danışmanlıkta ele alınır.</p>
+<h2>Araştırmada kullanılan yorumlama kuralları</h2>
+<ul><li>İstenen fiyat, gerçekleşen satış fiyatı değildir.</li><li>Fiyat endeksi, mutlak fiyat düzeyi değildir.</li><li>Brüt alan net alan değildir; alana dayalı her rakam esasını belirtir.</li><li>Para birimi, dönem, coğrafya ve tanımlar her gözlemle birlikte korunur.</li><li>Eksik fiyatlar asla doldurulmaz, sessizce tahmin edilmez veya sıfır sayılmaz.</li></ul>
+<h2>Yayımlanmayanlar</h2>
+<p>Fiyat filtresi veya fiyata göre sıralama, gerçeğe uygun değer, getiri hesabı yoktur. İç fiyat araştırması, kamuya açık içerikten ayrı, özel bir depoda tutulur.</p>`
+  },
+  {
+    slug: 'risk', title: 'Risk', short: 'Puan veya olasılık içermeyen belgelenmiş riskler.',
+    body: `<p>Her fırsat belgelenmiş bir risk listesi taşır. Bir risk; türünü, nedenini, destekleyici kanıtını, vadesini, kontrol edilebilirliğini, azaltım veya inceleme adımını ve kalan belirsizliği kaydeder.</p>
+<h2>Gösterilmeyenler</h2>
+<p>Risk puanı ve olasılık yüzdesi yoktur. Şiddet ve olasılık etiketleri onaylı bir şiddet yöntemi gerektirir; bu yöntem oluşana kadar <em>değerlendirilmedi</em> olarak gösterilir. Eksik kanıt asla düşük risk olarak okunmaz.</p>
+<h2>Tipik risk türleri</h2>
+<div class="enum"><div><p><strong>Hukuki ve tapu</strong> — tapu türü, takyidatlar, ruhsatlar.</p></div><div><p><strong>Geliştirici ve karşı taraf</strong> — tüzel kimlik, teslim geçmişi.</p></div><div><p><strong>İnşaat ve teslim</strong> — ilerleme, teslim koşulları.</p></div><div><p><strong>Mevzuat ve vergi</strong> — alıcıları etkileyen kurallar.</p></div><div><p><strong>Döviz</strong> — alım para birimi ile ev para birimi arasındaki maruziyet.</p></div><div><p><strong>Deprem ve fiziksel</strong> — yapı standartları ve saha koşulları.</p></div></div>`
+  },
+  {
+    slug: 'liquidity', title: 'Likidite', short: 'Likiditenin burada ne anlama geldiği ve mevcut göstergelerin sınırları.',
+    body: `<p>Likidite, bir pozisyondan makul bir sürede ve önemli bir indirim olmadan çıkabilme yeteneğidir. Belirli varlığa, alıcı kitlesine ve piyasa koşullarına bağlıdır.</p>
+<h2>Göstergelerin sınırları</h2>
+<ul><li>Bir ilçedeki işlem derinliği, belirli bir birimin likiditesi değildir.</li><li>İlan hacmi talep değildir.</li><li>Geçmiş satışlar gelecekteki yeniden satışı garanti etmez.</li></ul>
+<p>MVP’de likidite değerlendirmesi hesaplanmaz. Yeniden satış veya işlem kanıtı varsa, kapsamı ve dönemiyle birlikte kanıt olarak gösterilebilir; likidite derecesi verilmez.</p>`
+  },
+  {
+    slug: 'data-gaps', title: 'Veri boşlukları', short: 'Eksik veri durumları ve kapanışın bütünlükten neden farklı olduğu.',
+    body: `<p>Eksik bilgi her alan için açıkça kaydedilir. Bir alanın ya kanıtla desteklenen bir değeri ya da şu dört durumdan biri vardır:</p>
+<div class="enum"><div><span class="fs">Veri mevcut değil</span><p>Bu alan için kullanılabilir veri yok.</p></div><div><span class="fs">Erişilebilir, henüz toplanmadı</span><p>Veri mevcut ve elde edilebilir; araştırma henüz ulaşmadı.</p></div><div><span class="fs">Profesyonel durum tespiti gerekli</span><p>Yalnızca yetkin bir profesyonel (hukuki, teknik, vergi) tespit edebilir.</p></div><div><span class="fs">Uygulanamaz</span><p>Alan bu kayıt için geçerli değil.</p></div></div>
+<h2>Araştırma Kapanışı ve Veri Bütünlüğü</h2>
+<p>Bunlar birbirinden bağımsızdır. Araştırma Kapanışı, bir alanın araştırma sorularının şu an mümkün olduğu ölçüde yanıtlanıp yanıtlanmadığını; Veri Bütünlüğü ise verinin kendisinin tam olup olmadığını söyler. Veri eksikken araştırma kapanmış olabilir; örneğin bir rakamın hiçbir yerde yayımlanmadığı biliniyorsa.</p>
+<p>Eksik veri asla sıfıra, olumlu ya da olumsuz bir puana veya bir eşleşmeye dönüşmez.</p>`
+  }
+];
+
+const INTEL_AR = [
+  {
+    slug: 'evaluation', title: 'إطار التقييم', short: 'ما الذي يقيّمه Nexus Desk، وما الذي لا يقيّمه، ولماذا.',
+    body: `<p>يقيّم Nexus Desk الفرصة عبر توثيقها وفق معيار واحد: الهوية، والمطوّر، والموقع، ومعلومات المشروع والوحدة، والمخاطر الموثّقة، وحالة البحث، وفجوات البيانات، وأذونات الصور، والإفصاحات. تُحفظ كل معلومة مرة واحدة في السجل الذي يملكها وتُربط بدليلها.</p>
+<h2>ما الذي يُقيَّم في النسخة الأولى</h2>
+<ul><li><strong>الهوية والطرف المقابل.</strong> يجب أن يستند المشروع والكيان القانوني للمطوّر إلى مصادر أولية أو موثوقة (المستويات 1–3) قبل النشر.</li>
+<li><strong>معلومات المشروع والوحدة.</strong> حالة التسليم، والتسليم المتوقع، والتصميم، والمساحة؛ كلٌّ منها مع مصدره وفترته وحالة التحقق منه. تُوسَم تصريحات المطوّر بوصفها ادعاءات للمطوّر.</li>
+<li><strong>المخاطر الموثّقة.</strong> السبب، والدليل، والأفق الزمني، وقابلية التحكم، والتخفيف، وعدم اليقين المتبقي.</li>
+<li><strong>حالة البحث.</strong> إغلاق البحث واكتمال البيانات، ويُسجَّلان بشكل منفصل لكل مجال استخباري.</li></ul>
+<h2>ما الذي لا يُحتسب في النسخة الأولى</h2>
+<p>لا يوجد تقييم مركّب، ولا تصنيف، ولا قيمة عادلة، ولا توقع للعائد، ولا توقع للنمو، ولا احتمال رقمي للمخاطر، ولا نتيجة لملاءمة الاستثمار. جودة الأصل وملاءمة الاستثمار مفهومان منفصلان، ويبقيان غير مفعّلين إلى أن تُوثَّق منهجيتاهما وتُختبرا وتُعتمدا. ويُبيَّن غيابهما صراحةً بدلاً من التلميح إليه.</p>
+<h2>النشر</h2>
+<p>لا تُنشر الفرصة إلا عند اجتياز بوابة محتسبة وتسجيل المالك مراجعة صريحة. تتحقق البوابة من الهوية، والمطوّر، والحقول المطلوبة، والتعارضات المفتوحة، وكتل البحث، والمخاطر الموثّقة، والإفصاحات المعتمدة، وصورة الغلاف المأذون بها كتابياً، والمعرض. وأي دليل جديد يُخلّ بالبوابة يسحب الفرصة إلى أن تُراجع مجدداً.</p>`
+  },
+  {
+    slug: 'evidence-sources', title: 'الأدلة والمصادر', short: 'فئات الأدلة ومستويات المصادر وتسميات التحقق.',
+    body: `<p>كل ادعاء جوهري هو سجل دليل: الادعاء، وقيمته ووحدته، والنطاق الجغرافي، والفترة، والمصدر، ومستوى المصدر، وفئة الدليل، وحالة التحقق، وتاريخ الاسترجاع، والقيود، والمراجعة التالية. تُحفظ المصادر المتعارضة جنباً إلى جنب وتُوسَم بأنها غير محسومة؛ ولا تُوفَّق أبداً بصمت.</p>
+<h2>فئات الأدلة</h2>
+<div class="enum"><div><span class="chip">حقيقة</span><p>قابلة للملاحظة وموثّقة.</p></div><div><span class="chip">حقيقة قانونية</span><p>ثابتة بوثيقة قانونية أو سجل رسمي.</p></div><div><span class="chip">تقدير</span><p>قيمة محسوبة أو تقريبية مع بيان طريقتها.</p></div><div><span class="chip">توقّع</span><p>بيان مستقبلي، مثل تاريخ التسليم المتوقع.</p></div><div><span class="chip">تفسير</span><p>قراءة تحليلية للحقائق.</p></div><div><span class="chip">فرضية</span><p>مقترح لم يُختبر بعد.</p></div><div><span class="chip">رأي</span><p>وجهة نظر لمصدر ما؛ لا تُعامل أبداً كحقيقة.</p></div><div><span class="chip">البيانات غير متاحة</span><p>لا يوجد دليل قابل للاستخدام؛ ولا يُعامل أبداً كصفر.</p></div></div>
+<h2>مستويات المصادر</h2>
+<div class="enum"><div><span class="chip on">المستوى 1</span><p>أولي أو رسمي: السجلات، والجهات التنظيمية، والإحصاءات الرسمية.</p></div><div><span class="chip on">المستوى 2</span><p>مصادر ثانوية موثوقة وتقارير ذات مصداقية.</p></div><div><span class="chip">المستوى 3</span><p>مواد سوقية وتجارية، بما فيها الحزم الترويجية للمطوّرين.</p></div><div><span class="chip dim">المستوى 4</span><p>للاستكشاف فقط. لا يمكن أن يدعم ادعاءً جوهرياً منشوراً من دون تحقق مستقل.</p></div></div>
+<h2>تسميات التحقق</h2>
+<div class="enum"><div><span class="vs" data-v="VERIFIED">موثّق</span><p>مؤكَّد مقابل مصدر أولي.</p></div><div><span class="vs" data-v="CORROBORATED">مؤكَّد</span><p>متسق عبر مصادر مستقلة.</p></div><div><span class="vs" data-v="SOURCE-REPORTED">بحسب المصدر</span><p>أورده مصدر واحد موثوق، ولم يُؤكَّد بشكل مستقل.</p></div><div><span class="vs" data-v="DEVELOPER-CLAIM">ادعاء المطوّر</span><p>صرّح به المطوّر أو وكلاؤه.</p></div><div><span class="vs" data-v="UNVERIFIED">غير موثّق</span><p>لم يُتحقق منه بعد.</p></div></div>
+<p>تُكتب التسميات دائماً نصاً؛ ولا تعتمد على اللون وحده أبداً.</p>`
+  },
+  {
+    slug: 'pricing', title: 'التسعير', short: 'أنواع الأسعار وقواعد تفسيرها ولماذا لا تُنشر أسعار المشاريع.',
+    body: `<p>لا ينشر Nexus Desk أسعار المشاريع ولا نطاقات الأسعار الخاصة بالمشاريع. تتغير أسعار الوحدات الحالية كثيراً، وتعتمد على الوحدة والطابق والإطلالة وشروط الدفع، ومن الأفضل مناقشتها مباشرة. ويجري تناولها في الاستشارة.</p>
+<h2>قواعد التفسير المعتمدة في البحث</h2>
+<ul><li>السعر المطلوب ليس سعر صفقة منفّذة.</li><li>مؤشر الأسعار ليس مستوى سعرياً مطلقاً.</li><li>المساحة الإجمالية ليست المساحة الصافية؛ ويُذكر أساس كل رقم يعتمد على المساحة.</li><li>تُحفظ العملة والفترة والنطاق الجغرافي والتعريفات مع كل ملاحظة.</li><li>لا تُملأ الأسعار الناقصة أبداً، ولا تُقدَّر بصمت، ولا تُعامل كصفر.</li></ul>
+<h2>ما لا يُنشر</h2>
+<p>لا مرشح للأسعار ولا ترتيب حسب السعر، ولا قيمة عادلة، ولا حساب للعائد. تُحفظ أبحاث الأسعار الداخلية في مستودع خاص، منفصل عن المحتوى العام.</p>`
+  },
+  {
+    slug: 'risk', title: 'المخاطر', short: 'مخاطر موثّقة من دون تقييمات أو احتمالات.',
+    body: `<p>تحمل كل فرصة قائمة مخاطر موثّقة. يسجّل كل خطر نوعه، وسببه، والدليل الداعم له، والأفق الزمني، وقابلية التحكم، وإجراء التخفيف أو العناية الواجبة، وعدم اليقين المتبقي.</p>
+<h2>ما لا يُعرض</h2>
+<p>لا يوجد تقييم للمخاطر ولا نسبة احتمال. تتطلب تسميات الشدة والاحتمال منهجية معتمدة للشدة؛ وإلى أن توجد تُعرض بوصفها <em>غير مقيَّمة</em>. ولا يُقرأ غياب الدليل أبداً على أنه خطر منخفض.</p>
+<h2>أنواع المخاطر الشائعة</h2>
+<div class="enum"><div><p><strong>القانونية والملكية</strong> — نوع سند الملكية، والأعباء، والتراخيص.</p></div><div><p><strong>المطوّر والطرف المقابل</strong> — الهوية القانونية، وسجل التسليم.</p></div><div><p><strong>الإنشاء والتسليم</strong> — التقدّم، وشروط التسليم.</p></div><div><p><strong>التنظيمية والضريبية</strong> — القواعد التي تؤثر في المشترين.</p></div><div><p><strong>العملة</strong> — التعرّض بين عملة الشراء والعملة المحلية للمشتري.</p></div><div><p><strong>الزلزالية والمادية</strong> — معايير البناء وظروف الموقع.</p></div></div>`
+  },
+  {
+    slug: 'liquidity', title: 'السيولة', short: 'معنى السيولة هنا وحدود المؤشرات المتاحة.',
+    body: `<p>السيولة هي القدرة على الخروج من مركز استثماري خلال وقت معقول ومن دون خصم جوهري. وتعتمد على الأصل المحدد، وشريحة المشترين، وظروف السوق.</p>
+<h2>حدود المؤشرات</h2>
+<ul><li>عمق الصفقات في منطقة ما ليس سيولة وحدة بعينها.</li><li>حجم الإعلانات ليس طلباً.</li><li>المبيعات السابقة لا تضمن إعادة البيع مستقبلاً.</li></ul>
+<p>لا يُحتسب تقييم للسيولة في النسخة الأولى. وحين توجد أدلة على إعادة البيع أو الصفقات يمكن الاستشهاد بها كأدلة، مع نطاقها وفترتها، ومن دون تصنيف للسيولة.</p>`
+  },
+  {
+    slug: 'data-gaps', title: 'فجوات البيانات', short: 'حالات البيانات الناقصة، ولماذا يختلف الإغلاق عن الاكتمال.',
+    body: `<p>تُسجَّل المعلومات الناقصة صراحةً لكل حقل. فإما أن يحمل الحقل قيمة مدعومة بدليل، أو إحدى الحالات الأربع التالية:</p>
+<div class="enum"><div><span class="fs">البيانات غير متاحة</span><p>لا توجد بيانات قابلة للاستخدام لهذا الحقل.</p></div><div><span class="fs">متاحة ولم تُجمع بعد</span><p>البيانات موجودة ويمكن الحصول عليها؛ لكن البحث لم يصل إليها بعد.</p></div><div><span class="fs">تتطلب عناية واجبة مهنية</span><p>لا يستطيع إثباتها إلا مختص مؤهل (قانوني، فني، ضريبي).</p></div><div><span class="fs">لا ينطبق</span><p>الحقل لا ينطبق على هذا السجل.</p></div></div>
+<h2>إغلاق البحث واكتمال البيانات</h2>
+<p>هذان مستقلان. يبيّن إغلاق البحث ما إذا كانت أسئلة البحث في مجال ما قد أُجيب عنها قدر الإمكان حالياً؛ ويبيّن اكتمال البيانات ما إذا كانت البيانات نفسها كاملة. قد يُغلق البحث بينما تبقى البيانات غير مكتملة — مثلاً عندما يُعرف أن رقماً ما غير منشور في أي مكان.</p>
+<p>لا تتحول البيانات الناقصة أبداً إلى صفر، أو تقييم إيجابي أو سلبي، أو تطابق.</p>`
+  }
+];
+
+export const INTEL = { en: INTEL_EN, tr: INTEL_TR, ar: INTEL_AR };

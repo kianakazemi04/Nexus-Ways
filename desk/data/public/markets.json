@@ -10,7 +10,9 @@
       "currency": "TRY",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Initial market. Research in progress; no market claims are published until verified."
+        "en": "Initial market. Research in progress; no market claims are published until verified.",
+        "tr": "İlk pazar. Araştırma sürüyor; doğrulanana kadar hiçbir pazar iddiası yayımlanmaz.",
+        "ar": "السوق الأولى. البحث جارٍ؛ لا تُنشر أي ادعاءات عن السوق قبل التحقق منها."
       },
       "category": "real_estate",
       "record_status": "RESEARCH_IN_PROGRESS",
@@ -29,7 +31,9 @@
       "currency": "AED",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Anticipated market. Inactive until its separate evidence gate passes."
+        "en": "Anticipated market. Inactive until its separate evidence gate passes.",
+        "tr": "Öngörülen pazar. Kendi kanıt kapısı geçilene kadar pasif.",
+        "ar": "سوق مرتقبة. غير نشطة حتى تجتاز بوابة الأدلة الخاصة بها."
       },
       "category": "real_estate",
       "record_status": "DRAFT",
@@ -48,7 +52,9 @@
       "currency": "AED",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Anticipated market. Inactive until its separate evidence gate passes."
+        "en": "Anticipated market. Inactive until its separate evidence gate passes.",
+        "tr": "Öngörülen pazar. Kendi kanıt kapısı geçilene kadar pasif.",
+        "ar": "سوق مرتقبة. غير نشطة حتى تجتاز بوابة الأدلة الخاصة بها."
       },
       "category": "real_estate",
       "record_status": "DRAFT",

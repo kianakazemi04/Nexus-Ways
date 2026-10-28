@@ -40,10 +40,17 @@ test('generated pages are up to date with templates and data', () => {
   execFileSync('node', [path.join(ROOT, 'desk/_tools/build.mjs'), '--check']);
 });
 
-test('desk runtime uses no persistent browser storage', () => {
-  for (const f of fs.readdirSync(path.join(ROOT, 'desk/assets/js'))) {
-    const t = fs.readFileSync(path.join(ROOT, 'desk/assets/js', f), 'utf8');
-    assert.ok(!/localStorage|sessionStorage|indexedDB|document\.cookie/.test(t), f);
+test('desk runtime uses no browser storage except the two keys shared with the company site (D-24)', () => {
+  const ALLOWED = new Set(['nw-theme', 'nw-lang']);
+  const sources = fs.readdirSync(path.join(ROOT, 'desk/assets/js')).map(f => [f, fs.readFileSync(path.join(ROOT, 'desk/assets/js', f), 'utf8')]);
+  sources.push(['generated page head', fs.readFileSync(path.join(ROOT, 'desk/index.html'), 'utf8')]);
+  for (const [f, t] of sources) {
+    assert.ok(!/sessionStorage|indexedDB|document\.cookie/.test(t), `${f}: no session storage, IndexedDB or cookies`);
+    for (const m of t.matchAll(/localStorage\.(\w+)\(([^)]*)\)/g)) assert.ok(['getItem', 'setItem'].includes(m[1]), `${f}: localStorage.${m[1]} not allowed`);
+    assert.ok(!/localStorage\s*\[|localStorage\.(clear|removeItem|key)\b/.test(t), `${f}: only getItem/setItem`);
+    // every key must be a literal from the allow-list (directly, or through the remember/g/s helpers)
+    for (const m of t.matchAll(/(?:localStorage\.(?:getItem|setItem)|remember|\bg|\bs)\(\s*'([^']+)'/g)) assert.ok(ALLOWED.has(m[1]), `${f}: key "${m[1]}" not allowed`);
+    for (const m of t.matchAll(/\b[KG]='([^']+)'/g)) assert.ok(ALLOWED.has(m[1]), `${f}: key "${m[1]}" not allowed`);
   }
 });
 
