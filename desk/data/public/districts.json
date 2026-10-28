@@ -1,5 +1,150 @@
 {
   "schema_version": "1.1",
   "collection": "districts",
-  "records": []
+  "records": [
+    {
+      "id": "DST-AUH-AL-REEM-ISLAND",
+      "market_id": "MKT-AUH",
+      "slug": "al-reem-island",
+      "name": "Al Reem Island",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-AUH-AL-REEM-ISLAND"
+      ],
+      "evidence_ids": [
+        "EVD-DST-AUH-0001"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-AUH-HUDAYRIYAT-ISLAND",
+      "market_id": "MKT-AUH",
+      "slug": "hudayriyat-island",
+      "name": "Hudayriyat Island",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-AUH-HUDAYRIYAT-ISLAND"
+      ],
+      "evidence_ids": [
+        "EVD-DST-AUH-0002"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-AUH-SAADIYAT-ISLAND",
+      "market_id": "MKT-AUH",
+      "slug": "saadiyat-island",
+      "name": "Saadiyat Island",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-AUH-SAADIYAT-ISLAND"
+      ],
+      "evidence_ids": [
+        "EVD-DST-AUH-0003"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-AUH-YAS-ISLAND",
+      "market_id": "MKT-AUH",
+      "slug": "yas-island",
+      "name": "Yas Island",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-AUH-YAS-ISLAND"
+      ],
+      "evidence_ids": [
+        "EVD-DST-AUH-0004"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-DXB-AL-BARSHA-SOUTH-FOURTH",
+      "market_id": "MKT-DXB",
+      "slug": "al-barsha-south-fourth",
+      "name": "Al Barsha South Fourth",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-DXB-AL-BARSHA-SOUTH-FOURTH"
+      ],
+      "evidence_ids": [
+        "EVD-DST-DXB-0001"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-DXB-BUSINESS-BAY",
+      "market_id": "MKT-DXB",
+      "slug": "business-bay",
+      "name": "Business Bay",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-DXB-BUSINESS-BAY"
+      ],
+      "evidence_ids": [
+        "EVD-DST-DXB-0005"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-DXB-DUBAI-SOUTH",
+      "market_id": "MKT-DXB",
+      "slug": "dubai-south",
+      "name": "Dubai South",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-DXB-DUBAI-SOUTH"
+      ],
+      "evidence_ids": [
+        "EVD-DST-DXB-0002"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-DXB-JABAL-ALI-FIRST",
+      "market_id": "MKT-DXB",
+      "slug": "jabal-ali-first",
+      "name": "Jabal Ali First",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-DXB-JABAL-ALI-FIRST"
+      ],
+      "evidence_ids": [
+        "EVD-DST-DXB-0004"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    },
+    {
+      "id": "DST-DXB-WADI-AL-SAFA-3",
+      "market_id": "MKT-DXB",
+      "slug": "wadi-al-safa-3",
+      "name": "Wadi Al Safa 3",
+      "admin_level": "COMMUNITY",
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-DST-DXB-WADI-AL-SAFA-3"
+      ],
+      "evidence_ids": [
+        "EVD-DST-DXB-0003"
+      ],
+      "field_states": [],
+      "is_illustrative": false
+    }
+  ]
 }

@@ -74,7 +74,7 @@ test('images whose permission record is missing, expired or not for the Desk web
 
 test('the published lifecycle still works end to end with a permission recorded (regression)', () => {
   const s = publishedSetup();
-  try { assert.ok(readJson(path.join(s.repo, 'desk/data/public/published.json')).opportunities.includes(OPP)); assert.equal(TODAY, '2026-10-27'); }
+  try { assert.ok(readJson(path.join(s.repo, 'desk/data/public/published.json')).opportunities.includes(OPP)); assert.equal(TODAY, '2026-10-28'); }
   finally { s.cleanup(); }
 });
 

@@ -303,7 +303,7 @@ test('real repository: all three markets INACTIVE, gate INACTIVE pending owner a
 // ------------------------------------------------------------------ commands, end to end (temporary repository + store)
 const storeWithMarkets = (repo) => {
   const store = tmp('desk-mg-store-'); fs.mkdirSync(path.join(store, 'data'), { recursive: true });
-  const mk = readJson(path.join(repo, 'desk/data/public/markets.json')).records.map(m => ({ ...m, review: null }));
+  const mk = readJson(path.join(repo, 'desk/data/public/markets.json')).records.map(m => ({ ...m, review: null, research_block_ids: [], evidence_ids: [] }));
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: mk });
   return store;
 };

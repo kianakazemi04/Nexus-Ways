@@ -17,7 +17,7 @@ import { Txn, withTxn, recover } from '../_tools/txn.mjs';
 import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TODAY = '2026-10-27';
+const TODAY = '2026-10-28';
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 // B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)
 const approveImages = (run, repo, storeArgs, storeDir) => { const f = path.join(storeDir, 'data/media.json'); if (!fs.existsSync(f)) return []; return JSON.parse(fs.readFileSync(f, 'utf8')).records.map(m => [m.id, run(repo, ['approve-media', ...storeArgs, '--id', m.id, '--by', 'owner']).code]); };
@@ -41,7 +41,7 @@ const snap = (d) => !fs.existsSync(d) ? {} : Object.fromEntries(fs.readdirSync(d
 function realSetup() {
   const repo = tmpRepo(); const store = tmp('desk-p2-store-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
-  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' } };
+  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' }, research_block_ids: [], evidence_ids: [], field_states: [] };
   enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); mk.records.push(tst); writeJson(mp, mk);
   validateRepo(repo, { today: TODAY, writeIndex: true }); // baseline: a valid public tree with the TEST-ONLY market
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });

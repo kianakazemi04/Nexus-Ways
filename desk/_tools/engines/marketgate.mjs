@@ -44,6 +44,7 @@ export function periodEnd(period, formats) {
   if ((m = period.match(/^(\d{4})-(\d{2})-(\d{2})$/)) && allowed.includes('YYYY-MM-DD')) return isIsoDate(period) ? { ok: true, end: period } : { ok: false, why: `invalid date ${period}` };
   if ((m = period.match(/^(\d{4})-(\d{2})$/)) && allowed.includes('YYYY-MM') && +m[2] >= 1 && +m[2] <= 12) return { ok: true, end: lastOfMonth(+m[1], +m[2]) };
   if ((m = period.match(/^(\d{4})-Q([1-4])$/)) && allowed.includes('YYYY-Q[1-4]')) return { ok: true, end: lastOfMonth(+m[1], +m[2] * 3) };
+  if ((m = period.match(/^(\d{4})-H([12])$/)) && allowed.includes('YYYY-H[1-2]')) return { ok: true, end: lastOfMonth(+m[1], +m[2] * 6) };
   if ((m = period.match(/^(\d{4})$/)) && allowed.includes('YYYY')) return { ok: true, end: `${m[1]}-12-31` };
   return { ok: false, why: `period "${period}" is not in the accepted format ${formats}` };
 }

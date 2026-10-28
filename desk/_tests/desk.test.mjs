@@ -11,7 +11,7 @@ import { validateDataset, validateRepo, schemaErrors } from '../_tools/validate.
 import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TODAY = '2026-10-27';
+const TODAY = '2026-10-28';
 const codes = (r) => r.errors.map(e => e.code);
 
 function tmpRepo() {
@@ -203,7 +203,7 @@ test('lifecycle: a real (non-fixture) store exports only approved, public-safe d
   try {
     // temporary test market, active only inside this throw-away copy
     const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
-    const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' } };
+    const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' }, research_block_ids: [], evidence_ids: [], field_states: [] };
     enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); mk.records.push(tst); writeJson(mp, mk);
     fs.mkdirSync(path.join(store, 'data'), { recursive: true });
     writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });

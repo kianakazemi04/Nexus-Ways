@@ -14,7 +14,7 @@ import { assertStorePath, StorePathError } from '../_tools/ingest.mjs';
 import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TODAY = '2026-10-27';
+const TODAY = '2026-10-28';
 const codes = (r) => r.errors.map(e => e.code);
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 // B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)
@@ -37,7 +37,7 @@ const snapshotDir = (d) => Object.fromEntries(fs.readdirSync(d).map(f => [f, fs.
 function realStoreSetup({ mutate } = {}) {
   const repo = tmpRepo(); const store = tmp('desk-p0-store-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
-  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' } };
+  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' }, research_block_ids: [], evidence_ids: [], field_states: [] };
   enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); mk.records.push(tst); writeJson(mp, mk);
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });

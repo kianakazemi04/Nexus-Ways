@@ -9,7 +9,7 @@ import { validateRepo } from '../_tools/validate.mjs';
 import { gateDataset } from './marketgate-data.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-export const TODAY = '2026-10-27';
+export const TODAY = '2026-10-28';
 export const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 export const writeJson = (p, j) => fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 export const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -55,7 +55,7 @@ export function seedTestMarketGate(repo, store, tst) {
 export function realSetup({ mutate, marketGate = true } = {}) {
   const repo = tmpRepo(); const store = tmp('desk-t-store-'); const pkgs = tmp('desk-t-pkgs-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
-  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: marketGate ? 'MG-1' : 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
+  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: marketGate ? 'MG-1' : 'G3-v1' }, summary: { en: 'TEST-ONLY' }, research_block_ids: [], evidence_ids: [], field_states: [] };
   if (marketGate) { enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); }
   mk.records.push(tst); writeJson(mp, mk);
   if (marketGate) validateRepo(repo, { today: TODAY, writeIndex: true });

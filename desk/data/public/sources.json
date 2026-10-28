@@ -1,5 +1,97 @@
 {
   "schema_version": "1.1",
   "collection": "sources",
-  "records": []
+  "records": [
+    {
+      "id": "SRC-MR-ALETIHAD-ADREC-H1-2026",
+      "name": "Hudayriyat Island tops Abu Dhabi real estate market (ADREC report via WAM)",
+      "publisher": "Aletihad (WAM)",
+      "url": "https://en.aletihad.ae/amp/news/business/4686555/hudayriyat-island-tops-abu-dhabi-real-estate-market-for-2nd",
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "WAM report of the Abu Dhabi Real Estate Centre H1 2026 market report, published 21 Aug 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-BMD-2026-09",
+      "name": "Konut Satış İstatistikleri — Eylül 2026 (research note citing TÜİK)",
+      "publisher": "BMD Araştırma",
+      "url": "https://www.bmd.com.tr/application/files/8417/9241/1703/Konut_Satis_Istatistikleri-Eylul_2026.pdf",
+      "tier": 2,
+      "source_type": "RESEARCH_REPORT",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "Broker research note dated 19 Oct 2026 restating TÜİK house-sales statistics for September 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-CAPITAL-CBRT-2026-10",
+      "name": "Merkez Bankası'nın Ekim 2026 faiz kararı belli oldu",
+      "publisher": "Capital",
+      "url": "https://www.capital.com.tr/haberler/tum-haberler/merkez-bankasinin-ekim-2026-faiz-karari-belli-oldu",
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "News report of the CBRT Monetary Policy Committee decision of 22 Oct 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-FAM-DXB-2026-09",
+      "name": "Dubai real estate report — September 2026 (DLD records via DXBinteract)",
+      "publisher": "fäm Properties",
+      "url": "https://famproperties.com/real-estate-reports/2026/september",
+      "tier": 2,
+      "source_type": "RESEARCH_REPORT",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "Monthly market report built on Dubai Land Department transaction records; data retrieved 16 Oct 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-GN-CBUAE-2026-09",
+      "name": "UAE Central Bank raises base rate to 3.9% after US Fed rate hike",
+      "publisher": "Gulf News",
+      "url": "https://gulfnews.com/business/banking/uae-central-bank-raises-base-rate-to-39-after-us-fed-rate-hike-1.500677315",
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "News report of the CBUAE base-rate decision effective 17 Sep 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-KT-AUH-H1-2026",
+      "name": "Abu Dhabi property sales surge in H1 2026 (ADXinteract data)",
+      "publisher": "Khaleej Times",
+      "url": "https://www.khaleejtimes.com/business/abu-dhabi-property-sales-surge-174-to-dh8449-billion-in-h1-2026-set-for-a-record-year",
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "News report of ADXinteract data for apartments and villas, H1 2026."
+      },
+      "is_illustrative": false
+    },
+    {
+      "id": "SRC-MR-TIMETURK-CPI-2026-09",
+      "name": "2026 Eylül enflasyonu açıklandı: yıllık yüzde 29,73",
+      "publisher": "Timeturk",
+      "url": "https://www.timeturk.com/2026-eylul-enflasyonu-aciklandi-yillik-yuzde-2973",
+      "tier": 2,
+      "source_type": "MEDIA",
+      "accessed_at": "2026-10-28",
+      "notes": {
+        "en": "News report of the TÜİK consumer price index release for September 2026 (figure taken from the report headline; corroborated by a second outlet headline)."
+      },
+      "is_illustrative": false
+    }
+  ]
 }
