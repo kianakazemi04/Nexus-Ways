@@ -57,18 +57,42 @@ idx = json.load(open(os.path.join(pub, 'published.json'))) if 'published.json' i
 print(f'  published opportunities: {len(idx.get("opportunities", []))} · media: {len(idx.get("media", []))} · markets: {len(idx.get("markets", []))}')
 media = [os.path.relpath(os.path.join(dp, f), SITE) for dp, _, fs in os.walk(os.path.join(SITE, 'desk/media')) for f in fs if f != '.gitkeep']
 check(len(media) == len(idx.get('media', [])), f'media files in the published tree ({len(media)}) match approved media ({len(idx.get("media", []))})')
-# 5. indexing (owner decision K-4): every Desk page is noindex until an opportunity is published; afterwards only
-#    Explore, Markets, Intelligence and published opportunity pages may be indexable
+# 5. indexing (owner decisions K-4 and K-4b): Markets and Intelligence are always indexable; Explore and published
+#    opportunity pages become indexable from the first publication; everything else on Desk stays noindex
 import re as _re
-INDEXABLE = _re.compile(r'^desk/(?:(?:tr|ar)/)?(?:index\.html|markets/.*|intelligence/.*|opportunities/(?!preview/)[^/]+/index\.html)$')
+EVERGREEN = _re.compile(r'^desk/(?:(?:tr|ar)/)?(?:markets/.*|intelligence/.*)$')
+AFTER_PUB = _re.compile(r'^desk/(?:(?:tr|ar)/)?(?:index\.html|opportunities/(?!preview/)[^/]+/index\.html)$')
 published_n = len(idx.get('opportunities', []))
 wrong = []
 for f in html_files:
     rel = os.path.relpath(f, SITE).replace(os.sep, '/')
     if not rel.startswith('desk'): continue
     is_noindex = 'content="noindex' in open(f, encoding='utf-8').read()
-    if (published_n == 0 or not INDEXABLE.match(rel)) and not is_noindex: wrong.append(rel)
-    if published_n > 0 and INDEXABLE.match(rel) and is_noindex: wrong.append(rel + ' (should be indexable)')
-check(not wrong, f'Desk indexing follows the publication state ({published_n} published)' + (f': {wrong}' if wrong else ''))
+    should = bool(EVERGREEN.match(rel)) or (published_n > 0 and bool(AFTER_PUB.match(rel)))
+    if should and is_noindex: wrong.append(rel + ' (should be indexable)')
+    if not should and not is_noindex: wrong.append(rel + ' (should be noindex)')
+check(not wrong, f'Desk indexing follows K-4/K-4b ({published_n} published)' + (f': {wrong}' if wrong else ''))
+
+# 6. company site in three languages (SEO audit C-2): every page exists under /tr/ and /ar/, in that language, with a
+#    self-referencing canonical and reciprocal hreflang; sitemap entries all resolve and none is noindex
+company = [os.path.relpath(f, SITE).replace(os.sep, '/') for f in html_files]
+company = [r for r in company if r.endswith('index.html') and not r.startswith(('desk/', 'tr/', 'ar/'))]
+bad = []
+for r in company:
+    path = '/' + r[:-len('index.html')]
+    for l in ('en', 'tr', 'ar'):
+        f = os.path.join(SITE, r if l == 'en' else f'{l}/{r}')
+        if not os.path.isfile(f): bad.append(f'{l}:{path} missing'); continue
+        t = open(f, encoding='utf-8').read(); url = 'https://nexus-ways.com' + (path if l == 'en' else f'/{l}{path}')
+        if f'<html lang="{l}"' not in t: bad.append(f'{l}:{path} lang')
+        if f'<link rel="canonical" href="{url}">' not in t: bad.append(f'{l}:{path} canonical')
+        for x in ('en', 'tr', 'ar'):
+            if f'hreflang="{x}" href="https://nexus-ways.com' + (path if x == 'en' else f'/{x}{path}') + '"' not in t: bad.append(f'{l}:{path} hreflang {x}')
+check(len(company) >= 15 and not bad, f'company pages in EN/TR/AR with canonical and hreflang ({len(company)} pages)' + (f': {bad[:8]}' if bad else ''))
+sm = open(os.path.join(SITE, 'sitemap.xml'), encoding='utf-8').read() if os.path.isfile(os.path.join(SITE, 'sitemap.xml')) else ''
+locs = re.findall(r'<loc>https://nexus-ways\.com(/[^<]*)</loc>', sm)
+miss = [u for u in locs if not resolve(u)]
+noidx = [u for u in locs if resolve(u) and 'noindex' in open(os.path.join(SITE, u.lstrip('/') + ('index.html' if u.endswith('/') else '')), encoding='utf-8').read()]
+check(len(locs) >= 45 and not miss and not noidx, f'sitemap: {len(locs)} URLs, all resolve, none noindex' + (f': missing {miss[:5]} noindex {noidx[:5]}' if miss or noidx else ''))
 
 print(f'\n{len(fails)} failure(s)'); sys.exit(1 if fails else 0)

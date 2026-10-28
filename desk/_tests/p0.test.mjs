@@ -265,7 +265,7 @@ function pinProblem(ref, rest) {
   if (!p) return `"${ref}" is not pinned to a full commit SHA`;
   const want = APPROVED_ACTION_PINS[p[1]];
   if (!want) return `${p[1]} is not an approved action`;
-  if (p[2] !== want[0]) return `${p[1]} SHA differs from the approved pin`;
+  if (p[2] !== want[0]) return `${p[1]} SHA differs from the approved pin — after reviewing the release, update APPROVED_ACTION_PINS in desk/_tests/p0.test.mjs in the same pull request`;
   if (!new RegExp(`^\\s+#\\s*${want[1].replace(/\./g, '\\.')}\\s*$`).test(rest)) return `${p[1]} needs the comment "# ${want[1]}"`;
   return null;
 }

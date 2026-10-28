@@ -88,9 +88,11 @@ test('workflow end to end (TEST-ONLY): two projects → reports → comparison �
   } finally { s.cleanup(); }
 });
 
-test('indexing (K-4): noindex while nothing is published; from the first publication Explore, Markets, Intelligence and the opportunity page are indexable', () => {
+test('indexing (K-4/K-4b): Markets and Intelligence are indexable; Explore and opportunity pages from the first publication', () => {
   const head = (repo, rel) => (fs.readFileSync(path.join(repo, 'desk', rel), 'utf8').match(/<meta name="robots" content="([^"]+)">/) || [])[1];
-  for (const rel of ['index.html', 'markets/index.html', 'intelligence/index.html']) assert.equal(head(path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..'), rel), 'noindex, follow', `committed site: ${rel}`);
+  const here = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+  for (const rel of ['markets/index.html', 'markets/istanbul/index.html', 'intelligence/index.html', 'tr/intelligence/index.html', 'ar/markets/index.html']) assert.equal(head(here, rel), 'index, follow', `committed site (K-4b): ${rel}`);
+  for (const rel of ['index.html', 'tr/index.html', 'consultation/index.html', 'compare/index.html']) assert.equal(head(here, rel), 'noindex, follow', `committed site (K-4): ${rel}`);
   const s = publishedSetup();
   try {
     const slug = fs.readdirSync(path.join(s.repo, 'desk/opportunities')).find(d => d !== 'preview' && d !== 'index.html');

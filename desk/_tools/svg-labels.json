@@ -1,0 +1,723 @@
+{
+  "_note": "Diagram (inline SVG) labels on company pages, EN → TR/AR. Used by site-i18n.mjs for the static /tr/ and /ar/ pages. Labels not listed here (acronyms, codes, years, place codes) are kept as they are. Keep translations short: the diagrams have fixed-width boxes.",
+  "Operating structure: one intelligence layer above three pillars, Business Strategy, Digital Engine and Investment Arm": {
+    "tr": "Operasyon yapısı: üç sütunun üzerinde tek bir zekâ katmanı — İş Stratejisi, Dijital Motor ve Yatırım Kolu",
+    "ar": "الهيكل التشغيلي: طبقة ذكاء واحدة فوق ثلاث ركائز — استراتيجية الأعمال والمحرّك الرقمي وذراع الاستثمار"
+  },
+  "OPERATING STRUCTURE": {
+    "tr": "OPERASYON YAPISI",
+    "ar": "الهيكل التشغيلي"
+  },
+  "INTELLIGENCE LAYER": {
+    "tr": "ZEKÂ KATMANI",
+    "ar": "طبقة الذكاء"
+  },
+  "Diagnostic · Framework · Consequence · Brand gate": {
+    "tr": "Teşhis · Çerçeve · Sonuç · Marka kapısı",
+    "ar": "تشخيص · إطار · أثر · بوابة العلامة"
+  },
+  "Strategy": {
+    "tr": "Strateji",
+    "ar": "الاستراتيجية"
+  },
+  "PLAN · RAISE": {
+    "tr": "PLAN · YATIRIM",
+    "ar": "تخطيط · تمويل"
+  },
+  "Digital Engine": {
+    "tr": "Dijital Motor",
+    "ar": "المحرّك الرقمي"
+  },
+  "WEB · CONTENT": {
+    "tr": "WEB · İÇERİK",
+    "ar": "ويب · محتوى"
+  },
+  "Investment Arm": {
+    "tr": "Yatırım Kolu",
+    "ar": "ذراع الاستثمار"
+  },
+  "SCREEN · MATCH": {
+    "tr": "ELEME · EŞLEŞME",
+    "ar": "فرز · مطابقة"
+  },
+  "ISTANBUL HQ": {
+    "tr": "İSTANBUL MERKEZ",
+    "ar": "المقر · إسطنبول"
+  },
+  "DUBAI OPS": {
+    "tr": "DUBAİ OFİS",
+    "ar": "عمليات دبي"
+  },
+  "A network of specialists around a small core team, with several engaged on current work": {
+    "tr": "Küçük bir çekirdek ekibin etrafında, bir kısmı mevcut işlerde görev alan uzmanlar ağı",
+    "ar": "شبكة من المتخصصين حول فريق أساسي صغير، يعمل عدد منهم على المشاريع الحالية"
+  },
+  "TALENT NETWORK": {
+    "tr": "YETENEK AĞI",
+    "ar": "شبكة الكفاءات"
+  },
+  "OPEN": {
+    "tr": "AÇIK",
+    "ar": "مفتوح"
+  },
+  "CORE": {
+    "tr": "ÇEKİRDEK",
+    "ar": "الأساس"
+  },
+  "REMOTE-FIRST": {
+    "tr": "ÖNCE UZAKTAN",
+    "ar": "العمل عن بُعد أولًا"
+  },
+  "SENIOR · SPECIALIST": {
+    "tr": "KIDEMLİ · UZMAN",
+    "ar": "خبرة · تخصص"
+  },
+  "Istanbul headquarters and Dubai operations connected to clients in the United States, Canada, the United Kingdom, Europe and the Middle East": {
+    "tr": "ABD, Kanada, Birleşik Krallık, Avrupa ve Orta Doğu'daki müşterilere bağlı İstanbul merkezi ve Dubai operasyonları",
+    "ar": "المقر في إسطنبول والعمليات في دبي، متصلة بالعملاء في الولايات المتحدة وكندا والمملكة المتحدة وأوروبا والشرق الأوسط"
+  },
+  "OFFICES · MARKETS": {
+    "tr": "OFİSLER · PAZARLAR",
+    "ar": "المكاتب · الأسواق"
+  },
+  "ONLINE": {
+    "tr": "ÇEVRİMİÇİ",
+    "ar": "متصل"
+  },
+  "ISTANBUL · HQ": {
+    "tr": "İSTANBUL · MERKEZ",
+    "ar": "إسطنبول · المقر"
+  },
+  "DUBAI": {
+    "tr": "DUBAİ",
+    "ar": "دبي"
+  },
+  "REPLY WITHIN ONE BUSINESS DAY": {
+    "tr": "BİR İŞ GÜNÜ İÇİNDE YANIT",
+    "ar": "الرد خلال يوم عمل واحد"
+  },
+  "Business strategy dashboard showing a growth roadmap, revenue trend and fundraising readiness score": {
+    "tr": "Büyüme yol haritası, gelir eğilimi ve yatırım hazırlık skorunu gösteren iş stratejisi paneli",
+    "ar": "لوحة استراتيجية الأعمال: خارطة النمو واتجاه الإيرادات ودرجة الجاهزية لجمع التمويل"
+  },
+  "Growth Roadmap": {
+    "tr": "Büyüme Yol Haritası",
+    "ar": "خارطة النمو"
+  },
+  "REVENUE": {
+    "tr": "GELİR",
+    "ar": "الإيرادات"
+  },
+  "READINESS": {
+    "tr": "HAZIRLIK",
+    "ar": "الجاهزية"
+  },
+  "Digital engine revenue funnel from traffic to closed deals, connected to CRM, automation and SEO systems": {
+    "tr": "Trafikten kapanan anlaşmalara dijital motor gelir hunisi; CRM, otomasyon ve SEO sistemlerine bağlı",
+    "ar": "قمع الإيرادات في المحرّك الرقمي من الزيارات إلى الصفقات المغلقة، مرتبط بأنظمة CRM والأتمتة وSEO"
+  },
+  "Revenue Engine": {
+    "tr": "Gelir Motoru",
+    "ar": "محرّك الإيرادات"
+  },
+  "LIVE": {
+    "tr": "CANLI",
+    "ar": "مباشر"
+  },
+  "TRAFFIC": {
+    "tr": "TRAFİK",
+    "ar": "الزيارات"
+  },
+  "LEADS": {
+    "tr": "ADAYLAR",
+    "ar": "العملاء المحتملون"
+  },
+  "QUALIFIED": {
+    "tr": "NİTELİKLİ",
+    "ar": "مؤهَّلون"
+  },
+  "PIPELINE": {
+    "tr": "SATIŞ HATTI",
+    "ar": "مسار المبيعات"
+  },
+  "CLOSED": {
+    "tr": "KAPANAN",
+    "ar": "مغلقة"
+  },
+  "AUTOMATION": {
+    "tr": "OTOMASYON",
+    "ar": "الأتمتة"
+  },
+  "Investment arm deal flow screening table scoring opportunities by sector before investor matching": {
+    "tr": "Yatırımcı eşleştirmesinden önce fırsatları sektöre göre puanlayan yatırım kolu fırsat akışı tablosu",
+    "ar": "جدول فرز تدفق الصفقات في ذراع الاستثمار يقيّم الفرص حسب القطاع قبل المطابقة مع المستثمرين"
+  },
+  "Deal Flow · Screening": {
+    "tr": "Fırsat Akışı · Eleme",
+    "ar": "تدفق الصفقات · الفرز"
+  },
+  "CURATED": {
+    "tr": "SEÇİLMİŞ",
+    "ar": "منتقاة"
+  },
+  "OPPORTUNITY": {
+    "tr": "FIRSAT",
+    "ar": "الفرصة"
+  },
+  "SECTOR": {
+    "tr": "SEKTÖR",
+    "ar": "القطاع"
+  },
+  "SCORE": {
+    "tr": "SKOR",
+    "ar": "الدرجة"
+  },
+  "FIT": {
+    "tr": "UYUM",
+    "ar": "الملاءمة"
+  },
+  "INVESTOR MATCH": {
+    "tr": "YATIRIMCI EŞLEŞMESİ",
+    "ar": "مطابقة المستثمر"
+  },
+  "GTM radar: current position against the 90-day target across ICP, positioning, channels, funnel and KPIs": {
+    "tr": "GTM radarı: ICP, konumlandırma, kanallar, huni ve KPI'larda mevcut durum ile 90 günlük hedef",
+    "ar": "رادار دخول السوق: الوضع الحالي مقابل هدف 90 يومًا في ICP والتموضع والقنوات والقمع ومؤشرات الأداء"
+  },
+  "GTM RADAR": {
+    "tr": "GTM RADARI",
+    "ar": "رادار السوق"
+  },
+  "TODAY → DAY 90": {
+    "tr": "BUGÜN → 90. GÜN",
+    "ar": "اليوم ← اليوم 90"
+  },
+  "POSITIONING": {
+    "tr": "KONUM",
+    "ar": "التموضع"
+  },
+  "CHANNELS": {
+    "tr": "KANALLAR",
+    "ar": "القنوات"
+  },
+  "FUNNEL": {
+    "tr": "HUNİ",
+    "ar": "القمع"
+  },
+  "KPIs": {
+    "tr": "KPI'LAR",
+    "ar": "المؤشرات"
+  },
+  "TODAY": {
+    "tr": "BUGÜN",
+    "ar": "اليوم"
+  },
+  "90-DAY TARGET": {
+    "tr": "90 GÜNLÜK HEDEF",
+    "ar": "هدف 90 يومًا"
+  },
+  "Investor readiness scorecard: overall score and gaps by category": {
+    "tr": "Yatırımcı hazırlık karnesi: genel skor ve kategori bazında eksikler",
+    "ar": "بطاقة جاهزية المستثمر: الدرجة الإجمالية والفجوات حسب الفئة"
+  },
+  "INVESTOR READINESS": {
+    "tr": "YATIRIMCI HAZIRLIĞI",
+    "ar": "جاهزية المستثمر"
+  },
+  "LIVE REVIEW": {
+    "tr": "CANLI İNCELEME",
+    "ar": "مراجعة مباشرة"
+  },
+  "READINESS SCORE": {
+    "tr": "HAZIRLIK SKORU",
+    "ar": "درجة الجاهزية"
+  },
+  "Narrative": {
+    "tr": "Anlatı",
+    "ar": "السردية"
+  },
+  "Market": {
+    "tr": "Pazar",
+    "ar": "السوق"
+  },
+  "Traction": {
+    "tr": "Çekiş",
+    "ar": "الزخم"
+  },
+  "Team": {
+    "tr": "Ekip",
+    "ar": "الفريق"
+  },
+  "Financial model": {
+    "tr": "Finansal model",
+    "ar": "النموذج المالي"
+  },
+  "Data room": {
+    "tr": "Veri odası",
+    "ar": "غرفة البيانات"
+  },
+  "PRIORITY GAPS": {
+    "tr": "ÖNCELİKLİ AÇIKLAR",
+    "ar": "فجوات ذات أولوية"
+  },
+  "Financial model · Data room · Traction": {
+    "tr": "Finansal model · Veri odası · Çekiş",
+    "ar": "النموذج المالي · غرفة البيانات · الزخم"
+  },
+  "3 OPEN": {
+    "tr": "3 AÇIK",
+    "ar": "3 مفتوحة"
+  },
+  "Four-layer diagnostic: market, model, revenue and capital, with the revenue layer flagged as the main constraint": {
+    "tr": "Dört katmanlı teşhis: pazar, model, gelir ve sermaye; gelir katmanı ana kısıt olarak işaretli",
+    "ar": "تشخيص من أربع طبقات: السوق والنموذج والإيرادات ورأس المال، مع تحديد الإيرادات كقيد رئيسي"
+  },
+  "DIAGNOSTIC · 4 LAYERS": {
+    "tr": "TEŞHİS · 4 KATMAN",
+    "ar": "تشخيص · 4 طبقات"
+  },
+  "SCANNING": {
+    "tr": "TARANIYOR",
+    "ar": "جارٍ الفحص"
+  },
+  "MARKET": {
+    "tr": "PAZAR",
+    "ar": "السوق"
+  },
+  "Size · segments · timing": {
+    "tr": "Boyut · segment · zaman",
+    "ar": "الحجم · الشرائح · التوقيت"
+  },
+  "CLEAR": {
+    "tr": "NET",
+    "ar": "سليم"
+  },
+  "MODEL": {
+    "tr": "MODEL",
+    "ar": "النموذج"
+  },
+  "Unit economics · pricing": {
+    "tr": "Birim ekonomisi · fiyatlama",
+    "ar": "اقتصاديات الوحدة · التسعير"
+  },
+  "REVIEW": {
+    "tr": "İNCELEME",
+    "ar": "مراجعة"
+  },
+  "ICP · channels · funnel": {
+    "tr": "ICP · kanallar · huni",
+    "ar": "ICP · القنوات · القمع"
+  },
+  "CONSTRAINT": {
+    "tr": "KISIT",
+    "ar": "قيد"
+  },
+  "CAPITAL": {
+    "tr": "SERMAYE",
+    "ar": "رأس المال"
+  },
+  "Runway · readiness": {
+    "tr": "Nakit ömrü · hazırlık",
+    "ar": "مدة السيولة · الجاهزية"
+  },
+  "PRIMARY CONSTRAINT": {
+    "tr": "ANA KISIT",
+    "ar": "القيد الرئيسي"
+  },
+  "REVENUE · GO-TO-MARKET": {
+    "tr": "GELİR · PAZARA GİRİŞ",
+    "ar": "الإيرادات · دخول السوق"
+  },
+  "PLAN · 12 MONTHS": {
+    "tr": "PLAN · 12 AY",
+    "ar": "الخطة · 12 شهرًا"
+  },
+  "Model": {
+    "tr": "Model",
+    "ar": "النموذج"
+  },
+  "Numbers": {
+    "tr": "Rakamlar",
+    "ar": "الأرقام"
+  },
+  "Positioning": {
+    "tr": "Konum",
+    "ar": "التموضع"
+  },
+  "Roadmap": {
+    "tr": "Yol haritası",
+    "ar": "خارطة الطريق"
+  },
+  "Deck": {
+    "tr": "Sunum",
+    "ar": "العرض"
+  },
+  "PIPELINE · 90 DAYS": {
+    "tr": "SATIŞ HATTI · 90 GÜN",
+    "ar": "مسار المبيعات · 90 يومًا"
+  },
+  "ENTRY SEQUENCE": {
+    "tr": "GİRİŞ SIRASI",
+    "ar": "تسلسل الدخول"
+  },
+  "DIAGNOSTIC → MAPPING → BRIDGING → EXECUTION": {
+    "tr": "TEŞHİS → HARİTALAMA → KÖPRÜ → UYGULAMA",
+    "ar": "تشخيص ← رسم الخريطة ← الربط ← التنفيذ"
+  },
+  "Entry routes from the Istanbul hub to North America, the United Kingdom, Europe and the Gulf": {
+    "tr": "İstanbul merkezinden Kuzey Amerika, Birleşik Krallık, Avrupa ve Körfez'e giriş rotaları",
+    "ar": "مسارات الدخول من مركز إسطنبول إلى أمريكا الشمالية والمملكة المتحدة وأوروبا والخليج"
+  },
+  "ENTRY ROUTES": {
+    "tr": "GİRİŞ ROTALARI",
+    "ar": "مسارات الدخول"
+  },
+  "IN PREPARATION": {
+    "tr": "HAZIRLANIYOR",
+    "ar": "قيد الإعداد"
+  },
+  "TORONTO": {
+    "tr": "TORONTO",
+    "ar": "تورنتو"
+  },
+  "NEW YORK": {
+    "tr": "NEW YORK",
+    "ar": "نيويورك"
+  },
+  "LONDON": {
+    "tr": "LONDRA",
+    "ar": "لندن"
+  },
+  "EUROPE": {
+    "tr": "AVRUPA",
+    "ar": "أوروبا"
+  },
+  "Steady ad spend against rising attributed revenue over eight weeks": {
+    "tr": "Sekiz hafta boyunca sabit reklam harcamasına karşı artan atfedilen gelir",
+    "ar": "إنفاق إعلاني ثابت مقابل إيرادات منسوبة متزايدة على مدى ثمانية أسابيع"
+  },
+  "SPEND → REVENUE": {
+    "tr": "HARCAMA → GELİR",
+    "ar": "الإنفاق ← الإيرادات"
+  },
+  "LIVE · WEEKLY": {
+    "tr": "CANLI · HAFTALIK",
+    "ar": "مباشر · أسبوعي"
+  },
+  "SPEND": {
+    "tr": "HARCAMA",
+    "ar": "الإنفاق"
+  },
+  "TRACKING BEFORE SPEND": {
+    "tr": "HARCAMADAN ÖNCE ÖLÇÜM",
+    "ar": "التتبّع قبل الإنفاق"
+  },
+  "BUDGET IN YOUR ACCOUNTS": {
+    "tr": "BÜTÇE SİZİN HESABINIZDA",
+    "ar": "الميزانية في حساباتك"
+  },
+  "Lead workflow: a form submission is created in the CRM, scored, routed to an owner, followed up by email and reported automatically": {
+    "tr": "Aday iş akışı: form başvurusu CRM'de oluşturulur, puanlanır, sorumluya yönlendirilir, e-postayla takip edilir ve otomatik raporlanır",
+    "ar": "سير عمل العملاء المحتملين: يُنشأ النموذج في CRM ويُقيَّم ويُحال إلى مسؤول ويُتابَع بالبريد ويُرفع تقريره تلقائيًا"
+  },
+  "LEAD WORKFLOW": {
+    "tr": "ADAY İŞ AKIŞI",
+    "ar": "سير عمل العملاء"
+  },
+  "AUTOMATED": {
+    "tr": "OTOMATİK",
+    "ar": "مؤتمت"
+  },
+  "FORM": {
+    "tr": "FORM",
+    "ar": "نموذج"
+  },
+  "EMAIL": {
+    "tr": "E-POSTA",
+    "ar": "بريد"
+  },
+  "ALERT": {
+    "tr": "UYARI",
+    "ar": "تنبيه"
+  },
+  "REPORT": {
+    "tr": "RAPOR",
+    "ar": "تقرير"
+  },
+  "CRM · AUTOMATION · AI CONTENT": {
+    "tr": "CRM · OTOMASYON · YZ İÇERİK",
+    "ar": "CRM · الأتمتة · محتوى الذكاء الاصطناعي"
+  },
+  "NO MANUAL HANDOFFS": {
+    "tr": "ELLE AKTARIM YOK",
+    "ar": "بلا تسليم يدوي"
+  },
+  "Monthly editorial calendar with posts planned across value, proof, brand and action": {
+    "tr": "Değer, kanıt, marka ve eylem başlıklarında planlanmış içeriklerle aylık yayın takvimi",
+    "ar": "تقويم تحريري شهري بمنشورات مخطّطة عبر القيمة والإثبات والعلامة والإجراء"
+  },
+  "EDITORIAL CALENDAR": {
+    "tr": "YAYIN TAKVİMİ",
+    "ar": "التقويم التحريري"
+  },
+  "PLANNED BY DAY 3": {
+    "tr": "3. GÜN PLANLI",
+    "ar": "مخطّط بحلول اليوم 3"
+  },
+  "VALUE": {
+    "tr": "DEĞER",
+    "ar": "القيمة"
+  },
+  "PROOF": {
+    "tr": "KANIT",
+    "ar": "الإثبات"
+  },
+  "BRAND": {
+    "tr": "MARKA",
+    "ar": "العلامة"
+  },
+  "CONSISTENT CADENCE": {
+    "tr": "TUTARLI RİTİM",
+    "ar": "إيقاع ثابت"
+  },
+  "Five execution systems connected to one strategy brief: SEO, paid ads, website, content and AI infrastructure": {
+    "tr": "Tek bir strateji brifine bağlı beş uygulama sistemi: SEO, ücretli reklam, web sitesi, içerik ve YZ altyapısı",
+    "ar": "خمسة أنظمة تنفيذ مرتبطة بموجز استراتيجي واحد: SEO والإعلانات المدفوعة والموقع والمحتوى والبنية التحتية للذكاء الاصطناعي"
+  },
+  "EXECUTION LAYER": {
+    "tr": "UYGULAMA KATMANI",
+    "ar": "طبقة التنفيذ"
+  },
+  "2 ACTIVE": {
+    "tr": "2 AKTİF",
+    "ar": "2 نشط"
+  },
+  "STRATEGY": {
+    "tr": "STRATEJİ",
+    "ar": "استراتيجية"
+  },
+  "BRIEF": {
+    "tr": "BRİF",
+    "ar": "موجز"
+  },
+  "ADS": {
+    "tr": "REKLAM",
+    "ar": "إعلانات"
+  },
+  "WEB": {
+    "tr": "WEB",
+    "ar": "ويب"
+  },
+  "CONTENT": {
+    "tr": "İÇERİK",
+    "ar": "محتوى"
+  },
+  "INDEPENDENTLY SCOPED": {
+    "tr": "BAĞIMSIZ KAPSAMLI",
+    "ar": "نطاق مستقل"
+  },
+  "TARGETS IN WRITING": {
+    "tr": "YAZILI HEDEFLER",
+    "ar": "أهداف مكتوبة"
+  },
+  "KEYWORD POSITIONS": {
+    "tr": "KELİME SIRALARI",
+    "ar": "مراكز الكلمات المفتاحية"
+  },
+  "MONTH 1": {
+    "tr": "1. AY",
+    "ar": "الشهر 1"
+  },
+  "MONTH 6": {
+    "tr": "6. AY",
+    "ar": "الشهر 6"
+  },
+  "FULL FUNNEL": {
+    "tr": "TAM HUNİ",
+    "ar": "القمع الكامل"
+  },
+  "AWARENESS": {
+    "tr": "BİLİNİRLİK",
+    "ar": "الوعي"
+  },
+  "RETARGETING": {
+    "tr": "YENİDEN HEDEF",
+    "ar": "إعادة الاستهداف"
+  },
+  "CONVERSION": {
+    "tr": "DÖNÜŞÜM",
+    "ar": "التحويل"
+  },
+  "CONVERSION PATH": {
+    "tr": "DÖNÜŞÜM YOLU",
+    "ar": "مسار التحويل"
+  },
+  "VALUE · PROOF · BRAND": {
+    "tr": "DEĞER · KANIT · MARKA",
+    "ar": "القيمة · الإثبات · العلامة"
+  },
+  "WORKFLOW": {
+    "tr": "İŞ AKIŞI",
+    "ar": "سير العمل"
+  },
+  "Search results page with your site climbing from position four to position one": {
+    "tr": "Sitenizin dördüncü sıradan birinci sıraya yükseldiği arama sonuçları sayfası",
+    "ar": "صفحة نتائج بحث يرتقي فيها موقعك من المركز الرابع إلى الأول"
+  },
+  "SEARCH RESULTS": {
+    "tr": "ARAMA SONUÇLARI",
+    "ar": "نتائج البحث"
+  },
+  "PAGE 1": {
+    "tr": "SAYFA 1",
+    "ar": "الصفحة 1"
+  },
+  "YOUR SITE": {
+    "tr": "SİTENİZ",
+    "ar": "موقعك"
+  },
+  "TECHNICAL · CONTENT · AUTHORITY": {
+    "tr": "TEKNİK · İÇERİK · OTORİTE",
+    "ar": "تقني · محتوى · موثوقية"
+  },
+  "COMPOUNDING": {
+    "tr": "BİRİKİMLİ",
+    "ar": "أثر تراكمي"
+  },
+  "A website and its mobile version assembling section by section, with the call to action highlighted and tracking active": {
+    "tr": "Bölüm bölüm oluşan bir web sitesi ve mobil sürümü; harekete geçirici öğe vurgulu, ölçüm etkin",
+    "ar": "موقع ونسخته للجوّال يُبنيان قسمًا بقسم، مع إبراز دعوة الإجراء وتفعيل التتبّع"
+  },
+  "BUILD · DESKTOP + MOBILE": {
+    "tr": "YAPIM · MASAÜSTÜ + MOBİL",
+    "ar": "البناء · سطح المكتب + الجوّال"
+  },
+  "TRACKING ON": {
+    "tr": "ÖLÇÜM AÇIK",
+    "ar": "التتبّع مفعّل"
+  },
+  "MOBILE FIRST": {
+    "tr": "ÖNCE MOBİL",
+    "ar": "الجوّال أولًا"
+  },
+  "DOMAIN IN YOUR NAME": {
+    "tr": "ALAN ADI SİZDE",
+    "ar": "النطاق باسمك"
+  },
+  "Deal pipeline: opportunities are sourced, screened and diligenced before an introduction is made": {
+    "tr": "Fırsat hattı: fırsatlar tanıştırmadan önce bulunur, elenir ve durum tespitinden geçer",
+    "ar": "مسار الصفقات: تُستقطب الفرص وتُفرز وتخضع للفحص النافي للجهالة قبل أي تعريف"
+  },
+  "DEAL PIPELINE": {
+    "tr": "FIRSAT HATTI",
+    "ar": "مسار الصفقات"
+  },
+  "ILLUSTRATIVE": {
+    "tr": "TEMSİLİ",
+    "ar": "توضيحي"
+  },
+  "01 · SOURCED": {
+    "tr": "01 · BULUNDU",
+    "ar": "01 · الاستقطاب"
+  },
+  "Mandate-matched opportunities": {
+    "tr": "Yetkiyle eşleşen fırsatlar",
+    "ar": "فرص مطابقة للتفويض"
+  },
+  "02 · SCREENED": {
+    "tr": "02 · ELENDİ",
+    "ar": "02 · الفرز"
+  },
+  "Business, market, founder": {
+    "tr": "İş, pazar, kurucu",
+    "ar": "النشاط والسوق والمؤسس"
+  },
+  "03 · DILIGENCE": {
+    "tr": "03 · İNCELEME",
+    "ar": "03 · الفحص"
+  },
+  "Commercial and strategic": {
+    "tr": "Ticari ve stratejik",
+    "ar": "تجاري واستراتيجي"
+  },
+  "04 · INTRODUCED": {
+    "tr": "04 · TANIŞTIRILDI",
+    "ar": "04 · التعريف"
+  },
+  "Thesis fit confirmed": {
+    "tr": "Tez uyumu doğrulandı",
+    "ar": "تأكيد ملاءمة الأطروحة"
+  },
+  "NO FUND · NO CAPITAL MANAGEMENT": {
+    "tr": "FON YOK · SERMAYE YÖNETİMİ YOK",
+    "ar": "لا صندوق · لا إدارة لرأس المال"
+  },
+  "ADVISOR, NOT PRINCIPAL": {
+    "tr": "DANIŞMAN, TARAF DEĞİL",
+    "ar": "مستشار لا طرف"
+  },
+  "STAGES": {
+    "tr": "AŞAMALAR",
+    "ar": "المراحل"
+  },
+  "PRE-SEED": {
+    "tr": "PRE-SEED",
+    "ar": "تمهيدية"
+  },
+  "SEED": {
+    "tr": "SEED",
+    "ar": "بذرة"
+  },
+  "SERIES A": {
+    "tr": "SERİ A",
+    "ar": "جولة A"
+  },
+  "B / C": {
+    "tr": "B / C",
+    "ar": "B / C"
+  },
+  "PRE-IPO": {
+    "tr": "PRE-IPO",
+    "ar": "قبل الطرح"
+  },
+  "STRUCTURES": {
+    "tr": "YAPILAR",
+    "ar": "الهياكل"
+  },
+  "Acquirer": {
+    "tr": "Alıcı",
+    "ar": "المستحوِذ"
+  },
+  "Target": {
+    "tr": "Hedef",
+    "ar": "المستهدَف"
+  },
+  "M&amp;A · JOINT VENTURE · DIRECT EQUITY · GREENFIELD": {
+    "tr": "M&A · ORTAK GİRİŞİM · DOĞRUDAN PAY · YENİ YATIRIM",
+    "ar": "الاندماج والاستحواذ · مشروع مشترك · ملكية مباشرة · استثمار جديد"
+  },
+  "SUB-SECTORS": {
+    "tr": "ALT SEKTÖRLER",
+    "ar": "القطاعات الفرعية"
+  },
+  "Payments": {
+    "tr": "Ödeme",
+    "ar": "الدفع"
+  },
+  "LendTech and credit": {
+    "tr": "Kredi teknolojileri",
+    "ar": "الإقراض والائتمان"
+  },
+  "InsurTech": {
+    "tr": "InsurTech",
+    "ar": "التأمين"
+  },
+  "WealthTech": {
+    "tr": "WealthTech",
+    "ar": "الثروات"
+  },
+  "Blockchain and digital assets": {
+    "tr": "Blokzincir ve dijital varlıklar",
+    "ar": "البلوك تشين والأصول الرقمية"
+  }
+}

@@ -42,7 +42,9 @@ async def run():
                         for m in BANNED.finditer(txt):
                             check(False, f'{tag} banned term in data view: …{txt[max(0, m.start() - 40):m.end() + 20]}…')
                         robots = await pg.evaluate("document.querySelector('meta[name=robots]')?.content || ''")
-                        if 'noindex' not in robots: check(False, f'{tag} not noindex')
+                        evergreen = re.match(r'^/desk/(?:(?:tr|ar)/)?(?:markets|intelligence)/', rt) is not None  # K-4b
+                        if evergreen and 'noindex' in robots: check(False, f'{tag} should be indexable (K-4b)')
+                        if not evergreen and 'noindex' not in robots: check(False, f'{tag} not noindex')
                         h1 = await pg.evaluate("document.querySelectorAll('h1').length")
                         if h1 != 1: check(False, f'{tag} h1 count {h1}')
                     st = await pg.evaluate("[Object.keys(localStorage).filter(k => !['nw-theme', 'nw-lang'].includes(k)).length, sessionStorage.length, document.cookie.length]")
@@ -72,6 +74,23 @@ async def run():
             check(len(vis) > 0 and set(vis) == {'inactive'}, f'/desk/{lp}intelligence/ filter shows only inactive methods ({len(vis)})')
             check(await pg.evaluate("document.querySelector('button[data-filter=inactive]').getAttribute('aria-pressed')") == 'true', f'/desk/{lp}intelligence/ filter state exposed with aria-pressed')
         await pg.goto(B + '/desk/?lang=en', wait_until='networkidle')  # visiting /desk/ar/ remembers Arabic; restore English for the checks below
+        # company site in three languages (SEO audit C-2): static pages, legacy ?lang= addresses move to the language path
+        cerr = []; pg.on('pageerror', lambda e: cerr.append(str(e)))
+        for path in ['/', '/about/', '/solutions/investment-arm/', '/contact/']:
+            for l in ['tr', 'ar']:
+                await pg.goto(B + f'/{l}{path}', wait_until='networkidle')
+                info = await pg.evaluate("[document.documentElement.lang, document.documentElement.dir, location.pathname, document.querySelector('link[rel=canonical]').href, document.documentElement.scrollWidth - innerWidth]")
+                check(info[0] == l and info[1] == ('rtl' if l == 'ar' else 'ltr') and info[2] == f'/{l}{path}' and info[3].endswith(f'/{l}{path}') and info[4] <= 0, f'/{l}{path} is a static {l} page (lang, dir, canonical, no overflow) {info}')
+        await pg.goto(B + '/about/?lang=tr', wait_until='networkidle')
+        check(await pg.evaluate('location.pathname') == '/tr/about/', 'legacy /about/?lang=tr moves to /tr/about/')
+        async with pg.expect_navigation(): await pg.evaluate("document.querySelector('a[data-l=en]').click()")
+        await pg.wait_for_load_state('networkidle')
+        check(await pg.evaluate('[location.pathname, document.documentElement.lang]') == ['/about/', 'en'], 'the EN language link leads to the English page and stays there')
+        await pg.goto(B + '/contact/', wait_until='networkidle')
+        check(await pg.evaluate("document.getElementById('f-p') && document.getElementById('f-p').value") == '/contact/', 'company form records the page it was sent from (path only)')
+        check(not cerr, 'no page errors on company pages' + (f': {cerr[:3]}' if cerr else ''))
+        await pg.evaluate('sessionStorage.clear()')  # the company language switch marks a page transition in sessionStorage
+        await pg.goto(B + '/desk/?lang=en', wait_until='networkidle')
         # theme (D-24): dark by default even on a light-preference device; a choice stays across Desk navigation
         tctx = await b.new_context(viewport={'width': 1440, 'height': 900}, color_scheme='light')
         tp = await tctx.new_page()
