@@ -31,8 +31,8 @@ findings text; every number, calculation, gate decision and publication step is 
 
 | Domain | Where it lives | Public? |
 |---|---|---|
-| A Market | `markets`, `districts`, research blocks (MARKET, MACRO_FX, DEVELOPER, PROJECT_ASSET, RISK, DISTRICT), named statistics (`evidence.topic`), private `regulatory_reviews` | market gate MG-1 computed per market (`engines/marketgate.mjs`); INACTIVE pending owner approval → nothing public |
-| B Macro & FX | evidence domain MACRO_FX → private facts; FX table in the analysis file | private (D-10) |
+| A Market | `markets`, `districts`, research blocks (MARKET, MACRO_FX, DEVELOPER, PROJECT_ASSET, RISK, DISTRICT), named statistics (`evidence.topic`), private `regulatory_reviews`; source of truth = the private store, published by `export-market` | public as research context (Markets pages, figures labelled with their verification status); activation only through the MG-1 gate (rules approved 28 Oct 2026) and the gate certificate |
+| B Macro & FX | market-level statistics (CPI, policy/base rate, FX reference) as evidence with `topic`; the analysis file's `fx[]` rows must reference that evidence (ANL-2: one source of truth) | market statistics public as context; D10 (prices, rents, returns) unchanged — no financial figure is public |
 | C District & location | `districts`, `areas`, evidence on district/area, project.district_id | yes, with evidence |
 | D Project & asset | `projects`, `assets`, evidence, media | yes, with evidence |
 | E Developer & brand | `developers`, evidence; brands/architects/collaborators recorded as evidence claims on the project or developer | developer yes; **canonical brand/collaborator records NOT IMPLEMENTED** (schema has no entity for them) |
@@ -48,42 +48,48 @@ findings text; every number, calculation, gate decision and publication step is 
    E2 Market & location     E3 Project/developer/brand     E4 Pricing & comparables    E6 Risk & exit
    (domain assessment)      (domain assessment)            (CMP-1, CNV-1)              (risk list)
                 │                         │                          │                         │
-                │                         │                 E5 Rental & financial (FIN-1)       │
+                │                         │                 E5 Rental & financial (FIN-2)       │
                 │                         │                          │                         │
                 └──────────────┬──────────┴───────────┬──────────────┴────────────┬────────────┘
                                ▼                      ▼                           ▼
-                     E7 Comparison & fit (FIT-1)  ────────►  E8 Decision report (RPT-1)
+                     E7 Comparison & fit (FIT-2)  ────────►  E8 Decision report (RPT-1)
 ```
 
 | Engine | Module | Methods | Status |
 |---|---|---|---|
 | 1 Evidence & data quality | `validate.mjs`, `assets/js/policy.js` | M-EVIDENCE, M-MISSING-DATA, M-RESEARCH-STATUS, M-PUBLICATION-GATE | public, implemented & tested |
-| 2 Market & location | `engines/report.mjs` §3; `engines/marketgate.mjs` | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate MG-1 implemented & tested, INACTIVE pending owner approval (D1/D3); ranking inactive |
+| 2 Market & location | `engines/report.mjs` §3; `engines/marketgate.mjs` | M-DOMAIN-ASSESSMENT; M-MARKET-GATE | domain assessment internal & tested; market gate MG-1 approved (28 Oct 2026), all three markets fail today; activation + `export-market` + certificate (D11/D12); ranking inactive |
 | 3 Project, developer & brand | `engines/report.mjs` §3, validator gate | M-DOMAIN-ASSESSMENT; M-ASSET-QUALITY | assessment internal & tested; asset quality inactive |
 | 4 Pricing & comparables | `engines/comparables.mjs`, `engines/units.mjs` | M-COMPARABLES (CMP-1), M-CONVERSION (CNV-1); M-FAIR-VALUE | internal & tested; fair value not implemented |
-| 5 Rental & financial | `engines/finance.mjs` | M-CASHFLOW, M-ROI, M-NPV, M-SCENARIOS (FIN-1); M-YIELD-RETURNS | internal & tested; public figures prohibited |
+| 5 Rental & financial | `engines/finance.mjs` | M-CASHFLOW, M-ROI, M-NPV, M-SCENARIOS, M-RETURN-VIEWS (FIN-2); M-YIELD-RETURNS (public figures) | internal & tested; public figures prohibited (D10) |
 | 6 Risk & exit | validator + report §5 | M-RISK-LIST; M-RISK-SEVERITY, M-LIQUIDITY | list public & tested; severity/liquidity inactive |
-| 7 Comparison & fit | `assets/js/compare.js`, `engines/fit.mjs` | Compare (public); M-INVESTMENT-FIT (FIT-1); M-AREA-RANKING | compare public; fit internal qualitative; ranking inactive (`rank()` refuses) |
+| 7 Comparison & fit | `assets/js/compare.js`, `engines/fit.mjs`, `engines/oppcompare.mjs` | Compare (public); M-INVESTMENT-FIT (FIT-2); M-OPPORTUNITY-COMPARISON (OPC-1); M-AREA-RANKING | compare public; fit internal qualitative; ranking inactive (`rank()` refuses) |
 | 8 Decision report | `engines/report.mjs`, `ingest.mjs report` | M-DECISION-REPORT (RPT-1) | internal & tested |
 
 ## 4. Method contracts (summary; code headers are authoritative)
 
-**FIN-1 — M-CASHFLOW / M-ROI / M-NPV / M-SCENARIOS** (`engines/finance.mjs`)
+**FIN-2 — M-CASHFLOW / M-ROI / M-NPV / M-SCENARIOS / M-RETURN-VIEWS** (`engines/finance.mjs`; FIN-1 results unchanged for whole-year payments)
 - Inputs: currency; horizon_years (1–50); delivery_year; acquisition {price, payments[{t, amount}]}; rent {gross_annual, occupancy, growth_rate}; operating {fixed_annual, pct_of_collected_rent}; tax {rental_income_rate, capital_gains_rate}; exit {sale_price | appreciation_rate, selling_cost_rate}; discount {rate, basis} for NPV only. Single currency (convert with CNV-1 first). Financing: UNSUPPORTED.
-- Rules: annual periods, t = 0 valuation, end-of-year flows; rent from delivery_year + 1; tax on positive net rent; capital-gains tax on gain over total invested.
-- Outputs: cash-flow table; ROI = Σ CF / total invested (total, unlevered, after the listed taxes, undiscounted); net rental yield of the first rented year (separate); NPV = Σ CF_t/(1+r)^t.
+- Rules: annual periods, t = 0 valuation, end-of-year flows; payments may fall within a year (decimal t) and are discounted at their exact time; rent from delivery_year + 1 (`gross_annual` = rent of the first rented year); tax on positive net rent; capital-gains tax on gain over total invested.
+- Outputs: cash-flow table; ROI = Σ CF / total invested (total over the horizon, not annual); annual IRR (bisection; AMBIGUOUS when flows change sign more than once); net rental yield of the first rented year (separate); NPV = Σ CF_t/(1+r)^t. Views (each only on recorded inputs with a basis): real terms (flows deflated by (1+π)^t; real IRR = (1+IRR)/(1+π) − 1) and home currency (each flow converted at spot·(1+change)^t). In TRY the report says when the real view is missing.
 - Missing data: any missing/invalid input → UNAVAILABLE with the list; no defaults (a zero tax rate must be stated).
-- Verification: hand-calculated case, Horner evaluation, textbook NPV = 0 case, r = 0 identity, timing shift test.
+- Verification: hand-calculated case, Horner evaluation, textbook NPV = 0 case, r = 0 identity, timing shift test; FIN-2: exact mid-year payment discounting, textbook IRR cases, IRR sets NPV to zero, hand-calculated real and home-currency views.
 
 **CMP-1 — M-COMPARABLES** · one price type; same area basis; same district by default; maximum age; observation not after as-of; FX via CNV-1 at the observation date; minimum sample ≥ 3 (set per analysis); exclusions listed; median and interquartile range (linear interpolation); no adjustments; never a fair value. Fewer than the minimum → INSUFFICIENT_SAMPLE, no statistics.
 
 **CNV-1 — M-CONVERSION** · dated rates from the recorded table only; no live, cross or future rates; maximum age (default 7 days); m² ↔ ft² exact; gross ↔ net never.
 
-**FIT-1 — M-INVESTMENT-FIT** · criteria: objective, market, delivery status, horizon to delivery, excluded risk types, budget (needs private price evidence). Each MATCH / NO_MATCH / CANNOT_CONFIRM; outcome NOT_SUITABLE / INSUFFICIENT_DATA / CRITERIA_MET. No score, weight or ranking.
+**FIT-2 — M-INVESTMENT-FIT** · criteria: objective, market, delivery status, horizon to delivery, excluded risk types, budget (lowest recorded price + recorded acquisition costs). Each criterion is HARD unless listed in `preferences`; results MATCH / NO_MATCH / CANNOT_CONFIRM / DIFFERS_FROM_PREFERENCE; outcome NOT_SUITABLE (a hard criterion fails) / INSUFFICIENT_DATA / CRITERIA_MET_WITH_DIFFERENCES / CRITERIA_MET. Budget is always hard. No score, weight or ranking.
 
 **RPT-1 — M-DECISION-REPORT** · sections: overview, facts with evidence labels and freshness, domain assessments, findings (evidence required), risks, conflicts and gaps, method eligibility, financial scenarios with input provenance, comparables, fit, limitations, next steps, conclusion. Never a score, ranking or buy recommendation. Written only to `<store>/reports/`.
 
-**ANL-1 — analysis handoff** · every number `{value, ref}`; refs resolve to evidence, private facts or ASSUMPTION (note required); a value that differs from its record needs a derivation note; findings need evidence. Refused files write nothing.
+**ANL-2 — analysis handoff** · every number `{value, ref}`; refs resolve to evidence, private facts or ASSUMPTION (note required); a value that differs from its record needs a derivation note; findings need evidence; every `fx[]` row references the evidence or private fact of that rate, with the same value (or its inverse) and date. Refused files write nothing.
+
+**MG-1 / MGE-1 — market gate and public activation** · `activate-market` (store; gate must pass; writes the review stamp and a non-confidential gate certificate: versions, evaluation time, waived per-opportunity requirements, topics with counsel conditions) → `export-market` (public tree: market record, districts, public-safe market research; the store is the source of truth) → `deactivate-market` (rollback; refused while an opportunity of the market is published). Public validator: an ACTIVE market needs the stamp and certificate (V21); its public evidence is re-checked and, when it ages out, new publications are blocked and a W04 warning is raised (deployments are not blocked).
+
+**Disclosure templates (K-3)** · `desk/_tools/disclosures/standard.json`; `approve-disclosure-template --by owner` binds the exact text (SHA-256); opportunities created from an approved template get APPROVED disclosures; a changed text needs a new approval.
+
+**Indexing (K-4)** · Desk is `noindex` until the first opportunity is published; then Explore, Markets, Intelligence and published opportunity pages are indexable (build rule, tested).
 
 ## 5. Public / private policy (unchanged in this work)
 

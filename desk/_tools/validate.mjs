@@ -297,12 +297,18 @@ export function validateDataset(ds, opts) {
   const marketGateOn = !!(opts.methods && opts.methods['M-MARKET-GATE'] === 'ACTIVE');
   const MG = opts.marketGates || null;
   const gateResults = {};
+  // private store (review records available): the full gate. Public tree: everything except the private statutory
+  // records, whose clearance is attested by the market's gate certificate (D11/D12).
+  const privateGate = !!(MG && Array.isArray(MG.reviews));
   const gateFor = (id) => {
-    if (!MG || !Array.isArray(MG.reviews)) return null; // public: no private review records, use the activation stamp
-    if (!(id in gateResults)) gateResults[id] = evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: MG.reviews, provenance: MG.provenance || null });
+    if (!MG || !MG.config || MG.config.error) return null;
+    if (!(id in gateResults)) gateResults[id] = privateGate
+      ? evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: MG.reviews, provenance: MG.provenance || null })
+      : evaluateMarketGate(MG.config, id, ds.collections, { today, reviews: [], provenance: null, skipReviews: true });
     return gateResults[id];
   };
   const stampOk = (m) => !!(MG && MG.config && !MG.config.error && MG.config.markets && MG.config.markets[m.id] && m.review && m.review.gate_version === MG.config.version);
+  const certOk = (m) => !!(stampOk(m) && m.gate_certificate && m.gate_certificate.gate_version === MG.config.version && m.gate_certificate.engine_version && m.gate_certificate.activated_at);
   for (const r of C('risks')) {
     if ((r.probability !== null || r.severity !== null) && isEmpty(r.evidence_ids)) E('V09', r.id, 'severity/probability requires supporting evidence');
     const isPublic = ds.origin ? ds.origin[r.id] === 'public' : mode === 'public';
@@ -397,8 +403,14 @@ export function validateDataset(ds, opts) {
     if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) why.push('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)');
     if (m && !String(m.r.id).startsWith('FIX-') && marketGateOn && MG) {
       const g = gateFor(m.r.id);
-      if (g && !g.pass) why.push(`market gate ${g.gate_version} fails for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`);
-      if (!g && !stampOk(m.r)) why.push(`market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp`);
+      if (!g) why.push(`market ${m.r.id}: market-gate configuration unavailable`);
+      else if (!g.pass) {
+        // public tree: a market whose public evidence has aged out blocks NEW publication; already-published records only
+        // warn (W01), as for opportunity evidence (D4). In the private store the full gate decides.
+        const w = `market gate ${g.gate_version} ${privateGate ? 'fails' : 'no longer passes on the public evidence'} for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`;
+        why.push(w); if (!privateGate) fresh.add(w);
+      }
+      if (!privateGate && !certOk(m.r)) why.push(`market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp and gate certificate`);
     }
     if (!cat || cat.activation !== 'ACTIVE') why.push('category inactive');
     const p = r.subject && get(r.subject.id); const pr = p && p.r;
@@ -441,7 +453,7 @@ export function validateDataset(ds, opts) {
       for (const i of r.disclosure_ids || []) closure.add(i);
       for (const i of closure) if (commercialHits.has(i)) why.push(`${i} has a price or commercial term in free text`);
       // market-specific per-opportunity requirements (MG-1 publication rules: registration, permits, title status)
-      if (m && !String(m.r.id).startsWith('FIX-') && MG && marketGateOn) for (const w of opportunityRequirementReasons(MG.config, m.r.id, pr, ds.collections, { today, reviews: Array.isArray(MG.reviews) ? MG.reviews : null })) why.push(w);
+      if (m && !String(m.r.id).startsWith('FIX-') && MG && marketGateOn) for (const w of opportunityRequirementReasons(MG.config, m.r.id, pr, ds.collections, { today, reviews: Array.isArray(MG.reviews) ? MG.reviews : null, certificate: m.r.gate_certificate || null })) why.push(w);
     }
     // every applicable disclosure must be legally approved — one approved notice never covers a pending one (audit B1)
     for (const d of applicableDisclosures(C('disclosures'), r)) {
@@ -470,8 +482,11 @@ export function validateDataset(ds, opts) {
     // MG-1: a real market is never ACTIVE while its computed gate fails (store), nor without the activation stamp (public)
     if (marketGateOn && MG && !String(r.id).startsWith('FIX-') && live) {
       const g = gateFor(r.id);
-      if (g && !g.pass) E('V21', r.id, `market is ${r.activation}/${r.record_status} but its computed gate ${g.gate_version} fails: ${g.reasons.map(x => `${x.code} ${x.item}`).join('; ')}`);
+      if (g && !g.pass && privateGate) E('V21', r.id, `market is ${r.activation}/${r.record_status} but its computed gate ${g.gate_version} fails: ${g.reasons.map(x => `${x.code} ${x.item}`).join('; ')}`);
+      // public tree: ageing market evidence must not block every later deployment (including a withdrawal), so it warns
+      if (g && !g.pass && !privateGate) W('W04', r.id, `active market whose public gate evidence no longer passes (${g.reasons.map(x => `${x.code} ${x.item}`).slice(0, 6).join('; ')}); new opportunities are blocked until the evidence is refreshed (export-market) or the market is deactivated`);
       if (!stampOk(r)) E('V21', r.id, `market is ${r.activation}/${r.record_status} without the ${MG.config && MG.config.version || 'market-gate'} activation stamp (review.gate_version); only activate-market may activate a market`);
+      else if (!r.gate_certificate || r.gate_certificate.gate_version !== MG.config.version) E('V21', r.id, `market is ${r.activation}/${r.record_status} without a ${MG.config.version} gate certificate; only activate-market writes it`);
     }
   }
   for (const r of C('opportunities')) {

@@ -15,7 +15,7 @@ fs.mkdirSync(out, { recursive: true });
 const log = []; const step = (t, r) => { log.push(`## ${t}\n\n\`\`\`\n${(r && r.out ? r.out : String(r || '')).trim()}\n\`\`\`\n`); return r; };
 const analysis = {
   opportunity_id: OPP, as_of: TODAY,
-  fx: [{ base: 'EUR', quote: 'TRY', rate: 40, date: '2026-10-24', source: 'DEMONSTRATION rate (not a CBRT figure)' }],
+  fx: [],
   finance: {
     currency: 'TRY', horizon_years: { value: 5, ref: 'ASSUMPTION', note: 'DEMO investor horizon' }, delivery_year: { value: 2, ref: 'ASSUMPTION', note: 'DEMO delivery two years after purchase (developer claim)' },
     acquisition: { price: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'DEMO price-list line' }, payments: [{ t: 0, amount: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'DEMO full payment at signing' }, label: 'price' }] },
@@ -23,7 +23,9 @@ const analysis = {
     operating: { fixed_annual: { value: 20000, ref: 'ASSUMPTION', note: 'DEMO building fees' }, pct_of_collected_rent: { value: 0.1, ref: 'ASSUMPTION', note: 'DEMO management fee' } },
     tax: { rental_income_rate: { value: 0.15, ref: 'ASSUMPTION', note: 'DEMO flat rate; a real case needs tax advice' }, capital_gains_rate: { value: 0, ref: 'ASSUMPTION', note: 'DEMO exemption assumption' } },
     exit: { appreciation_rate: { value: 0.25, ref: 'ASSUMPTION', note: 'DEMO nominal price growth' }, selling_cost_rate: { value: 0.03, ref: 'ASSUMPTION', note: 'DEMO agency and title costs' } },
-    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'DEMO investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (DEMO)' }
+    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'DEMO investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (DEMO)' },
+    views: { inflation: { rate: { value: 0.3, ref: 'ASSUMPTION', note: 'DEMO annual inflation near the recorded September 2026 CPI' }, basis: 'DEMO assumption: 30% a year, close to TÜİK annual CPI for Sep 2026 as reported' },
+      home_currency: { code: 'USD', spot: { value: 41, ref: 'ASSUMPTION', note: 'DEMO USD/TRY spot, not a CBRT figure' }, annual_change: { value: 0.2, ref: 'ASSUMPTION', note: 'DEMO assumed lira depreciation a year' }, basis: 'DEMO spot and depreciation path; not a forecast' } }
   },
   scenarios: { adverse: { rent: { occupancy: { value: 0.7, ref: 'ASSUMPTION', note: 'DEMO weak letting market' } } }, favourable: { exit: { appreciation_rate: { value: 0.3, ref: 'ASSUMPTION', note: 'DEMO stronger price growth' } } } },
   findings: [{ type: 'STRENGTH', class: 'FACT', text: 'Project identity confirmed in the (illustrative) title registry record.', refs: ['EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001'] }],

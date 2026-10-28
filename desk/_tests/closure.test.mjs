@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { validateDataset, validateRepo } from '../_tools/validate.mjs';
 import { MATERIAL_FIELDS, IDENTITY_FIELDS, evidenceFreshness, claimPublication } from '../assets/js/policy.js';
-import { ROOT, TODAY, readJson, writeJson, tmpRepo, codes, cli, snap, OPP, PRJ, realSetup, publishedSetup, approveImages, pub, enableTestMarketGate } from './helpers.mjs';
+import { ROOT, TODAY, readJson, writeJson, tmpRepo, codes, cli, snap, OPP, PRJ, realSetup, publishedSetup, approveImages, pub, enableTestMarketGate, disableTestMarketGate } from './helpers.mjs';
 
 const GATE_ON = { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' };
 const GATE_OFF = { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'INACTIVE' };
@@ -122,15 +122,15 @@ test('T1 (end to end): a package without location or relationship evidence canno
   } finally { p.cleanup(); }
 });
 
-// ================================================================== Task 2 — market gate (MG-1 implemented, INACTIVE pending owner approval; fail closed)
-test('T2: the registry records the gate as implemented but not approved; no market is active or published', () => {
+// ================================================================== Task 2 — market gate (MG-1 approved 28 Oct 2026; every market fails closed until its own gate passes)
+test('T2: the registry records the gate as implemented and approved; no market is active or published', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods.find(m => m.id === 'M-MARKET-GATE');
-  assert.equal(reg.status, 'INACTIVE'); assert.equal(reg.validation_status, 'IMPLEMENTED_PENDING_OWNER_APPROVAL'); assert.equal(reg.implemented, true); assert.equal(reg.contract, 'MG-1'); assert.equal(reg.internal, undefined);
+  assert.equal(reg.status, 'ACTIVE'); assert.equal(reg.validation_status, 'RULES_APPROVED'); assert.equal(reg.implemented, true); assert.equal(reg.contract, 'MG-1'); assert.equal(reg.internal, undefined);
   const mk = readJson(path.join(ROOT, 'desk/data/public/markets.json')).records;
   assert.deepEqual(mk.map(m => [m.id, m.activation]), [['MKT-IST', 'INACTIVE'], ['MKT-DXB', 'INACTIVE'], ['MKT-AUH', 'INACTIVE']]);
   const r = validateRepo(ROOT, { today: TODAY });
   assert.deepEqual(r.errors, []); assert.deepEqual(r.report.index.markets, []); assert.deepEqual(r.report.index.opportunities, []);
-  assert.equal(r.report.methods['M-MARKET-GATE'], 'INACTIVE');
+  assert.equal(r.report.methods['M-MARKET-GATE'], 'ACTIVE');
   // generated market pages label every market inactive / in research — never "Active"
   for (const slug of ['istanbul', 'dubai', 'abu-dhabi']) assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'desk/markets', slug, 'index.html'), 'utf8'), /Market · Active/);
 });
@@ -138,6 +138,7 @@ test('T2: the registry records the gate as implemented but not approved; no mark
 test('T2: fail closed — activating a real market by hand is a validation error (V21), with or without registry approval', () => {
   const repo = tmpRepo();
   try {
+    disableTestMarketGate(repo); // the state before owner approval
     const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
     mk.records[0].activation = 'ACTIVE'; writeJson(mp, mk);
     const e = validateRepo(repo, { today: TODAY }).errors;

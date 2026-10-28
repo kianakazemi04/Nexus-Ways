@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, TODAY, readJson, writeJson, tmp, tmpRepo, cli, enableTestMarketGate } from './helpers.mjs';
+import { ROOT, TODAY, readJson, writeJson, tmp, tmpRepo, cli, enableTestMarketGate, disableTestMarketGate } from './helpers.mjs';
 import { loadGateConfig, evaluateMarketGate, opportunityRequirementReasons, configProblems, periodEnd, CONFIG_PATH } from '../_tools/engines/marketgate.mjs';
 import { validateDataset, validateRepo } from '../_tools/validate.mjs';
 import { gateDataset, requirementEvidence, sub } from './marketgate-data.mjs';
@@ -270,7 +270,7 @@ const ON = { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' };
 for (const id of MARKETS) {
   test(`${id}: validator — a hand-activated market is V21 while its computed gate fails; the stamp alone is not enough`, () => {
     const d = clone(gateDataset(CFG, id, TODAY));
-    Object.assign(d.collections.markets[0], { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' } });
+    Object.assign(d.collections.markets[0], { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, gate_certificate: { gate_version: 'MG-1', engine_version: 'MGE-1', evaluated_at: `${TODAY}T00:00:00Z`, activated_at: TODAY, waived_requirements: [], conditions_topics: [] } });
     const v = (ds, reviews) => validateDataset({ collections: ds.collections }, { mode: 'private', today: TODAY, methods: ON, marketGates: { config: CFG, reviews, provenance: ds.provenance } }).errors.filter(e => e.code === 'V21');
     assert.deepEqual(v(d, d.reviews), [], 'passing gate + stamp: no V21');
     const stale = clone(d); stale.collections.evidence = stale.collections.evidence.filter(e => e.topic !== CFG.markets[id].fx.reference);
@@ -281,15 +281,24 @@ for (const id of MARKETS) {
     // public tree: no review records → the stamp is required
     const pubErr = validateDataset({ collections: nostamp.collections }, { mode: 'public', today: TODAY, methods: ON, marketGates: { config: CFG, reviews: null } }).errors.filter(e => e.code === 'V21');
     assert.ok(pubErr.some(e => /activation stamp/.test(e.msg)));
+    // public tree with stamp + certificate: no V21; the statutory part is attested by the certificate
+    const pub = (ds) => validateDataset({ collections: ds.collections }, { mode: 'public', today: TODAY, methods: ON, marketGates: { config: CFG, reviews: null } });
+    assert.deepEqual(pub(d).errors.filter(e => e.code === 'V21'), []);
+    const nocert = clone(d); nocert.collections.markets[0].gate_certificate = null;
+    assert.ok(pub(nocert).errors.some(e => e.code === 'V21' && /gate certificate/.test(e.msg)));
+    // public evidence that no longer passes: a warning (W04), never a deployment-blocking error
+    const pubStale = pub(stale);
+    assert.ok(pubStale.warnings.some(w => w.code === 'W04') && !pubStale.errors.some(e => e.code === 'V21'));
     // registry not approved → V21 for any activation, whatever the data
     assert.ok(validateDataset({ collections: d.collections }, { mode: 'private', today: TODAY, methods: { 'M-MARKET-GATE': 'INACTIVE' }, marketGates: { config: CFG, reviews: d.reviews } }).errors.some(e => e.code === 'V21'));
   });
 }
 
 // ------------------------------------------------------------------ the real repository
-test('real repository: all three markets INACTIVE, gate INACTIVE pending owner approval; each market fails closed on the public data', () => {
+test('real repository: gate rules approved (owner, 28 Oct 2026); all three markets INACTIVE and each fails closed on the public data', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods.find(m => m.id === 'M-MARKET-GATE');
-  assert.deepEqual([reg.status, reg.validation_status, reg.implemented, reg.contract, reg.tests], ['INACTIVE', 'IMPLEMENTED_PENDING_OWNER_APPROVAL', true, 'MG-1', 'desk/_tests/marketgate.test.mjs']);
+  assert.deepEqual([reg.status, reg.validation_status, reg.implemented, reg.contract, reg.tests], ['ACTIVE', 'RULES_APPROVED', true, 'MG-1', 'desk/_tests/marketgate.test.mjs']);
+  assert.match(reg.approved, /owner instruction 28 Oct 2026/);
   const pubC = {}; for (const f of fs.readdirSync(path.join(ROOT, 'desk/data/public')).filter(f => f.endsWith('.json') && f !== 'published.json')) pubC[f.slice(0, -5)] = readJson(path.join(ROOT, 'desk/data/public', f)).records;
   for (const id of MARKETS) {
     const m = pubC.markets.find(x => x.id === id); assert.equal(m.activation, 'INACTIVE'); assert.notEqual(m.record_status, 'PUBLISHED');
@@ -310,7 +319,7 @@ const storeWithMarkets = (repo) => {
 const review = (repo, S, id, t, extra = []) => cli(repo, ['record-review', ...S, '--market', id, '--topic', t.key, '--status', 'COMPLETE', '--outcome', 'CLEAR', '--reviewer', 'TEST-ONLY counsel', '--role', CFG.markets[id].regulatory_review.reviewer_roles[0], '--reference', `TEST-ONLY memo ${t.key}`, '--reviewed-at', sub(TODAY, 5), '--by', 'owner', ...extra]);
 
 test('commands: market-intake + record-review + market-gate; activate-market is refused while the owner has not approved the gate rules', () => {
-  const repo = tmpRepo(); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
+  const repo = tmpRepo(); disableTestMarketGate(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
   try {
     // nothing recorded: every market fails, with machine-readable reasons written to the private store
     let r = cli(repo, ['market-gate', ...S]); assert.equal(r.code, 0, r.out);
@@ -381,4 +390,68 @@ test('market intake refuses records outside the market, currency amounts and uno
     const other = { ...clone(d), intake_id: 'MI-IST-OTHER' }; writeJson(f, other);
     assert.match(cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']).out, /already exists and was not created by MI-IST-OTHER/);
   } finally { for (const x of [repo, store, pkgDir]) fs.rmSync(x, { recursive: true, force: true }); }
+});
+
+// ------------------------------------------------------------------ public market activation (D11/D12)
+test('certificate: a counsel waiver reaches the public check only through the gate certificate of the same version', () => {
+  const p = { id: 'PRJ-DXB-T', market_id: 'MKT-DXB', delivery_status: 'COMPLETED' };
+  const d = requirementEvidence(CFG, 'MKT-DXB', p.id, TODAY); d.evidence = d.evidence.filter(e => e.topic !== 'DXB-ADVERTISING-PERMIT');
+  const cert = { gate_version: 'MG-1', waived_requirements: ['DXB-ADVERTISING-PERMIT'] };
+  assert.deepEqual(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: cert }), []);
+  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, gate_version: 'MG-0' } }).some(w => w.includes('DXB-ADVERTISING-PERMIT')), 'other gate version: not honoured');
+  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, d, { today: TODAY, reviews: null, certificate: { ...cert, waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-ADVERTISING-PERMIT')));
+  // a requirement without a basis review can never be waived, even if a certificate lists it
+  const e2 = requirementEvidence(CFG, 'MKT-DXB', p.id, TODAY); e2.evidence = e2.evidence.filter(e => e.topic !== 'DXB-PROJECT-REGISTRATION');
+  assert.ok(opportunityRequirementReasons(CFG, 'MKT-DXB', p, e2, { today: TODAY, reviews: null, certificate: { gate_version: 'MG-1', waived_requirements: ['DXB-PROJECT-REGISTRATION'] } }).some(w => w.includes('DXB-PROJECT-REGISTRATION')));
+});
+
+test('commands (simulated owner approval): activate → export-market publishes the market with its certificate; deactivate-market rolls back', () => {
+  const repo = tmpRepo(); enableTestMarketGate(repo); const store = storeWithMarkets(repo); const S = ['--store', store]; const pkgDir = tmp('desk-mg-pkg-');
+  try {
+    const f = path.join(pkgDir, 'dxb.json'); writeJson(f, gateDataset(CFG, 'MKT-DXB', TODAY).intake);
+    assert.equal(cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']).code, 0);
+    for (const t of CFG.markets['MKT-DXB'].regulatory_review.topics) {
+      const extra = t.key === 'DXB-ADVERTISING-PERMIT' ? ['--outcome', 'NOT_APPLICABLE'] : ['--outcome', 'CLEAR'];
+      const r = cli(repo, ['record-review', ...S, '--market', 'MKT-DXB', '--topic', t.key, '--status', 'COMPLETE', ...extra, '--reviewer', 'TEST-ONLY counsel', '--role', 'LICENSED_COUNSEL_UAE', '--reference', `TEST-ONLY memo ${t.key}`, '--reviewed-at', sub(TODAY, 5), '--by', 'owner']);
+      assert.equal(r.code, 0, r.out);
+    }
+    // not yet activated: export refused, nothing changes
+    const before = fs.readFileSync(path.join(repo, 'desk/data/public/markets.json'), 'utf8');
+    let r = cli(repo, ['export-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.notEqual(r.code, 0); assert.match(r.out, /not activated in the store/);
+    assert.notEqual(cli(repo, ['export-market', ...S, '--id', 'MKT-DXB']).code, 0, 'needs --by owner');
+    assert.equal(fs.readFileSync(path.join(repo, 'desk/data/public/markets.json'), 'utf8'), before);
+    r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 0, r.out);
+    const sm = readJson(path.join(store, 'data/markets.json')).records.find(m => m.id === 'MKT-DXB');
+    assert.deepEqual(sm.gate_certificate.waived_requirements, ['DXB-ADVERTISING-PERMIT']);
+    assert.ok(!JSON.stringify(sm.gate_certificate).includes('TEST-ONLY memo'), 'the certificate carries no review text');
+    r = cli(repo, ['export-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 0, r.out);
+    const pm = readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === 'MKT-DXB');
+    assert.equal(pm.activation, 'ACTIVE'); assert.equal(pm.review.gate_version, 'MG-1'); assert.deepEqual(pm.gate_certificate, sm.gate_certificate);
+    const ev = readJson(path.join(repo, 'desk/data/public/evidence.json')).records;
+    assert.ok(!ev.some(e => /^EVD-MKT-DXB-/.test(e.id) || /^EVD-DST-DXB-/.test(e.id)), 'the previous public research for Dubai is replaced by the store’s');
+    assert.ok(ev.some(e => /^EVD-DXB-MG-/.test(e.id)));
+    const v = validateRepo(repo, { today: TODAY }); assert.deepEqual(v.errors, []);
+    assert.deepEqual(v.report.index.markets, ['MKT-DXB']);
+    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-gate="pass"/);
+    for (const id of ['MKT-IST', 'MKT-AUH']) assert.equal(readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === id).activation, 'INACTIVE', `${id} unaffected`);
+    // rollback
+    assert.notEqual(cli(repo, ['deactivate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']).code, 0, '--reason required');
+    r = cli(repo, ['deactivate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner', '--reason', 'TEST-ONLY rollback']); assert.equal(r.code, 0, r.out);
+    const pm2 = readJson(path.join(repo, 'desk/data/public/markets.json')).records.find(m => m.id === 'MKT-DXB');
+    assert.equal(pm2.activation, 'INACTIVE'); assert.equal(pm2.gate_certificate, null); assert.equal(pm2.review, null);
+    assert.deepEqual(validateRepo(repo, { today: TODAY }).errors, []);
+    assert.match(fs.readFileSync(path.join(repo, 'desk/markets/dubai/index.html'), 'utf8'), /data-gate="fail"/);
+    const audit = readJson(path.join(store, 'private/audit_log.json')).map(a => a.action);
+    for (const a of ['activate-market', 'export-market', 'deactivate-market']) assert.ok(audit.includes(a), a);
+  } finally { for (const x of [repo, store, pkgDir]) fs.rmSync(x, { recursive: true, force: true }); }
+});
+
+test('a hand-edited ACTIVE public market without a certificate is refused (V21) even with the stamp', () => {
+  const repo = tmpRepo(); enableTestMarketGate(repo);
+  try {
+    const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
+    Object.assign(mk.records.find(m => m.id === 'MKT-IST'), { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' } });
+    writeJson(mp, mk);
+    assert.ok(validateRepo(repo, { today: TODAY }).errors.some(e => e.code === 'V21' && e.id === 'MKT-IST' && /gate certificate/.test(e.msg)));
+  } finally { fs.rmSync(repo, { recursive: true, force: true }); }
 });

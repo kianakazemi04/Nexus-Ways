@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nexus-ways.com/desk/_schema/schema-v1.1.json",
   "title": "Nexus Desk MVP data schema",
-  "description": "v1.1. Public projection contract: additionalProperties:false makes each entity an allow-list. Internal-only entities (price_observation, rental_observation) are NOT part of this schema and must never be committed to the public repository. Deviations from v1 are recorded in the decision log (S-01..S-15).",
+  "description": "v1.1. Public projection contract: additionalProperties:false makes each entity an allow-list. Internal-only entities (price_observation, rental_observation) are NOT part of this schema and must never be committed to the public repository. Deviations from v1 are recorded in the decision log (S-01..S-16).",
   "x-schema-version": "1.1",
   "x-gate-version": "G3-v1",
   "type": "object",
@@ -96,7 +96,7 @@
         "summary": { "$ref": "#/$defs/text_or_null" },
         "research_block_ids": { "$ref": "#/$defs/ids" }, "evidence_ids": { "$ref": "#/$defs/ids" },
         "field_states": { "$ref": "#/$defs/field_states" }, "last_reviewed": { "$ref": "#/$defs/date_or_null" },
-        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }
+        "is_illustrative": { "type": "boolean" }, "review": { "$ref": "#/$defs/review" }, "gate_certificate": { "description": "S-16: non-confidential market gate certificate written by activate-market (owner decisions D11/D12). Required by the validator for an ACTIVE real market.", "oneOf": [ { "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["gate_version", "engine_version", "evaluated_at", "activated_at", "waived_requirements", "conditions_topics"], "properties": { "gate_version": { "type": "string" }, "engine_version": { "type": "string" }, "evaluated_at": { "type": "string", "minLength": 10 }, "activated_at": { "$ref": "#/$defs/date" }, "waived_requirements": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]*$" } }, "conditions_topics": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9-]*$" } } } } ] }
       }
     },
     "districts": {

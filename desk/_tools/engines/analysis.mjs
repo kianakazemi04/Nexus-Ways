@@ -7,7 +7,7 @@
 // A bare number (other than the period index `t`) is refused. Findings (strengths, weaknesses) need at least one
 // evidence reference; a finding with none is refused. Nothing here is ever exported to public data.
 
-export const ANL_VERSION = 'ANL-1';
+export const ANL_VERSION = 'ANL-2';
 const isWrapped = (v) => v && typeof v === 'object' && !Array.isArray(v) && 'value' in v && 'ref' in v;
 
 // resolveRef(ref) -> { kind: 'evidence'|'private'|'assumption', id, publicClaim?: bool } | null
@@ -54,9 +54,16 @@ export function checkAnalysis(doc, store, oppId) {
   const resolve = makeResolver(store);
   const out = { opportunity_id: doc.opportunity_id, as_of: doc.as_of, fx: [], finance: null, scenarios: {}, comparables: null, price_evidence: null, investor_profile: null, findings: [] };
   const provenance = [];
+  // FX has one source of truth (audit C-05): every rate in the analysis must reference the evidence or private fact it
+  // comes from (e.g. the market's CBRT / CBUAE rate evidence); the rate and date must match that record.
   for (const [i, r] of (doc.fx || []).entries()) {
-    if (!r || !r.base || !r.quote || typeof r.rate !== 'number' || !r.date || !r.source) errors.push(`fx[${i}]: base, quote, rate, date and source required`);
-    else out.fx.push(r);
+    if (!r || !r.base || !r.quote || typeof r.rate !== 'number' || !r.date || !r.source) { errors.push(`fx[${i}]: base, quote, rate, date and source required`); continue; }
+    if (!r.ref || r.ref === 'ASSUMPTION') { errors.push(`fx[${i}]: ref required — the evidence ID or PRIVATE:… fact the rate comes from (an assumed rate is not an FX table entry)`); continue; }
+    const res = resolve(r.ref);
+    if (!res) { errors.push(`fx[${i}]: reference ${r.ref} not found in the store`); continue; }
+    if (typeof res.value === 'number' && Math.abs(res.value - r.rate) > 1e-9 && Math.abs(1 / res.value - r.rate) > 1e-9) errors.push(`fx[${i}]: rate ${r.rate} differs from ${r.ref} (${res.value})`);
+    if (res.kind === 'evidence' && /^\d{4}-\d{2}-\d{2}$/.test(res.evidence.period || '') && res.evidence.period !== r.date) errors.push(`fx[${i}]: date ${r.date} differs from the observation date of ${r.ref} (${res.evidence.period})`);
+    out.fx.push(r); provenance.push({ path: `$.fx[${i}].rate`, value: r.rate, ref: r.ref, kind: res.kind, note: null });
   }
   const take = (key, node) => { if (node === undefined || node === null) return null; const u = unwrap(node, resolve, `$.${key}`); errors.push(...u.errors); provenance.push(...u.provenance); return u.value; };
   out.finance = take('finance', doc.finance);

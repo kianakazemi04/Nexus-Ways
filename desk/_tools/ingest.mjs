@@ -6,6 +6,7 @@
 //   node desk/_tools/ingest.mjs gate    --store <dir> [--fixture]
 //   node desk/_tools/ingest.mjs report  --store <dir> --id <OPP-…> [--analysis <file>]   (internal decision report; private)
 //   node desk/_tools/ingest.mjs approve-disclosure --store <dir> --id <DSC-…> --by owner  (after counsel approves the text)
+//   node desk/_tools/ingest.mjs approve-disclosure-template --store <dir> --id DT-… --by owner [--reference "…"]  (once per standard text)
 //   node desk/_tools/ingest.mjs approve --store <dir> --id <OPP-…> --by owner      (only on the owner's explicit instruction)
 //   node desk/_tools/ingest.mjs export  --store <dir> --id <OPP-…> --repo <root>   (only after approval; writes public projection)
 //   node desk/_tools/ingest.mjs approve-media --store <dir> --id <MED-…> --by owner  (each image, after checking its permission)
@@ -19,6 +20,8 @@
 //        --reviewer "…" --role <ROLE> --reference "…" --reviewed-at YYYY-MM-DD [--valid-until …] [--conditions "a|b"] --by owner
 //   node desk/_tools/ingest.mjs market-gate    --store <dir> [--id <MKT-…>]   (computed gate per market; private report)
 //   node desk/_tools/ingest.mjs activate-market --store <dir> --id <MKT-…> --by owner   (refused unless its gate passes)
+//   node desk/_tools/ingest.mjs export-market --store <dir> --id <MKT-…> --by owner      (activated market → public tree)
+//   node desk/_tools/ingest.mjs deactivate-market --store <dir> --id <MKT-…> --by owner --reason "…"
 //   node desk/_tools/ingest.mjs recover  --store <dir>            (roll back an interrupted write in the store and desk/)
 //   node desk/_tools/ingest.mjs unlock   --store <dir> --force [--public]   (only after checking no command is running)
 //
@@ -32,7 +35,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures, schemaErrors, projectPermissionProblems } from './validate.mjs';
-import { loadGateConfig, evaluateMarketGate, gateMarkdown, REVIEW_STATUS, REVIEW_OUTCOME } from './engines/marketgate.mjs';
+import { loadGateConfig, evaluateMarketGate, gateMarkdown, gateCertificate, REVIEW_STATUS, REVIEW_OUTCOME } from './engines/marketgate.mjs';
 import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
 import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness } from '../assets/js/policy.js';
 import { checkAnalysis } from './engines/analysis.mjs';
@@ -98,7 +101,7 @@ export function loadStore(dir) {
     const f = path.join(dir, 'data', `${c}.json`);
     collections[c] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).records : [];
   }
-  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index', 'regulatory_reviews', 'permissions']) {
+  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index', 'regulatory_reviews', 'permissions', 'disclosure_approvals']) {
     const f = path.join(dir, 'private', `${n}.json`);
     files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (['media_index', 'entity_index'].includes(n) ? {} : []);
   }
@@ -171,7 +174,11 @@ export function validatePackage(pkg, pkgDir) {
     const w = `risks[${i}]`; inEnum(w, k && k.risk_type, 'risk_type'); if (!k || !isText(k.title)) E(`${w}: title text (en) required`);
     for (const f of (k && k.evidence_facts) || []) if (!factKeys.has(f)) E(`${w}: evidence fact "${f}" is not a declared fact key`);
   }
-  for (const [i, d] of (pkg.disclosures || []).entries()) { const w = `disclosures[${i}]`; inEnum(w, d && d.kind, 'disclosure_kind'); if (!d || !isText(d.text)) E(`${w}: text (en) required`); }
+  for (const [i, d] of (pkg.disclosures || []).entries()) {
+    const w = `disclosures[${i}]`;
+    if (d && d.template) { if (!disclosureTemplate(d.template)) E(`${w}: unknown disclosure template ${d.template}`); if (d.text || d.kind) E(`${w}: give a template or kind + text, not both`); continue; }
+    inEnum(w, d && d.kind, 'disclosure_kind'); if (!d || !isText(d.text)) E(`${w}: text (en) required`);
+  }
   // written project permissions from the project's sales office (owner's freelance-agent workflow)
   const perms = {};
   for (const [i, x] of (pkg.permissions || []).entries()) {
@@ -465,9 +472,14 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
     R.created.push(id);
   }
   // disclosures
-  for (const d of pkg.disclosures || []) {
+  for (const d0 of pkg.disclosures || []) {
     const id = nextSeq(store, 'disclosures', `${fx}DSC-${K}-`, 2);
-    store.collections.disclosures.push({ id, subject: { type: 'opportunity', id: opp.id }, kind: d.kind, text: d.text, legal_review: 'PENDING', approved_at: null, is_illustrative: isIll });
+    // a standard template whose exact text the owner approved is reused as APPROVED (owner decision K-3)
+    const tpl = d0.template ? disclosureTemplate(d0.template) : null;
+    const d = tpl ? { kind: tpl.kind, text: tpl.text } : d0;
+    const ok = tpl ? approvedTemplate(store, tpl) : null;
+    store.collections.disclosures.push({ id, subject: { type: 'opportunity', id: opp.id }, kind: d.kind, text: d.text, legal_review: ok ? 'APPROVED' : 'PENDING', approved_at: ok ? ok.approved_at : null, is_illustrative: isIll });
+    if (tpl) R.disclosures = (R.disclosures || []).concat(`${id} from template ${tpl.id}: ${ok ? `APPROVED (template approval ${ok.approved_at})` : 'PENDING — template not approved yet (approve-disclosure-template --by owner)'}`);
     opp.disclosure_ids.push(id); R.created.push(id);
     if (d.legal_review === 'APPROVED') note(`${id}: package marks legal review as APPROVED; ingestion records PENDING — legal approval is recorded only by the owner`);
   }
@@ -582,6 +594,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   md.push('## 3. Media', '', '| File | Media ID | Type | Role | Permission | Scope | Metadata |', '|---|---|---|---|---|---|---|');
   for (const m of R.media) md.push(`| ${m.file} | ${m.id} | ${m.type || '—'} | ${m.role || '—'} | ${m.permission || '—'} | ${m.scope || '—'} | ${m.exif || m.result} |`);
   md.push('', `Documents inventoried (private only): ${R.documents.join('; ') || '—'}`, '');
+  if (R.disclosures && R.disclosures.length) md.push('## Disclosures from standard templates', '', ...R.disclosures.map(x => `- ${x}`), '');
   md.push('## Project permissions (private)', '', ...(R.permissions && R.permissions.length ? R.permissions.map(x => `- ${x}`) : ['- none supplied — no opportunity of this project can be published until the sales office\'s written permission is recorded']), '');
   md.push('## 4. Gaps, disputes and weak support', '');
   md.push(`- Missing required fields: ${missing.map(m => `${m.field} [${m.state}]`).join('; ') || 'none'}`);
@@ -652,6 +665,30 @@ export function approve({ storeDir, id, by, fixture, today, repoRoot }) {
     audit(store, 'approve', id, today, { gate_version: GATE_VERSION, last_verified: opp.last_verified });
     saveStore(store);
     return { approved: true, why: [], last_verified: opp.last_verified };
+  });
+}
+
+// ------------------------------------------------------------ standard disclosure templates (owner decision K-3)
+const TEMPLATES_PATH = path.join(HERE, 'disclosures/standard.json');
+export function disclosureTemplate(id) { try { return JSON.parse(fs.readFileSync(TEMPLATES_PATH, 'utf8')).templates.find(t => t.id === id) || null; } catch { return null; } }
+const textHash = (text) => sha256(Buffer.from(JSON.stringify(text)));
+// the approval applies only to the exact text it was given for
+function approvedTemplate(store, tpl) {
+  return (store.private.disclosure_approvals || []).filter(a => a.template_id === tpl.id && a.text_sha256 === textHash(tpl.text)).pop() || null;
+}
+export function approveDisclosureTemplate({ storeDir, id, by, reference = null, today, fixture = false, repoRoot = path.resolve(HERE, '../..') }) {
+  requireOwner(by, 'approval of a standard disclosure text (after your own or counsel review)');
+  const tpl = disclosureTemplate(id); if (!tpl) throw new Error(`unknown disclosure template ${id}`);
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'approve-disclosure-template' }, (dir) => {
+    const store = loadStore(dir);
+    const rec = { template_id: tpl.id, kind: tpl.kind, text_sha256: textHash(tpl.text), approved_at: today, approved_by: 'owner', reference: reference && reference !== true ? String(reference) : null };
+    store.private.disclosure_approvals.push(rec);
+    // existing PENDING disclosures with exactly this text become APPROVED as of the template approval
+    const updated = [];
+    for (const d of store.collections.disclosures) if (d.legal_review !== 'APPROVED' && d.kind === tpl.kind && textHash(d.text) === rec.text_sha256) { d.legal_review = 'APPROVED'; d.approved_at = today; updated.push(d.id); }
+    audit(store, 'approve-disclosure-template', tpl.id, today, { text_sha256: rec.text_sha256, reference: rec.reference, disclosures_updated: updated });
+    saveStore(store);
+    return { ...rec, updated };
   });
 }
 
@@ -1056,12 +1093,84 @@ export function activateMarket({ storeDir, id, by, today, now = null, repoRoot, 
     if (!g.pass) why.push(...g.reasons.map(r => `${r.code} ${r.item} — ${r.detail}`));
     if (why.length) return { activated: false, why, gate: g };
     const snapshot = JSON.stringify(store.collections);
-    Object.assign(market, { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: today, gate_version: cfg.version } });
+    Object.assign(market, { activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: today, gate_version: cfg.version }, gate_certificate: gateCertificate(cfg, g, store.private.regulatory_reviews, today) });
     const v = runGate(store, { fixture, today, repoRoot }).errors.filter(e => e.id === id);
     if (v.length) { store.collections = JSON.parse(snapshot); return { activated: false, why: v.map(e => `[${e.code}] ${e.msg}`), gate: g }; }
     audit(store, 'activate-market', id, today, { gate_version: g.gate_version, engine_version: g.engine_version, evaluated_at: g.evaluated_at, conditions: g.publication.conditions });
     saveStore(store);
     return { activated: true, why: [], gate: g };
+  });
+}
+
+// ------------------------------------------------------------ public market activation (owner decisions D11/D12)
+// export-market copies an ACTIVE market from the private store to the public tree: the market record with its activation
+// stamp and gate certificate, its districts, and the public-safe research behind its gate (market and district research
+// blocks, evidence that passes the claim policy and carries no currency amount, their sources, and conflicts with two
+// public sides). The full gate is recomputed first and must pass; the public result must validate, or nothing changes.
+// This is the single path by which market-level research reaches the public tree: the store is its source of truth.
+export function exportMarket({ storeDir, id, by, repoRoot, today, now = null }) {
+  requireOwner(by, 'market export');
+  if (id.startsWith('FIX-')) throw new Error('illustrative fixture markets are never exported');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
+  return withLock(storeDir, 'export-market', () => {
+    const store = loadStore(storeDir); const cfg = loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json'));
+    const reg = methods()['M-MARKET-GATE'];
+    if (!reg || reg.status !== 'ACTIVE') throw new Error('M-MARKET-GATE is not ACTIVE: the owner has not approved the gate rules');
+    const m0 = store.collections.markets.find(m => m.id === id); if (!m0) throw new Error(`${id} not found in the store`);
+    if (m0.activation !== 'ACTIVE' || m0.record_status !== 'PUBLISHED' || !m0.review || m0.review.gate_version !== cfg.version || !m0.gate_certificate) throw new Error(`${id} is not activated in the store (run activate-market --by owner first)`);
+    const g = evaluateMarketGate(cfg, id, store.collections, { today, now: now || new Date().toISOString(), reviews: store.private.regulatory_reviews, provenance: store.private.entity_index });
+    if (!g.pass) throw new Error(`${id} no longer passes its gate — not exported: ${g.reasons.slice(0, 8).map(r => `${r.code} ${r.item}`).join('; ')}`);
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    const market = clone(m0);
+    const dists = store.collections.districts.filter(d => d.market_id === id).map(clone);
+    const scope = new Set([id, ...dists.map(d => d.id)]);
+    const inScope = (r) => r.subject && scope.has(r.subject.id) && ['market', 'district'].includes(r.subject.type);
+    const heldBack = [];
+    const evidence = store.collections.evidence.filter(inScope).filter(e => (e.currency === null || (heldBack.push(`${e.id} (currency)`), false)) && (isPublicClaim(e) || (heldBack.push(`${e.id} (${claimPublication(e).reason})`), false))).map(clone);
+    const blocks = store.collections.research_blocks.filter(inScope).map(clone);
+    const evIds = new Set(evidence.map(e => e.id));
+    const conflicts = store.collections.conflicts.filter(inScope).filter(c => c.evidence_ids.filter(i => evIds.has(i)).length >= 2 || (heldBack.push(`${c.id} (conflict with non-public evidence)`), false)).map(clone);
+    const srcIds = new Set(evidence.map(e => e.source_id));
+    const sources = store.collections.sources.filter(s => srcIds.has(s.id)).map(clone);
+    const exportedIds = new Set([market, ...dists, ...evidence, ...blocks, ...conflicts].map(r => r.id));
+    for (const r of [market, ...dists]) { r.research_block_ids = (r.research_block_ids || []).filter(i => exportedIds.has(i)); r.evidence_ids = (r.evidence_ids || []).filter(i => exportedIds.has(i)); }
+    for (const e of evidence) e.conflict_ids = (e.conflict_ids || []).filter(i => exportedIds.has(i));
+    const res = publicChange({ repoRoot, today, label: 'export-market' }, (pub) => {
+      const projDistricts = new Set(pub.projects.map(p => p.district_id).filter(Boolean));
+      // the market's previous public research is replaced as a whole by the store's
+      for (const c of ['evidence', 'research_blocks', 'conflicts']) pub[c] = pub[c].filter(r => !(r.subject && (r.subject.type === 'market' ? r.subject.id === id : r.subject.type === 'district' && pub.districts.some(d => d.id === r.subject.id && d.market_id === id))));
+      // districts of this market are replaced by the store's; one still used by a published project is kept
+      pub.districts = pub.districts.filter(d => d.market_id !== id || projDistricts.has(d.id));
+      const put = (c, recs) => { for (const r of recs) { const i = pub[c].findIndex(x => x.id === r.id); if (i >= 0) pub[c][i] = r; else pub[c].push(r); } };
+      put('markets', [market]); put('districts', dists); put('evidence', evidence); put('research_blocks', blocks); put('conflicts', conflicts); put('sources', sources);
+    });
+    try { audit(store, 'export-market', id, today, { gate_version: g.gate_version, evaluated_at: g.evaluated_at, records: exportedIds.size, held_back: heldBack }); saveStore(store); }
+    catch (e) { res.auditWarning = `public tree updated, but the audit entry could not be written: ${e.message}`; }
+    return { exported: [...exportedIds].sort(), heldBack, ...res };
+  });
+}
+
+// deactivate-market: the rollback path. Refused while any opportunity of the market is published (withdraw those
+// first). The market returns to INACTIVE in the store and, if it was public, in the public tree; research stays.
+export function deactivateMarket({ storeDir, id, by, reason, repoRoot, today }) {
+  requireOwner(by, 'market deactivation');
+  if (!reason || reason === true) throw new Error('--reason is required');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
+  return withLock(storeDir, 'deactivate-market', () => {
+    const store = loadStore(storeDir);
+    const m = store.collections.markets.find(x => x.id === id); if (!m) throw new Error(`${id} not found in the store`);
+    const pubOpps = JSON.parse(fs.readFileSync(path.join(repoRoot, 'desk/data/public/opportunities.json'), 'utf8')).records.filter(o => o.market_id === id && o.record_status === 'PUBLISHED');
+    if (pubOpps.length) throw new Error(`${id} has published opportunities (${pubOpps.map(o => o.id).join(', ')}); withdraw them first`);
+    const pubMarkets = JSON.parse(fs.readFileSync(path.join(repoRoot, 'desk/data/public/markets.json'), 'utf8')).records;
+    const wasPublic = pubMarkets.some(x => x.id === id && (x.activation === 'ACTIVE' || x.record_status === 'PUBLISHED'));
+    const off = { activation: 'INACTIVE', record_status: 'RESEARCH_IN_PROGRESS', review: null, gate_certificate: null };
+    let res = { changed: [], removed: [] };
+    if (wasPublic) res = publicChange({ repoRoot, today, label: 'deactivate-market' }, (pub) => { const r = pub.markets.find(x => x.id === id); Object.assign(r, off); });
+    const changedStore = m.activation !== 'INACTIVE' || m.record_status === 'PUBLISHED';
+    Object.assign(m, off);
+    audit(store, 'deactivate-market', id, today, { reason, public_changed: wasPublic });
+    saveStore(store);
+    return { storeChanged: changedStore, publicChanged: wasPublic, ...res };
   });
 }
 
@@ -1072,7 +1181,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  const STORE_CMDS = ['ingest', 'gate', 'report', 'compare', 'record-permission', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  const STORE_CMDS = ['ingest', 'gate', 'report', 'compare', 'record-permission', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'export-market', 'deactivate-market', 'approve', 'approve-disclosure', 'approve-disclosure-template', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
   if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
@@ -1091,7 +1200,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     else if (cmd === 'record-review') { const r = recordReview({ ...O, market: a.market, topic: a.topic, status: a.status, outcome: a.outcome === true ? null : a.outcome || null, reviewer: a.reviewer, role: a.role, reference: a.reference, reviewedAt: a['reviewed-at'], validUntil: a['valid-until'] || null, conditions: a.conditions && a.conditions !== true ? String(a.conditions).split('|').map(s => s.trim()).filter(Boolean) : [] }); console.log(`${r.id} recorded: ${r.market_id} ${r.topic} ${r.status}${r.outcome ? ' / ' + r.outcome : ''}`); }
     else if (cmd === 'market-gate') { const rs = marketGateReport(O); for (const g of rs) { console.log(`${g.market_id} (${g.gate_version}, ${g.evaluated_at}): ${g.pass ? 'PASS' : 'FAIL'}`); for (const r of g.reasons) console.log(`  - ${r.code} ${r.item} — ${r.detail}`); } console.log(`\n(reports written to ${path.join(a.store, 'reports')})`); }
     else if (cmd === 'activate-market') { const r = activateMarket(O); console.log(r.activated ? `${a.id} ACTIVE in the store (gate ${r.gate.gate_version}, evaluated ${r.gate.evaluated_at}); not exported` : `${a.id} NOT activated — stays INACTIVE:\n${r.why.map(w => '  - ' + w).join('\n')}`); process.exit(r.activated ? 0 : 1); }
+    else if (cmd === 'export-market') { const r = exportMarket({ storeDir: a.store, id: a.id, by: a.by, repoRoot, today }); console.log(`${a.id} exported to the public tree: ${r.exported.length} records; held back (not public): ${r.heldBack.join(', ') || 'none'}`); if (r.auditWarning) console.error(`! ${r.auditWarning}`); }
+    else if (cmd === 'deactivate-market') { const r = deactivateMarket({ storeDir: a.store, id: a.id, by: a.by, reason: a.reason, repoRoot, today }); console.log(`${a.id} INACTIVE${r.publicChanged ? ' in the store and the public tree' : ' in the store (it was not public)'}`); }
     else if (cmd === 'approve') { const r = approve(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported); last verified: ${r.last_verified || 'not recorded in the evidence'}` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
+    else if (cmd === 'approve-disclosure-template') { const r = approveDisclosureTemplate({ ...O, reference: a.reference }); wrote = true; console.log(`${a.id} approved (text ${r.text_sha256.slice(0, 12)}…); disclosures updated: ${r.updated.join(', ') || 'none'}`); }
     else if (cmd === 'approve-disclosure') { approveDisclosure(O); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
     else if (cmd === 'approve-media') { const r = approveMedia(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved for public use` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
     else if (cmd === 'revoke-media') { const r = revokeMedia({ ...O, reason: a.reason }); wrote = r.changed; console.log(r.changed ? `${a.id} permission recorded as REVOKED.${r.isPublic ? ' It is still in the public tree: re-export the opportunity (the image is removed) or withdraw it if it no longer passes the gate.' : ''}` : `${a.id} was already revoked; nothing changed`); }

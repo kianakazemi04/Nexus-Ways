@@ -11,7 +11,7 @@ import { validateDataset, validateRepo, schemaErrors } from '../_tools/validate.
 import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TODAY = '2026-10-28';
+import { TODAY } from './helpers.mjs';
 const codes = (r) => r.errors.map(e => e.code);
 
 function tmpRepo() {

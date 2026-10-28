@@ -16,7 +16,7 @@ export const MKC = {
     stStats: 'Named statistics', stStatsV: '{a} of {b} recorded · {v} verified against the official release',
     stBlocks: 'Research areas', stBlocksV: '{a} of {b} closed',
     stDist: 'District / community research', stDistV: '{a} closed of {n} under research (at least {m} required)',
-    stLegal: 'Statutory checks', stLegalV: '{n} topics; recorded privately by the owner with official references — required before activation',
+    stLegal: 'Statutory checks', stLegalV: '{n} topics; recorded privately by the owner with official references — required before activation', stLegalDone: '{n} topics recorded privately; gate certificate of {d}',
     indLab: 'Indicators', indH: 'Market indicators as reported',
     indP: 'Figures below come from secondary sources that cite the official publisher. They are shown as reported and are not yet checked against the official release; the gate does not count them until they are.',
     thInd: 'Indicator', thVal: 'Value', thPer: 'Period', thSrc: 'Source', thSt: 'Status',
@@ -67,7 +67,7 @@ export const MKC = {
     stStats: 'Adlandırılmış istatistikler', stStatsV: '{b} istatistikten {a} tanesi kayıtlı · resmî yayına göre doğrulanan {v}',
     stBlocks: 'Araştırma alanları', stBlocksV: '{b} alandan {a} tanesi kapandı',
     stDist: 'İlçe / bölge araştırması', stDistV: 'Araştırılan {n} bölgeden {a} tanesi kapandı (en az {m} gerekli)',
-    stLegal: 'Yasal kontroller', stLegalV: '{n} konu; sahibi tarafından resmî referanslarla gizli kayıtta tutulur — aktifleştirmeden önce zorunlu',
+    stLegal: 'Yasal kontroller', stLegalV: '{n} konu; sahibi tarafından resmî referanslarla gizli kayıtta tutulur — aktifleştirmeden önce zorunlu', stLegalDone: '{n} konu gizli kayıtta; {d} tarihli kapı sertifikası',
     indLab: 'Göstergeler', indH: 'Aktarıldığı şekliyle pazar göstergeleri',
     indP: 'Aşağıdaki rakamlar resmî yayıncıya atıf yapan ikincil kaynaklardandır. Aktarıldığı şekliyle gösterilir ve henüz resmî yayına göre kontrol edilmedi; kontrol edilene kadar kapı bunları saymaz.',
     thInd: 'Gösterge', thVal: 'Değer', thPer: 'Dönem', thSrc: 'Kaynak', thSt: 'Durum',
@@ -118,7 +118,7 @@ export const MKC = {
     stStats: 'الإحصاءات المحددة', stStatsV: '{a} من {b} مسجّلة · {v} متحقق منها مقابل الإصدار الرسمي',
     stBlocks: 'مجالات البحث', stBlocksV: '{a} من {b} مغلقة',
     stDist: 'بحث الأحياء / المجتمعات', stDistV: '{a} مغلقة من {n} قيد البحث (الحد الأدنى {m})',
-    stLegal: 'الفحوص القانونية', stLegalV: '{n} مواضيع؛ يسجّلها المالك بشكل خاص مع المراجع الرسمية — مطلوبة قبل التفعيل',
+    stLegal: 'الفحوص القانونية', stLegalV: '{n} مواضيع؛ يسجّلها المالك بشكل خاص مع المراجع الرسمية — مطلوبة قبل التفعيل', stLegalDone: '{n} مواضيع مسجّلة بشكل خاص؛ شهادة البوابة بتاريخ {d}',
     indLab: 'المؤشرات', indH: 'مؤشرات السوق كما نُقلت',
     indP: 'الأرقام أدناه من مصادر ثانوية تستند إلى الجهة الرسمية. تُعرض كما نُقلت ولم تُراجع بعد مقابل الإصدار الرسمي؛ ولا تحتسبها البوابة حتى تتم مراجعتها.',
     thInd: 'المؤشر', thVal: 'القيمة', thPer: 'الفترة', thSrc: 'المصدر', thSt: 'الحالة',
@@ -161,12 +161,14 @@ export const MKC = {
 // Coverage of one market, from the public records only (no private review records → statutory checks never pass here).
 export function marketCoverage(cfg, m, data) {
   const asOf = m.last_reviewed || '2026-10-28';
-  const g = evaluateMarketGate(cfg, m.id, data, { today: asOf, reviews: [] });
+  // an activated market carries a gate certificate (the private statutory records are attested there, D11/D12)
+  const certified = !!(m.gate_certificate && m.gate_certificate.gate_version === cfg.version && m.review && m.review.gate_version === cfg.version && m.activation === 'ACTIVE');
+  const g = evaluateMarketGate(cfg, m.id, data, { today: asOf, reviews: [], skipReviews: certified });
   const mc = cfg.markets[m.id];
   const ev = (k) => data.evidence.filter(e => e.subject && e.subject.type === 'market' && e.subject.id === m.id && e.topic === k);
   const stats = mc.statistics.map(s => ({ key: s.key, required: s.required, unit: s.unit, ev: ev(s.key).sort((a, b) => String(b.period).localeCompare(String(a.period)))[0] || null, pass: (g.statistics.find(x => x.key === s.key) || {}).status === 'PASS' }));
   const blocks = g.blocks.filter(b => !b.item.startsWith('DST-'));
   const dists = data.districts.filter(d => d.market_id === m.id);
-  return { g, asOf, stats, recorded: stats.filter(s => s.ev).length, verified: stats.filter(s => s.pass).length, blocks, closed: blocks.filter(b => b.ok).length,
+  return { g, asOf, certified, cert: certified ? m.gate_certificate : null, stats, recorded: stats.filter(s => s.ev).length, verified: stats.filter(s => s.pass).length, blocks, closed: blocks.filter(b => b.ok).length,
     dists, distClosed: g.blocks.filter(b => b.item.startsWith('DST-') && b.ok).length, minDist: mc.districts.min_closed, topics: mc.regulatory_review.topics, reqs: mc.publication.opportunity_requirements };
 }

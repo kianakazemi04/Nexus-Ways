@@ -101,7 +101,9 @@ export function reviewState(rr, marketId, topicKey, reviews, today) {
   return { ok: true, code: null, detail: null, review: r };
 }
 
-export function evaluateMarketGate(cfg, marketId, collections, { today, now = null, reviews = [], provenance = null } = {}) {
+// skipReviews: evaluate everything except the private statutory records (used on the public tree, where a market's
+// statutory clearance is attested by its gate certificate instead — see gateCertificate).
+export function evaluateMarketGate(cfg, marketId, collections, { today, now = null, reviews = [], provenance = null, skipReviews = false } = {}) {
   if (!isIsoDate(today)) throw new Error(`evaluateMarketGate: invalid "today" ${today}`);
   const reasons = []; const R = (code, item, detail) => reasons.push({ code, item, detail });
   const out = { gate_version: cfg && cfg.version || null, engine_version: ENGINE_VERSION, market_id: marketId, evaluated_at: now || `${today}T00:00:00Z`, today, pass: false, reasons, blocks: [], statistics: [], reviews: [], publication: null };
@@ -217,7 +219,7 @@ export function evaluateMarketGate(cfg, marketId, collections, { today, now = nu
   for (const c of C('conflicts').filter(c => c.status === 'OPEN' && scope.some(s => sameRef(s, c.subject)))) R('MG_CONFLICT', c.id, `open conflict on ${c.subject.type} ${c.subject.id}${c.field ? ':' + c.field : ''}`);
 
   // 6 — legal / regulatory review: separate records per market and topic; evidence never substitutes for review
-  for (const t of m.regulatory_review.topics) {
+  for (const t of skipReviews ? [] : m.regulatory_review.topics) {
     const r = reviewState(m.regulatory_review, marketId, t.key, reviews, today);
     out.reviews.push({ topic: t.key, ok: r.ok, code: r.code, detail: r.detail, status: r.review ? r.review.status : null, outcome: r.review ? r.review.outcome : null, reference: r.review ? r.review.reference : null, reviewed_at: r.review ? r.review.reviewed_at : null, conditions: r.review && r.review.outcome === 'CONDITIONS' ? (r.review.conditions || []) : [] });
     if (!r.ok) R(r.code, t.key, r.detail);
@@ -236,16 +238,20 @@ export function evaluateMarketGate(cfg, marketId, collections, { today, now = nu
 // Evidence must be ESTABLISHED (CP-1), from an accepted registry/regulator source, and not expired (RP-1). A requirement
 // with a basis review is waived only by a COMPLETE, valid review whose outcome is NOT_APPLICABLE; without the private
 // review records (public validation) it always applies — fail closed.
-export function opportunityRequirementReasons(cfg, marketId, project, collections, { today, reviews = null } = {}) {
+export function opportunityRequirementReasons(cfg, marketId, project, collections, { today, reviews = null, certificate = null } = {}) {
   if (!cfg || cfg.error || !cfg.markets || !cfg.markets[marketId]) return [`market ${marketId} has no gate configuration`];
   const m = cfg.markets[marketId]; const why = [];
   const C = (k) => (collections && collections[k]) || [];
+  // public tree: a waiver counts only when the market's gate certificate (written by activate-market from the private
+  // review records, same gate version) lists it
+  const certWaived = new Set(!reviews && certificate && certificate.gate_version === cfg.version ? certificate.waived_requirements || [] : []);
   for (const q of (m.publication && m.publication.opportunity_requirements) || []) {
     if (q.when && q.when.delivery_status && project.delivery_status && !q.when.delivery_status.includes(project.delivery_status)) continue;
     if (q.basis_review && reviews) {
       const r = reviewState(m.regulatory_review, marketId, q.basis_review, reviews, today);
       if (r.ok && r.review.outcome === 'NOT_APPLICABLE') continue;
     }
+    if (q.basis_review && certWaived.has(q.key)) continue;
     const ok = C('evidence').some(e => {
       if (!sameRef(e.subject, { type: 'project', id: project.id }) || e.topic !== q.key) return false;
       if (claimPublication(e).status !== (q.claim_status || 'ESTABLISHED')) return false;
@@ -261,6 +267,21 @@ export function opportunityRequirementReasons(cfg, marketId, project, collection
     if (!ok) why.push(`market requirement ${q.key} not evidenced (${q.name}; ESTABLISHED registry/regulator evidence required)`);
   }
   return why;
+}
+
+// Gate certificate (owner decisions D11/D12): the non-confidential attestation written onto the market record when the
+// owner activates a market whose gate passed. It names the gate and engine versions, when the gate was evaluated, which
+// per-opportunity requirements a COMPLETE NOT_APPLICABLE review waived, and which topics carry counsel conditions —
+// never the review text, reviewer or memo. The public validator reads it because it cannot see the private reviews.
+export function gateCertificate(cfg, g, reviews, today) {
+  const m = cfg.markets[g.market_id];
+  const waived = [];
+  for (const q of m.publication.opportunity_requirements || []) {
+    if (!q.basis_review) continue;
+    const r = reviewState(m.regulatory_review, g.market_id, q.basis_review, reviews, today);
+    if (r.ok && r.review.outcome === 'NOT_APPLICABLE') waived.push(q.key);
+  }
+  return { gate_version: g.gate_version, engine_version: g.engine_version, evaluated_at: g.evaluated_at, activated_at: today, waived_requirements: waived.sort(), conditions_topics: (g.publication.conditions || []).map(c => c.topic).sort() };
 }
 
 // Plain-text summary of one evaluation for the owner (private report).

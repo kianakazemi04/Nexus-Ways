@@ -9,7 +9,18 @@ import { validateRepo } from '../_tools/validate.mjs';
 import { gateDataset } from './marketgate-data.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-export const TODAY = '2026-10-28';
+// Test clock (audit C-18): a fixed date, moved forward only when the committed public research is dated later, so new
+// research records never make the suites fail as "future-dated" (V18). Deterministic for a given commit.
+const FIXED_TODAY = '2026-10-28';
+function latestPublicDate() {
+  let max = FIXED_TODAY; const dir = path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), 'desk/data/public');
+  for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.json') && x !== 'published.json')) {
+    const s = fs.readFileSync(path.join(dir, f), 'utf8');
+    for (const m of s.matchAll(/"(?:retrieved_at|last_verified|last_reviewed|accessed_at|published_at|approved_at)": "(\d{4}-\d{2}-\d{2})"/g)) if (m[1] > max) max = m[1];
+  }
+  return max;
+}
+export const TODAY = latestPublicDate();
 export const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 export const writeJson = (p, j) => fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 export const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -29,15 +40,18 @@ export const PRJ = 'PRJ-TST-ILLUSTRATIVE-RESIDENCE-A';
 export const DSC1 = 'DSC-TST-ILLUSTRATIVE-RESIDENCE-A-01';
 export const MED = (n) => `MED-TST-ILLUSTRATIVE-RESIDENCE-A-00${n}`;
 
-// The market gate (M-MARKET-GATE, MG-1) is implemented but INACTIVE pending owner approval, so no real market can be
-// activated. Lifecycle tests need one active market: inside a throw-away copy only, the registry entry is switched to a
-// simulated approved state. Nothing in the committed repository is changed.
-export function enableTestMarketGate(repo) {
+// The market gate (M-MARKET-GATE, MG-1) is approved by the owner (28 Oct 2026). Lifecycle tests need one active market
+// (MKT-TST, seeded below); tests of the unapproved state switch the registry off in a temporary copy.
+// The registry entry is switched only inside a throw-away copy; nothing in the committed repository is changed.
+function setTestMarketGate(repo, on) {
   const p = path.join(repo, 'desk/data/methods.json'); const t = fs.readFileSync(p, 'utf8');
-  const a = '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "INACTIVE", "documented": true, "validation_status": "IMPLEMENTED_PENDING_OWNER_APPROVAL", "implemented": true';
-  if (!t.includes(a)) throw new Error('M-MARKET-GATE registry entry not found');
-  fs.writeFileSync(p, t.replace(a, '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "ACTIVE", "documented": true, "validation_status": "RULES_APPROVED", "implemented": true, "test_only": "simulated approval in a temporary copy"'));
+  const re = /("id": "M-MARKET-GATE", "name": "Market publication gate", "status": ")(ACTIVE|INACTIVE)(", "documented": true, "validation_status": ")([A-Z_]+)(")/;
+  if (!re.test(t)) throw new Error('M-MARKET-GATE registry entry not found');
+  fs.writeFileSync(p, t.replace(re, (all, a, st, b, vs, c) => `${a}${on ? 'ACTIVE' : 'INACTIVE'}${b}${on ? 'RULES_APPROVED' : 'IMPLEMENTED_PENDING_OWNER_APPROVAL'}${c}`));
 }
+export const enableTestMarketGate = (repo) => setTestMarketGate(repo, true);
+// simulates the state before the owner approved the MG-1 rules (registry INACTIVE): no real market can be activated
+export const disableTestMarketGate = (repo) => setTestMarketGate(repo, false);
 // The TEST-ONLY market MKT-TST passes a TEST-ONLY copy of the Istanbul configuration (in the temporary repository only,
 // without per-opportunity requirements), with synthetic gate records and review records in the temporary store.
 export function seedTestMarketGate(repo, store, tst) {
@@ -50,13 +64,19 @@ export function seedTestMarketGate(repo, store, tst) {
   for (const c of ['districts', 'research_blocks', 'sources', 'evidence']) writeJson(path.join(store, `data/${c}.json`), { schema_version: '1.1', collection: c, records: d.collections[c] });
   writeJson(path.join(store, 'private/regulatory_reviews.json'), d.reviews);
   writeJson(path.join(store, 'private/entity_index.json'), d.provenance);
+  // the public side of an activated market, as activate-market + export-market would leave it (D11/D12)
+  tst.gate_certificate = { gate_version: cfg.version, engine_version: 'MGE-1', evaluated_at: `${TODAY}T00:00:00Z`, activated_at: TODAY, waived_requirements: [], conditions_topics: [] };
+  for (const c of ['districts', 'research_blocks', 'sources', 'evidence']) {
+    const f = path.join(repo, `desk/data/public/${c}.json`); const j = readJson(f);
+    j.records = [...j.records, ...d.collections[c]].sort((a, b) => a.id.localeCompare(b.id)); writeJson(f, j);
+  }
 }
 // A TEST-ONLY real store beside a temporary repository, with a package derived from fixture A.
 export function realSetup({ mutate, marketGate = true } = {}) {
   const repo = tmpRepo(); const store = tmp('desk-t-store-'); const pkgs = tmp('desk-t-pkgs-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
   const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: marketGate ? 'MG-1' : 'G3-v1' }, summary: { en: 'TEST-ONLY' }, research_block_ids: [], evidence_ids: [], field_states: [] };
-  if (marketGate) { enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); }
+  if (marketGate) { enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); } else disableTestMarketGate(repo);
   mk.records.push(tst); writeJson(mp, mk);
   if (marketGate) validateRepo(repo, { today: TODAY, writeIndex: true });
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
