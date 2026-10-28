@@ -54,6 +54,7 @@ function realSetup() {
     intake.package_id = `TEST-${name}`; intake.market.slug = 'test-market';
     intake.media = intake.media.filter(m => !m.file.endsWith('.svg'));
     for (const m of intake.media) if (m.permission && m.permission.evidence_ref) m.permission.evidence_ref = m.permission.evidence_ref.replace('FIX', 'TST');
+    for (const x of intake.permissions || []) x.id = x.id.replace('FIX', 'TST');
     if (mutate) mutate(intake, pkg);
     writeJson(path.join(pkg, 'intake.json'), intake);
     return pkg;
@@ -81,7 +82,11 @@ test('invalid packages are refused before anything is built or written, with cle
   try {
     const cases = [
       ['bad evidence class (audit E7)', (i) => { i.facts[0].evidence_class = 'FACTT'; }, /"FACTT" is not a valid evidence_class/],
-      ['media without permission (audit B7)', (i) => { delete i.media[0].permission; }, /permission is missing — record \{status, scope/],
+      ['media without permission (audit B7)', (i) => { delete i.media[0].permission; i.permissions[0].media = i.permissions[0].media.filter(f => f !== i.media[0].file); }, /no permission covers this file/],
+      ['media pointing at a permission that does not approve it', (i) => { i.media[0].permission = { from: i.permissions[0].id }; i.permissions[0].media = []; }, /does not approve it/],
+      ['permission without a document', (i) => { i.permissions[0].document = 'docs/missing.txt'; }, /document docs\/missing.txt not found/],
+      ['permission with an invented channel', (i) => { i.permissions[0].channels = ['billboards']; }, /"billboards" is not a valid permission_scope/],
+      ['media listed without PUBLISH_MEDIA', (i) => { i.permissions[0].activities = ['PUBLISH_PROJECT_INFORMATION']; }, /does not include PUBLISH_MEDIA/],
       ['permission scope not a list', (i) => { i.media[0].permission.scope = 'desk_web'; }, /permission\.scope must be a list/],
       ['written permission without evidence', (i) => { i.media[0].permission.evidence_ref = null; }, /GRANTED_WRITTEN needs permission\.evidence_ref/],
       ['unknown source key', (i) => { i.facts[0].source = 'S9'; }, /source "S9" is not a declared source key/],

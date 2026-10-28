@@ -91,7 +91,8 @@ export function reviewState(rr, marketId, topicKey, reviews, today) {
   if (bad.length) return { ok: false, code: 'MG_REVIEW_INVALID', detail: bad.join('; '), review: r };
   if (r.status !== 'COMPLETE') return { ok: false, code: 'MG_REVIEW_INCOMPLETE', detail: `review ${r.status}`, review: r };
   if (!REVIEW_OUTCOME.includes(r.outcome)) return { ok: false, code: 'MG_REVIEW_INVALID', detail: `COMPLETE review without a valid outcome (${r.outcome})`, review: r };
-  if (!r.reviewer || !(rr.reviewer_roles || []).includes(r.reviewer_role)) return { ok: false, code: 'MG_REVIEWER', detail: `reviewer role ${r.reviewer_role || 'none'} is not accepted (${(rr.reviewer_roles || []).join(', ')})`, review: r };
+  const roles = ((rr.topics || []).find(t => t.key === topicKey) || {}).accepted_roles || rr.reviewer_roles || [];
+  if (!r.reviewer || !roles.includes(r.reviewer_role)) return { ok: false, code: 'MG_REVIEWER', detail: `reviewer role ${r.reviewer_role || 'none'} is not accepted (${roles.join(', ')})`, review: r };
   if (!isIsoDate(r.reviewed_at) || r.reviewed_at > today) return { ok: false, code: 'MG_REVIEW_INVALID', detail: `review date ${r.reviewed_at || 'missing'} invalid or in the future`, review: r };
   if (days(r.reviewed_at, today) > rr.max_age_days) return { ok: false, code: 'MG_REVIEW_EXPIRED', detail: `review dated ${r.reviewed_at} is older than ${rr.max_age_days} days`, review: r };
   if (r.valid_until && (!isIsoDate(r.valid_until) || r.valid_until < today)) return { ok: false, code: 'MG_REVIEW_EXPIRED', detail: `review valid until ${r.valid_until}`, review: r };

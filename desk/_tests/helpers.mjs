@@ -68,6 +68,7 @@ export function realSetup({ mutate, marketGate = true } = {}) {
     intake.package_id = `TEST-${name}`; intake.market.slug = 'test-market';
     intake.media = intake.media.filter(m => !m.file.endsWith('.svg'));
     for (const m of intake.media) if (m.permission && m.permission.evidence_ref) m.permission.evidence_ref = m.permission.evidence_ref.replace('FIX', 'TST');
+    for (const x of intake.permissions || []) x.id = x.id.replace('FIX', 'TST');
     if (fn) fn(intake, pkg);
     writeJson(path.join(pkg, 'intake.json'), intake);
     execFileSync('python3', ['-c', "import sys,glob\nfrom PIL import Image,ImageDraw\nfor f in glob.glob(sys.argv[1]+'/raw/*'):\n  im=Image.open(f); ImageDraw.Draw(im).text((70,390),'TEST-ONLY '+sys.argv[2],fill=(255,255,255)); im.save(f, exif=im.info.get('exif',b''))", pkg, name]);

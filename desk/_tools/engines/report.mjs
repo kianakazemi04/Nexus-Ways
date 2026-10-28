@@ -10,6 +10,7 @@ import { claimPublication, evidenceFreshness, MATERIAL_FIELDS } from '../../asse
 import { scenarios as runScenarios, FIN_VERSION } from './finance.mjs';
 import { selectComparables } from './comparables.mjs';
 import { investmentFit } from './fit.mjs';
+import { exitReview } from './exit.mjs';
 
 export const RPT_VERSION = 'RPT-1';
 const DOMAIN_OF = { market: 'MARKET', district: 'DISTRICT', area: 'AREA', project: 'PROJECT_ASSET', asset: 'PROJECT_ASSET', developer: 'DEVELOPER', opportunity: 'PROJECT_ASSET' };
@@ -17,7 +18,7 @@ const same = (a, b) => a && b && a.type === b.type && a.id === b.id;
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
 
 // store: loaded store; gateWhy: gate reasons for the opportunity (from the validator); analysis: unwrapped (checkAnalysis)
-export function decisionReport(store, oppId, { gateWhy = [], analysis = null, provenance = [], today }) {
+export function decisionReport(store, oppId, { gateWhy = [], analysis = null, provenance = [], today, privateFacts = null }) {
   const C = (c) => store.collections[c] || [];
   const byId = new Map(); for (const recs of Object.values(store.collections)) for (const r of recs) byId.set(r.id, r);
   const o = byId.get(oppId); if (!o) return { status: 'UNAVAILABLE', reason: `${oppId} not found` };
@@ -47,6 +48,7 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
   const risks = C('risks').filter(r => subjects.some(s => same(r.subject, { type: s.type, id: s.rec.id }))).map(r => ({ id: r.id, type: r.risk_type, title: r.title && r.title.en, cause: r.cause && r.cause.en, mitigation: r.mitigation && r.mitigation.en, residual: r.residual_uncertainty && r.residual_uncertainty.en, evidence: r.evidence_ids, severity: 'not assessed (M-RISK-SEVERITY inactive)' }));
   const conflicts = C('conflicts').filter(c => subjects.some(s => same(c.subject, { type: s.type, id: s.rec.id }))).map(c => ({ id: c.id, field: c.field, status: c.status, evidence: c.evidence_ids }));
   const gaps = facts.filter(f => f.value === null).map(f => `${f.subject}.${f.field}: ${f.state}`);
+  const exit = exitReview({ collections: store.collections, subjects: subjects.map(s => ({ type: s.type, id: s.rec.id })), marketId: o.market_id, privateFacts: privateFacts || (store.private && store.private.private_facts) || [] });
 
   // engines on the private analysis inputs
   const A = analysis || {};
@@ -63,6 +65,7 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
     'M-NPV': finance.scenarios ? (finance.scenarios.base.npv.status === 'OK' ? 'RUN' : `NOT RUN — missing ${[...(finance.scenarios.base.npv.missing || []), ...(finance.scenarios.base.npv.invalid || [])].join(', ')}`) : 'NOT RUN — no finance inputs',
     'M-COMPARABLES': comparables.status === 'OK' ? 'RUN' : `NOT RUN — ${comparables.status}${comparables.missing ? ': ' + comparables.missing.join(', ') : comparables.n !== undefined ? ` (${comparables.n} of ${comparables.min_sample} required)` : ''}`,
     'M-INVESTMENT-FIT': fit.status === 'OK' ? 'RUN (qualitative criteria)' : 'NOT RUN — no investor profile',
+    'M-EXIT-REVIEW': `RUN (qualitative; ${exit.not_available.length} of 4 liquidity inputs not available)`,
     'M-FAIR-VALUE, M-AREA-RANKING, M-RISK-SEVERITY, M-ASSET-QUALITY, M-LIQUIDITY': 'INACTIVE — no approved method'
   };
   const limitations = [];
@@ -76,12 +79,13 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
   for (const w of gateWhy) next.push(`Resolve gate reason: ${w}`);
   for (const g of gaps) next.push(`Collect or state: ${g}`);
   if (finance.scenarios && finance.scenarios.base.roi.status !== 'OK') next.push('Complete the finance inputs listed under method eligibility');
+  for (const x of exit.not_available) next.push(`Liquidity diligence: ${x.text}`);
   if (comparables.status === 'INSUFFICIENT_SAMPLE') next.push(`Collect at least ${comparables.min_sample - comparables.n} more eligible ${comparables.price_type} observations`);
 
   return {
     status: 'OK', version: RPT_VERSION, internal: true, generated_for: today, opportunity: oppId,
     overview: { title: o.title && o.title.en, project: p && `${p.name} (${p.id})`, developer: dev && `${dev.name} (${dev.id})`, district: dist && `${dist.name} (${dist.id})`, market: mk && `${mk.name} (${mk.id}, ${mk.activation})`, record_status: o.record_status, publishable: gateWhy.length === 0 },
-    facts, domains, findings: A.findings || [], risks, conflicts, gaps, methods, finance, comparables, fit, provenance, limitations, next_steps: next,
+    facts, domains, findings: A.findings || [], risks, conflicts, gaps, methods, finance, comparables, fit, exit, provenance, limitations, next_steps: next,
     conclusion: gateWhy.length || gaps.length ? 'Assessment incomplete: see limitations and next steps. No recommendation is made on incomplete evidence.' : 'Evidence sufficient for publication review. Conclusions are limited to the supported findings above; no score or ranking is produced.'
   };
 }
@@ -114,6 +118,12 @@ export function reportMarkdown(r) {
   if (r.comparables.status === 'OK') L.push(`${r.comparables.n} ${r.comparables.price_type} observations, ${r.comparables.area_basis} area, ${r.comparables.currency}/m²: median ${n(r.comparables.stats.median)}, interquartile ${n(r.comparables.stats.p25)}–${n(r.comparables.stats.p75)}. No adjustments; not a fair value.`, '');
   else L.push(`${r.comparables.status}${r.comparables.missing ? ': ' + r.comparables.missing.join(', ') : ` — ${r.comparables.n} eligible of ${r.comparables.min_sample} required`}`, '');
   for (const x of r.comparables.excluded || []) L.push(`- excluded ${x.id}: ${x.reasons.join('; ')}`);
+  L.push('', '## 9b. Liquidity and exit (EXR-1, qualitative)', '', r.exit.statement, '');
+  for (const x of r.exit.weakening) L.push(`- weakens: ${x.type} — ${x.text} (${x.ref})`);
+  for (const x of r.exit.supporting) L.push(`- supports: ${x.text} (${x.ref})`);
+  for (const x of r.exit.context) L.push(`- context: ${x.text} (${x.ref})`);
+  for (const x of r.exit.not_available) L.push(`- DATA NOT AVAILABLE: ${x.text}`);
+  L.push('', r.exit.note);
   L.push('', '## 10. Investment fit (FIT-1, qualitative)', '', ...(r.fit.status === 'OK' ? [`Outcome: **${r.fit.outcome}**`, ...r.fit.criteria.map(c => `- ${c.criterion}: ${c.result} — ${c.reason}`)] : ['Not run: no investor profile.']), '');
   L.push('## 11. Limitations', '', ...(r.limitations.length ? r.limitations.map(x => `- ${x}`) : ['- none recorded']), '', '## 12. Next steps', '', ...(r.next_steps.length ? r.next_steps.map(x => `- ${x}`) : ['- none']), '', '## Conclusion', '', r.conclusion, '');
   return L.join('\n');

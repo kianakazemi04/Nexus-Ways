@@ -29,6 +29,14 @@ const ev = (d, key) => d.collections.evidence.find(e => e.topic === key);
 const blk = (d, domain) => d.collections.research_blocks.find(b => b.subject.type === 'market' && b.domain === domain);
 
 // ------------------------------------------------------------------ configuration
+test('configuration: legal topics are limited to statutory requirements on Nexus Ways\' own activity', () => {
+  for (const id of MARKETS) for (const tp of CFG.markets[id].regulatory_review.topics) {
+    assert.ok(tp.restriction && tp.owner_record && tp.accepted_roles.includes('OWNER_OFFICIAL_REFERENCE'), `${id} ${tp.key}`);
+    assert.doesNotMatch(tp.key, /DATA-PROTECTION|NOT-ADVICE|FOREIGN-OWNERSHIP/, 'site-wide and per-project items are not market gates');
+  }
+  assert.match(CFG.scope_note, /sales office/);
+});
+
 test('configuration: one shared version, three separate market configurations, every rule documented', () => {
   assert.equal(CFG.version, 'MG-1'); assert.equal(CFG.engine, 'MGE-1');
   assert.deepEqual(Object.keys(CFG.markets).sort(), [...MARKETS].sort());
@@ -163,6 +171,7 @@ for (const id of MARKETS) {
     failsWith(run(id, (d) => { r0(d).reviewed_at = sub(TODAY, 400); }), 'MG_REVIEW_EXPIRED', t);
     failsWith(run(id, (d) => { r0(d).valid_until = sub(TODAY, 1); }), 'MG_REVIEW_EXPIRED', t);
     failsWith(run(id, (d) => { r0(d).reviewer_role = 'RESEARCH_ANALYST'; }), 'MG_REVIEWER', t);
+    assert.equal(run(id, (d) => { for (const r of d.reviews) r.reviewer_role = 'OWNER_OFFICIAL_REFERENCE'; }).pass, true, 'statutory topics accept the owner\'s official permit/certificate reference');
     failsWith(run(id, (d) => { r0(d).recorded_by = 'claude'; }), 'MG_REVIEW_INVALID', t);
     failsWith(run(id, (d) => { r0(d).reference = ''; }), 'MG_REVIEW_INVALID', t);
     failsWith(run(id, (d) => { r0(d).outcome = 'BLOCKING'; }), 'MG_REVIEW_BLOCKING', t);
@@ -311,7 +320,7 @@ test('commands: market-intake + record-review + market-gate; activate-market is 
     const f = path.join(pkgDir, 'mi.json'); writeJson(f, d.intake);
     assert.notEqual(cli(repo, ['market-intake', ...S, '--file', f]).code, 0, 'needs --by owner');
     r = cli(repo, ['market-intake', ...S, '--file', f, '--by', 'owner']); assert.equal(r.code, 0, r.out);
-    assert.notEqual(review(repo, S, 'MKT-IST', { key: 'DXB-BROKER-LICENSING' }).code, 0, 'a Dubai topic cannot be recorded for Istanbul');
+    assert.notEqual(review(repo, S, 'MKT-IST', { key: 'DXB-AGENT-AUTHORIZATION' }).code, 0, 'a Dubai topic cannot be recorded for Istanbul');
     assert.notEqual(cli(repo, ['record-review', ...S, '--market', 'MKT-IST', '--topic', 'IST-NOT-ADVICE', '--status', 'COMPLETE', '--reviewer', 'x', '--role', 'LICENSED_COUNSEL_TR', '--reference', 'm', '--reviewed-at', TODAY, '--by', 'owner']).code, 0, 'COMPLETE needs an outcome');
     for (const t of CFG.markets['MKT-IST'].regulatory_review.topics) assert.equal(review(repo, S, 'MKT-IST', t).code, 0);
     r = cli(repo, ['market-gate', ...S, '--id', 'MKT-IST']); assert.match(r.out, /MKT-IST \(MG-1, [^)]+\): PASS/, r.out);
@@ -335,7 +344,7 @@ test('commands (simulated owner approval of the rules): each market is activated
     for (const t of CFG.markets['MKT-IST'].regulatory_review.topics) review(repo, S, 'MKT-IST', t);
     for (const t of CFG.markets['MKT-DXB'].regulatory_review.topics.slice(1)) review(repo, S, 'MKT-DXB', t); // first topic missing
     assert.notEqual(cli(repo, ['activate-market', ...S, '--id', 'MKT-IST']).code, 0, 'needs --by owner');
-    let r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_REVIEW_MISSING DXB-BROKER-LICENSING/);
+    let r = cli(repo, ['activate-market', ...S, '--id', 'MKT-DXB', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_REVIEW_MISSING DXB-AGENT-AUTHORIZATION/);
     r = cli(repo, ['activate-market', ...S, '--id', 'MKT-AUH', '--by', 'owner']); assert.equal(r.code, 1); assert.match(r.out, /MG_STAT_MISSING AUH-SALES-TX/);
     r = cli(repo, ['activate-market', ...S, '--id', 'MKT-IST', '--by', 'owner']); assert.equal(r.code, 0, r.out); assert.match(r.out, /MKT-IST ACTIVE in the store \(gate MG-1/);
     const mk = readJson(path.join(store, 'data/markets.json')).records;
