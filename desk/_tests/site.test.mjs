@@ -130,3 +130,24 @@ test('legal: Privacy Notice (KVKK) and Terms of Use exist in EN/TR/AR; every com
   }
   for (const l of ['', 'tr/', 'ar/']) { const h = read(`desk/${l}markets/index.html`); const pre = l ? '/' + l.slice(0, 2) : ''; assert.ok(h.includes(`href="${pre}/privacy/"`) && h.includes(`href="${pre}/terms/"`), `desk ${l}`); }
 });
+
+test('market overview: official figures with publisher, date and link; counts and percentages only; buying rules with an official source', async () => {
+  const { OVERVIEW, RULES } = await import('../_tools/markets-content.mjs');
+  const OFFICIAL = /^https:\/\/(veriportali\.tuik\.gov\.tr|www\.tcmb\.gov\.tr|dubailand\.gov\.ae|www\.mediaoffice\.abudhabi|u\.ae|www\.yourkeyturkiye\.gov\.tr)\//;
+  for (const [mk, rows] of Object.entries(OVERVIEW)) {
+    assert.ok(rows.length >= 3, mk);
+    for (const x of rows) {
+      assert.match(x.url, OFFICIAL, `${x.id}: official source`); assert.ok(x.release === null || /^\d{4}-\d{2}-\d{2}$/.test(x.release), x.id);
+      assert.ok(['n', 'pct'].includes(x.kind) && typeof x.value === 'number', x.id);
+      for (const l of L) for (const f of ['label', 'period', 'note']) assert.ok(x[f][l], `${x.id} ${f} ${l}`);
+      for (const l of L) assert.doesNotMatch(x.note[l], /\b(AED|USD|TRY|TL|EUR)\b|[$€£₺]|درهم/, `${x.id}: no currency amounts in the overview (D10)`);
+    }
+    assert.match(RULES[mk].url, OFFICIAL, `${mk} rules source`);
+  }
+  for (const [slug, l] of [['istanbul', ''], ['dubai', 'tr/'], ['abu-dhabi', 'ar/']]) {
+    const h = read(`desk/${l}markets/${slug}/index.html`);
+    assert.match(h, /data-market-overview="/, slug); assert.match(h, /data-market-rules="/, slug);
+    assert.match(h, /rel="noopener external" target="_blank"/, slug);
+  }
+  for (const f of ['desk/markets/istanbul/index.html', 'desk/tr/markets/istanbul/index.html', 'desk/ar/markets/istanbul/index.html']) assert.doesNotMatch(read(f), /licences and permits that apply to our own|kendi faaliyetimiz için gereken lisans|التراخيص والتصاريح التي تنطبق على نشاطنا/, f);
+});

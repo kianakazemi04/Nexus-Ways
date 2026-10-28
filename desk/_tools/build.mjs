@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LANGS, T, localize, labels } from '../assets/js/i18n.js';
-import { MKC, SOURCES, marketCoverage } from './markets-content.mjs';
+import { MKC, SOURCES, marketCoverage, OVERVIEW, OVERVIEW_CHECKED, PUBLISHERS, RULES, OVC } from './markets-content.mjs';
 import { MP, IP, methodState } from './pages-content.mjs';
 import { METHOD_TEXT } from './method-texts.mjs';
 import { loadGateConfig } from './engines/marketgate.mjs';
@@ -17,7 +17,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESK = path.resolve(HERE, '..');
 const read = (p) => JSON.parse(fs.readFileSync(path.join(DESK, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ASSET_V = '8';
+const ASSET_V = '9';
 
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
@@ -159,7 +159,6 @@ ${nojs}
     const list = (items) => `<ul class="plain">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`;
     const pubState = (m) => m.activation === 'ACTIVE' && m.gate_certificate && m.review ? 'open' : 'closed';
     const vl = (k) => (LB.verification && LB.verification[k]) || k;
-    const anyOpen = markets.some(m => pubState(m) === 'open');
     page('markets/', { title: M.title, description: M.desc, current: 'markets',
       body: `${pi({ eb: M.eb, h1: M.h1, lead: esc(M.lead), crumbs: [desk, [t('markets')]], tags: M.tags })}
 <section class="sec" aria-labelledby="sc-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.scopeLab)}</span><h2 id="sc-h">${esc(M.scopeH)}</h2></div><p>${esc(M.scopeP)}</p></div>
@@ -179,18 +178,27 @@ ${fs.existsSync(path.join(DESK, `assets/img/markets/${m.slug}.svg`)) ? `<figure 
 <p class="gnote">${esc(M.gNote)}</p></div></section>
 <section class="sec" aria-labelledby="src-h"><div class="w"><div class="sh"><div><span class="lab">${esc(M.sLab)}</span><h2 id="src-h">${esc(M.sH)}</h2></div><p>${esc(M.sP)}</p></div>
 <div class="rb wide">${markets.map(m => `<div class="rbx" data-sources="${esc(m.id)}"><div class="lab">${esc(mname(m))}</div>${list(SRC[m.id] || [])}</div>`).join('')}</div><p class="gnote">${esc(SRC.common)}</p>
-${anyOpen ? '' : `<div class="notice"><p>${esc(M.sLimit)}</p></div>`}</div></section>
+<div class="notice"><p>${esc(M.sLimit)}</p></div></div></section>
 ${cta(M.ctaH, M.ctaP, M.ctaBtn, u('/desk/intelligence/'), [M.ctaAlt, u('/desk/consultation/')])}` });
 
     for (const m of markets) {
       const c = cover[m.id];
+      // Official overview and buying rules (owner instruction 28 Oct 2026): counts and changes only, each with its source.
+      const O = OVC[lang] || OVC.en; const P = PUBLISHERS[lang] || PUBLISHERS.en; const loc = LANGS[lang].locale;
+      const num = (x) => x.kind === 'pct' ? `${x.value > 0 ? '+' : ''}${new Intl.NumberFormat(loc, { maximumFractionDigits: 1 }).format(x.value)}%` : new Intl.NumberFormat(loc).format(x.value);
+      const ov = (OVERVIEW[m.id] || []).map(x => `<div class="rbx ovx" data-overview="${esc(x.id)}"><span class="lab">${esc(x.period[lang] || x.period.en)}</span><b class="ov-n" dir="ltr">${esc(num(x))}</b><h3 class="h4">${esc(x.label[lang] || x.label.en)}</h3><p class="mut">${esc(x.note[lang] || x.note.en)}</p><p class="ov-s">${esc(O.src)}: <a class="srcl" href="${esc(x.url)}" rel="noopener external" target="_blank">${esc(P[x.src] || x.src)}</a> ${x.release ? ` · ${esc(O.rel)} ${esc(fmtD(x.release))}` : ''}</p></div>`).join('');
+      const overview = ov ? `<section class="sec" aria-labelledby="ov-h" data-market-overview="${esc(m.id)}"><div class="w"><div class="sh"><div><span class="lab">${esc(O.ovLab)}</span><h2 id="ov-h">${esc(O.ovH)}</h2></div><p>${esc(O.ovP)}</p></div><div class="rb wide ov">${ov}</div><p class="gnote">${esc(fill(O.checked, { d: fmtD(OVERVIEW_CHECKED) }))}</p></div></section>` : '';
+      const R = RULES[m.id];
+      const rules = R ? `<section class="sec" aria-labelledby="ru-h" data-market-rules="${esc(m.id)}"><div class="w"><div class="sh"><div><span class="lab">${esc(O.ruLab)}</span><h2 id="ru-h">${esc(O.ruH)}</h2></div><p>${esc(O.ruP)}</p></div><ul class="plain ru">${(R[lang] || R.en).map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="gnote">${esc(O.ruSrc)}: <a class="srcl" href="${esc(R.url)}" rel="noopener external" target="_blank">${esc(R.src[lang] || R.src.en)}</a> · ${esc(fill(O.ruChecked, { d: fmtD(OVERVIEW_CHECKED) }))}</p></div></section>` : '';
       const areas = c.dists.length ? `<div class="chips">${c.dists.map(d => `<span class="chip" data-district="${esc(d.id)}">${esc(d.name)} <small class="mut">· ${esc(K.admin[d.admin_level] || '')}</small></span>`).join('')}</div><p class="gnote">${esc(K.areaP)}</p>` : `<div class="na"><b>${esc(K.areaNone)}</b></div>`;
       page(`markets/${m.slug}/`, { title: `${mname(m)} | Nexus Desk`, description: t('mk.pageDesc', { m: mname(m) }), current: 'markets', script: 'market',
         body: `${pi({ eb: `${t('mk.market')} · ${st(m)}`, h1: esc(mname(m)), lead: esc(tx(m.summary)), crumbs: [desk, [t('markets'), u('/desk/markets/')], [mname(m)]] })}
+${overview}
 <section class="sec" aria-labelledby="req-h" data-market-status="${m.activation === 'ACTIVE' ? 'open' : 'preparing'}"><div class="w"><div class="sh"><div><span class="lab">${esc(K.chkLab)}</span><h2 id="req-h">${esc(K.chkH)}</h2></div><p>${esc(K.chkP)}</p></div>
 <div class="tw"><table class="dom"><tbody><tr><th scope="row">01</th><td>${esc(K.reqPerm)}</td></tr>${c.reqs.map((q, i) => `<tr data-req="${esc(q.key)}"><th scope="row">0${i + 2}</th><td>${esc(K.reqs[q.key] || q.name)}</td></tr>`).join('')}</tbody></table></div></div></section>
 <section class="sec"><div class="w" id="mkt" data-market="${esc(m.slug)}">${loading}</div></section>${nojs}
 <section class="sec" aria-labelledby="dst-h"><div class="w"><div class="sh"><div><span class="lab">${esc(K.areaLab)}</span><h2 id="dst-h">${esc(K.areaH)}</h2></div></div>${areas}</div></section>
+${rules}
 <section class="sec" aria-labelledby="src-h"><div class="w"><div class="sh"><div><span class="lab">${esc(K.srcLab)}</span><h2 id="src-h">${esc(K.srcH)}</h2></div><p>${esc(K.srcP)}</p></div>${list(SRC[m.id] || [])}<p class="gnote">${esc(SRC.common)}</p></div></section>
 ${cta(K.ctaH, K.ctaP, K.ctaBtn)}` });
     }
