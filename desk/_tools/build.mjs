@@ -17,7 +17,16 @@ const ASSET_V = '2';
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
 // Theme comes from the address (?theme=dark|light) and is applied before first paint; nothing is stored in the browser (D-07).
-const THEME_BOOT = `<script>(function(){var t=new URLSearchParams(location.search).get('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)})();</script>`;
+// Theme and language follow the company site (D-24): the same two browser keys the company site already uses,
+// nw-theme and nw-lang, are read before first paint and written when the visitor chooses. Default theme: dark, as on
+// the company site. A language-prefixed page (/desk/tr/, /desk/ar/) is an explicit choice and is remembered; an English
+// page follows the remembered language (like the company site without ?lang=). No other storage is used.
+const THEME_BOOT = `<script>(function(){var d=document.documentElement,q=new URLSearchParams(location.search),K='nw-theme',G='nw-lang';
+function g(k){try{return localStorage.getItem(k)}catch(e){return null}}function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+var t=q.get('theme');if(t==='dark'||t==='light')s(K,t);else t=g(K)==='light'?'light':'dark';d.setAttribute('data-theme',t);
+var m=location.pathname.match(/^\\/desk\\/(tr|ar)(\\/|$)/);if(m){s(G,m[1]);return}
+var ql=q.get('lang');if(ql==='en'||ql==='tr'||ql==='ar')s(G,ql);var w=g(G);
+if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(location.pathname.replace(/^\\/desk\\//,'/desk/'+w+'/')+(qs?'?'+qs:'')+location.hash)}})();</script>`;
 const GLOBE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.6 3.9 9.2s-1.3 6.6-3.9 9.2M12 2.8C9.4 5.4 8.1 8.4 8.1 12s1.3 6.6 3.9 9.2"/></svg>`;
 
 function layout({ lang, rest, title, description, current, body, script }) {

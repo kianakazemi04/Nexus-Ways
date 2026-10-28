@@ -1,10 +1,11 @@
-// Nexus Desk shell behaviour. No browser storage of any kind (D-07): the chosen theme travels in the page address
-// (?theme=dark|light) and is carried across every Desk link, so it no longer resets when moving between pages.
+// Nexus Desk shell behaviour. Theme and language are shared with the company site through its two existing browser
+// keys, nw-theme and nw-lang (D-24); no other storage of any kind is used. The first-paint logic is in the page head.
 import { load } from './data.js';
 import { reveal, fmtDate, t, esc } from './ui.js';
 
 const root = document.documentElement;
-const CARRY = ['theme', 'fixtures']; // parameters that persist across Desk navigation (fixtures only matters on localhost)
+const CARRY = ['fixtures']; // parameters that persist across Desk navigation (fixtures only matters on localhost)
+const remember = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode: choice lasts for this page only */ } };
 const params = () => new URLSearchParams(location.search);
 
 // add the carried parameters to every internal Desk link (static, rendered later, or in the language menu)
@@ -13,23 +14,24 @@ function decorate(scope = document) {
   scope.querySelectorAll('a[href^="/desk/"]').forEach(a => {
     const href = a.getAttribute('href');
     const u = new URL(href, location.origin);
-    for (const k of CARRY) { const v = cur.get(k); if (v) u.searchParams.set(k, v); else if (k === 'theme') u.searchParams.delete(k); }
+    for (const k of CARRY) { const v = cur.get(k); if (v) u.searchParams.set(k, v); }
+    u.searchParams.delete('theme');
     const next = u.pathname + u.search + u.hash;
     if (next !== href) a.setAttribute('href', next);
   });
 }
 
-// theme toggle: system preference until the visitor chooses; the choice is written to the address, not to storage
+// theme toggle: dark by default (as on the company site); the choice is remembered under the company site's key
 const thm = document.querySelector('.thm');
-const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : !matchMedia('(prefers-color-scheme: light)').matches;
+const isDark = () => root.dataset.theme !== 'light';
+{ const u = new URL(location.href); if (u.searchParams.has('theme') || u.searchParams.has('lang')) { u.searchParams.delete('theme'); u.searchParams.delete('lang'); history.replaceState(history.state, '', u); } }
 const syncThm = () => thm && thm.setAttribute('aria-pressed', String(isDark()));
 if (thm) {
   syncThm();
   thm.addEventListener('click', () => {
     const next = isDark() ? 'light' : 'dark';
-    root.dataset.theme = next;
-    const u = new URL(location.href); u.searchParams.set('theme', next); history.replaceState(history.state, '', u);
-    syncThm(); decorate();
+    root.dataset.theme = next; remember('nw-theme', next);
+    syncThm();
   });
 }
 
@@ -41,10 +43,11 @@ if (lgw) {
   btn.addEventListener('click', (e) => { e.stopPropagation(); set(!lgw.classList.contains('o')); });
   document.addEventListener('click', (e) => { if (!lgw.contains(e.target)) set(false); });
   lgw.addEventListener('keydown', (e) => { if (e.key === 'Escape') { set(false); btn.focus(); } });
-  // keep the same view (filters, ids, theme) when switching language
+  // keep the same view (filters, ids) when switching language
   lgw.querySelectorAll('.lgm a').forEach(a => a.addEventListener('click', () => {
+    remember('nw-lang', a.getAttribute('hreflang')); // the company site opens in the same language
     const u = new URL(a.getAttribute('href'), location.origin);
-    for (const [k, v] of params()) u.searchParams.set(k, v);
+    for (const [k, v] of params()) if (k !== 'theme' && k !== 'lang') u.searchParams.set(k, v);
     u.hash = location.hash; a.setAttribute('href', u.pathname + u.search + u.hash);
   }));
 }

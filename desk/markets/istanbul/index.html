@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<script>(function(){var t=new URLSearchParams(location.search).get('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)})();</script>
+<script>(function(){var d=document.documentElement,q=new URLSearchParams(location.search),K='nw-theme',G='nw-lang';
+function g(k){try{return localStorage.getItem(k)}catch(e){return null}}function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+var t=q.get('theme');if(t==='dark'||t==='light')s(K,t);else t=g(K)==='light'?'light':'dark';d.setAttribute('data-theme',t);
+var m=location.pathname.match(/^\/desk\/(tr|ar)(\/|$)/);if(m){s(G,m[1]);return}
+var ql=q.get('lang');if(ql==='en'||ql==='tr'||ql==='ar')s(G,ql);var w=g(G);
+if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(location.pathname.replace(/^\/desk\//,'/desk/'+w+'/')+(qs?'?'+qs:'')+location.hash)}})();</script>
 <title>Istanbul | Nexus Desk</title>
 <meta name="description" content="Istanbul: Nexus Desk market status, verified context and published opportunities.">
 <meta name="robots" content="noindex, follow">
