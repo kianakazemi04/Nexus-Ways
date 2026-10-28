@@ -358,6 +358,10 @@ export function validateDataset(ds, opts) {
 
   // ------------------------------------------------ eligibility (computed, never hand-set)
   const errIds = new Set(errors.map(e => e.id));
+  // written project permissions (sales-office e-mails), private store only. When the caller passes them (ingest runGate
+  // for a real store), each permission is honoured only within its own channels, activities, media and dates.
+  const PERMS = Array.isArray(opts.permissions) ? opts.permissions : null;
+  const permProblems = (projectId, id, activity) => projectPermissionProblems(PERMS, projectId, id, activity, today);
   const mediaReasons = (r) => {
     const why = [];
     if (r.is_illustrative) why.push('illustrative');
@@ -366,6 +370,7 @@ export function validateDataset(ds, opts) {
     else if (!r.permission.evidence_ref) why.push('no permission evidence reference');
     if (!r.permission || !(r.permission.scope || []).includes('desk_web')) why.push('permission scope excludes desk_web');
     if (r.permission && r.permission.expires_at && r.permission.expires_at < today) why.push('permission expired');
+    if (PERMS && r.permission && r.permission.status === 'GRANTED_WRITTEN' && r.permission.evidence_ref && r.subject) for (const w of permProblems(r.subject.id, r.permission.evidence_ref, 'PUBLISH_MEDIA')) why.push(`permission record: ${w}`);
     if (r.attribution && r.attribution.required && !r.attribution.text) why.push('attribution missing');
     if (!r.review) why.push('not reviewed');
     if (errIds.has(r.id)) why.push('validation errors');
@@ -410,6 +415,7 @@ export function validateDataset(ds, opts) {
       if (C('conflicts').some(c => c.status === 'OPEN' && subjects.some(s => sameRef(s, c.subject)))) why.push('open conflict');
       for (const d of ['PROJECT_ASSET', 'DEVELOPER', 'RISK']) if (!C('research_blocks').some(b => sameRef(b.subject, { type: 'project', id: pr.id }) && b.domain === d)) why.push(`no ${d} research block`);
       if (isEmpty(pr.risk_ids) && isEmpty(r.risk_ids)) why.push('no documented risk');
+      if (PERMS) for (const w of permProblems(pr.id, null, 'PUBLISH_PROJECT_INFORMATION')) why.push(`project permission: ${w}`);
       // claim policy CP-1 and review policy RP-1 for every material field that carries a value
       const recs = [{ type: 'project', rec: pr }, { type: 'developer', rec: pr.developer_id && get(pr.developer_id) ? get(pr.developer_id).r : null }, { type: 'asset', rec: r.asset_id && get(r.asset_id) ? get(r.asset_id).r : null }];
       for (const { type, rec } of recs) if (rec) for (const f of MATERIAL_FIELDS[type]) {
@@ -473,6 +479,25 @@ export function validateDataset(ds, opts) {
     if (m && m.r.activation === 'INACTIVE' && r.record_status === 'PUBLISHED') E('V13', r.id, 'opportunity published in an inactive market');
   }
   return { errors, warnings, eligibility: { opportunities: opp, media } };
+}
+
+// Written project permission check (sales-office e-mail records, private store): honoured only within its own
+// activities, channels and dates. Returns [] when at least one matching record is valid.
+export function projectPermissionProblems(perms, projectId, id, activity, today, channel = 'desk_web') {
+  const recs = (perms || []).filter(x => x.project_id === projectId && (!id || x.id === id));
+  if (!recs.length) return [id ? `permission record ${id} not found for ${projectId}` : `no written project permission from the sales office recorded for ${projectId}`];
+  const why = [];
+  for (const x of recs) {
+    const w = [];
+    if (x.status !== 'GRANTED_WRITTEN' || x.revoked_at) w.push(`${x.id} revoked`);
+    if (!(x.activities || []).includes(activity)) w.push(`${x.id} does not authorize ${activity}`);
+    if (!(x.channels || []).includes(channel)) w.push(`${x.id} does not name the Desk website (${channel}) as a channel`);
+    if (!isIsoDate(x.granted_at) || x.granted_at > today) w.push(`${x.id} has no valid grant date`);
+    if (x.valid_until && x.valid_until < today) w.push(`${x.id} expired on ${x.valid_until}`);
+    if (!w.length) return [];
+    why.push(...w);
+  }
+  return why;
 }
 
 // Disclosures that apply to an opportunity: those it links, plus any recorded against the opportunity itself or its

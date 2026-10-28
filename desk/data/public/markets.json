@@ -10,16 +10,27 @@
       "currency": "TRY",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Initial market. Research in progress; no market claims are published until verified.",
-        "tr": "İlk pazar. Araştırma sürüyor; doğrulanana kadar hiçbir pazar iddiası yayımlanmaz.",
-        "ar": "السوق الأولى. البحث جارٍ؛ لا تُنشر أي ادعاءات عن السوق قبل التحقق منها."
+        "en": "Research in progress. Province-level activity and macro indicators are recorded as reported by secondary sources; official verification, district research and statutory checks are outstanding.",
+        "tr": "Araştırma sürüyor. İl düzeyinde satış ve makro göstergeler ikincil kaynaklardan aktarıldığı şekliyle kayıtlı; resmî doğrulama, ilçe araştırması ve yasal kontroller tamamlanmadı.",
+        "ar": "البحث جارٍ. مؤشرات النشاط على مستوى الولاية والمؤشرات الكلية مسجّلة كما نقلتها مصادر ثانوية؛ التحقق الرسمي وبحث الأحياء والفحوص القانونية لم تكتمل بعد."
       },
       "category": "real_estate",
       "record_status": "RESEARCH_IN_PROGRESS",
-      "research_block_ids": [],
-      "evidence_ids": [],
+      "research_block_ids": [
+        "RB-MKT-IST-MARKET",
+        "RB-MKT-IST-MACRO-FX",
+        "RB-MKT-IST-DEVELOPER",
+        "RB-MKT-IST-PROJECT-ASSET",
+        "RB-MKT-IST-RISK"
+      ],
+      "evidence_ids": [
+        "EVD-MKT-IST-0001",
+        "EVD-MKT-IST-0002",
+        "EVD-MKT-IST-0003",
+        "EVD-MKT-IST-0004"
+      ],
       "field_states": [],
-      "last_reviewed": null,
+      "last_reviewed": "2026-10-28",
       "is_illustrative": false,
       "review": null
     },
@@ -31,16 +42,25 @@
       "currency": "AED",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Anticipated market. Inactive until its separate evidence gate passes.",
-        "tr": "Öngörülen pazar. Kendi kanıt kapısı geçilene kadar pasif.",
-        "ar": "سوق مرتقبة. غير نشطة حتى تجتاز بوابة الأدلة الخاصة بها."
+        "en": "Research in progress. Monthly DLD activity and the most active areas are recorded as reported; official verification, developer and project checks and statutory checks are outstanding.",
+        "tr": "Araştırma sürüyor. Aylık DLD hareketleri ve en aktif bölgeler aktarıldığı şekliyle kayıtlı; resmî doğrulama, geliştirici ve proje kontrolleri ile yasal kontroller tamamlanmadı.",
+        "ar": "البحث جارٍ. نشاط دائرة الأراضي والأملاك الشهري والمناطق الأكثر نشاطاً مسجّلة كما نُقلت؛ التحقق الرسمي وفحوص المطوّرين والمشاريع والفحوص القانونية لم تكتمل بعد."
       },
       "category": "real_estate",
-      "record_status": "DRAFT",
-      "research_block_ids": [],
-      "evidence_ids": [],
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-MKT-DXB-MARKET",
+        "RB-MKT-DXB-MACRO-FX",
+        "RB-MKT-DXB-DEVELOPER",
+        "RB-MKT-DXB-PROJECT-ASSET",
+        "RB-MKT-DXB-RISK"
+      ],
+      "evidence_ids": [
+        "EVD-MKT-DXB-0001",
+        "EVD-MKT-DXB-0002"
+      ],
       "field_states": [],
-      "last_reviewed": null,
+      "last_reviewed": "2026-10-28",
       "is_illustrative": false,
       "review": null
     },
@@ -52,16 +72,25 @@
       "currency": "AED",
       "activation": "INACTIVE",
       "summary": {
-        "en": "Anticipated market. Inactive until its separate evidence gate passes.",
-        "tr": "Öngörülen pazar. Kendi kanıt kapısı geçilene kadar pasif.",
-        "ar": "سوق مرتقبة. غير نشطة حتى تجتاز بوابة الأدلة الخاصة بها."
+        "en": "Research in progress. H1 2026 activity and the leading investment-zone areas are recorded as reported; ADREC verification, developer and project checks and statutory checks are outstanding.",
+        "tr": "Araştırma sürüyor. 2026 ilk yarı hareketleri ve öne çıkan yatırım bölgeleri aktarıldığı şekliyle kayıtlı; ADREC doğrulaması, geliştirici ve proje kontrolleri ile yasal kontroller tamamlanmadı.",
+        "ar": "البحث جارٍ. نشاط النصف الأول من 2026 ومناطق الاستثمار الرائدة مسجّلة كما نُقلت؛ تحقق مركز أبوظبي العقاري وفحوص المطوّرين والمشاريع والفحوص القانونية لم تكتمل بعد."
       },
       "category": "real_estate",
-      "record_status": "DRAFT",
-      "research_block_ids": [],
-      "evidence_ids": [],
+      "record_status": "RESEARCH_IN_PROGRESS",
+      "research_block_ids": [
+        "RB-MKT-AUH-MARKET",
+        "RB-MKT-AUH-MACRO-FX",
+        "RB-MKT-AUH-DEVELOPER",
+        "RB-MKT-AUH-PROJECT-ASSET",
+        "RB-MKT-AUH-RISK"
+      ],
+      "evidence_ids": [
+        "EVD-MKT-AUH-0001",
+        "EVD-MKT-AUH-0002"
+      ],
       "field_states": [],
-      "last_reviewed": null,
+      "last_reviewed": "2026-10-28",
       "is_illustrative": false,
       "review": null
     }

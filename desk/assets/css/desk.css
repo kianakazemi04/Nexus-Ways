@@ -239,6 +239,30 @@ main { display: block; min-height: 60vh }
 .op-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); padding: 22px }
 .op-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px }
 .gal { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 10px }
+/* approved-media carousel (scroll-snap: swipe on touch, buttons, thumbnails, arrow keys) */
+.gal.car { display: block }
+.car-view { position: relative }
+.car-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel2); overscroll-behavior-x: contain }
+.car-track::-webkit-scrollbar { display: none }
+.car-track:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px }
+.car-slide { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: 16 / 10; position: relative; min-width: 0 }
+.car-slide[hidden] { display: none }
+.car-slide .th { width: 100%; height: 100%; border: 0; border-radius: 0; aspect-ratio: auto; display: block }
+.car-slide .th:hover img { transform: none }
+.car-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 99px; border: 1px solid #ffffff40; background: #000000a6; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; display: grid; place-items: center; backdrop-filter: blur(4px) }
+.car-nav.prev { inset-inline-start: 10px } .car-nav.next { inset-inline-end: 10px }
+[dir="rtl"] .car-nav span { display: inline-block; transform: scaleX(-1) }
+.car-nav:disabled { opacity: .35; cursor: default }
+.car-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px }
+.car-bar { display: flex; gap: 12px; align-items: baseline; margin-top: 10px; font-size: 13px; color: var(--mut); min-width: 0 }
+.car-count { font-size: 11px; letter-spacing: .08em; flex: none }
+.car-cap { min-width: 0; overflow-wrap: anywhere }
+.car-thumbs { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 4px }
+.car-th { flex: 0 0 88px; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); padding: 0; background: var(--panel2); cursor: pointer; opacity: .6 }
+.car-th img { width: 100%; height: 100%; object-fit: cover }
+.car-th[aria-current="true"] { opacity: 1; border-color: var(--fg) }
+.car-th[hidden] { display: none }
+@media (max-width: 760px) { .car-nav { width: 38px; height: 38px; font-size: 20px } .car-th { flex-basis: 68px } }
 @media (max-width: 760px) { .gal { grid-template-columns: 1fr } }
 .gal .main { position: relative; border-radius: var(--r); overflow: hidden; background: var(--panel2); aspect-ratio: 16 / 10; border: 1px solid var(--line) }
 .gal .main img { width: 100%; height: 100%; object-fit: cover }
@@ -330,6 +354,10 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0 }
 .prose h3 { font-size: 20px; margin-top: 8px; color: var(--fg) }
 .prose ul { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px }
 .prose strong { font-weight: 500; color: var(--fg) }
+.wf { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 10px }
+.wf-m { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px }
+.wf > li { min-width: 0; grid-template-columns: minmax(0, 1fr) }
+.wf-m .chip { font-size: 10.5px; white-space: normal; max-width: 100% }
 .ilinks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 10px }
 .il { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; background: var(--panel); display: grid; gap: 10px; position: relative; transition: border-color .3s }
 .il:hover { border-color: var(--line2) }
@@ -437,3 +465,7 @@ noscript .notice { margin-top: 16px }
 .chl span { font-size: 14px; color: var(--fg2) }
 .chl small { font-size: 12.5px; color: var(--mut) }
 .chl i { position: absolute; top: 18px; inset-inline-end: 18px; font-style: normal; color: var(--mut) }
+.mkc { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; color: var(--fg2) }
+.mkc li { padding-inline-start: 14px; position: relative }
+.mkc li::before { content: ""; position: absolute; inset-inline-start: 0; top: .6em; width: 6px; height: 1px; background: var(--red) }
+.dom a.lnk { overflow-wrap: anywhere }

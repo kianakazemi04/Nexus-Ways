@@ -12,6 +12,8 @@
 //   node desk/_tools/ingest.mjs revoke-media  --store <dir> --id <MED-…> --by owner --reason "…"
 //   node desk/_tools/ingest.mjs resolve-conflict --store <dir> --id <CNF-…> --by owner --status EXPLAINED|RESOLVED --note "…" [--accept <EVD-…>]
 //   node desk/_tools/ingest.mjs withdraw --store <dir> --id <OPP-…> --by owner --reason "…"
+//   node desk/_tools/ingest.mjs compare --store <dir> --ids <OPP-…>,<OPP-…>   (internal side-by-side + research queue)
+//   node desk/_tools/ingest.mjs record-permission --file <perm.json> --store <dir> --by owner (sales-office e-mail received later)
 //   node desk/_tools/ingest.mjs market-intake  --file <json> --store <dir> --by owner   (market/district research records)
 //   node desk/_tools/ingest.mjs record-review  --store <dir> --market <MKT-…> --topic <KEY> --status … [--outcome …]
 //        --reviewer "…" --role <ROLE> --reference "…" --reviewed-at YYYY-MM-DD [--valid-until …] [--conditions "a|b"] --by owner
@@ -29,12 +31,13 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures, schemaErrors } from './validate.mjs';
+import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures, schemaErrors, projectPermissionProblems } from './validate.mjs';
 import { loadGateConfig, evaluateMarketGate, gateMarkdown, REVIEW_STATUS, REVIEW_OUTCOME } from './engines/marketgate.mjs';
 import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
 import { claimPublication, isPublicClaim, deriveLastVerified, evidenceFreshness } from '../assets/js/policy.js';
 import { checkAnalysis } from './engines/analysis.mjs';
 import { decisionReport, reportMarkdown } from './engines/report.mjs';
+import { compareOpportunities, compareMarkdown } from './engines/oppcompare.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -95,7 +98,7 @@ export function loadStore(dir) {
     const f = path.join(dir, 'data', `${c}.json`);
     collections[c] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).records : [];
   }
-  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index', 'regulatory_reviews']) {
+  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log', 'entity_index', 'regulatory_reviews', 'permissions']) {
     const f = path.join(dir, 'private', `${n}.json`);
     files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (['media_index', 'entity_index'].includes(n) ? {} : []);
   }
@@ -118,6 +121,8 @@ export function saveStore(store, txn = null) {
 
 // ------------------------------------------------------------ package validation (before anything is built or written)
 const ENUM = (k) => DEFS[k].enum;
+export const PERMISSION_ACTIVITIES = ['PUBLISH_PROJECT_INFORMATION', 'ADVERTISE_PROJECT', 'PUBLISH_MEDIA'];
+export const PERMISSION_ISSUER_ROLES = ['DEVELOPER_SALES_OFFICE', 'DEVELOPER', 'EXCLUSIVE_AGENT', 'OWNER_OF_RIGHTS'];
 const isText = (v) => v && typeof v === 'object' && typeof v.en === 'string' && v.en.trim().length > 0;
 export function validatePackage(pkg, pkgDir) {
   const errs = []; const E = (m) => errs.push(m);
@@ -167,6 +172,24 @@ export function validatePackage(pkg, pkgDir) {
     for (const f of (k && k.evidence_facts) || []) if (!factKeys.has(f)) E(`${w}: evidence fact "${f}" is not a declared fact key`);
   }
   for (const [i, d] of (pkg.disclosures || []).entries()) { const w = `disclosures[${i}]`; inEnum(w, d && d.kind, 'disclosure_kind'); if (!d || !isText(d.text)) E(`${w}: text (en) required`); }
+  // written project permissions from the project's sales office (owner's freelance-agent workflow)
+  const perms = {};
+  for (const [i, x] of (pkg.permissions || []).entries()) {
+    const w = `permissions[${i}]${x && x.id ? ` (${x.id})` : ''}`;
+    if (!x || typeof x !== 'object') { E(`${w}: not an object`); continue; }
+    if (!/^PRIV-PERM-[A-Z0-9-]+$/.test(x.id || '')) { E(`${w}: id must look like PRIV-PERM-<CODE>`); continue; }
+    if (perms[x.id]) E(`${w}: duplicate permission id`); perms[x.id] = x;
+    if (!x.issuer || !x.issuer.name || !PERMISSION_ISSUER_ROLES.includes(x.issuer.role)) E(`${w}: issuer {name, role} required; role one of ${PERMISSION_ISSUER_ROLES.join(', ')}`);
+    if (!x.document) E(`${w}: document required — the permission e-mail or letter as received (it stays in the private store)`);
+    else { const d = path.resolve(pkgDir, x.document); if (path.relative(path.resolve(pkgDir), d).startsWith('..') || !fs.existsSync(d)) E(`${w}: document ${x.document} not found in the package`); }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(x.granted_at || '')) E(`${w}: granted_at (YYYY-MM-DD, the date of the e-mail) required`);
+    if (x.valid_until !== null && x.valid_until !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(x.valid_until)) E(`${w}: valid_until must be YYYY-MM-DD or null (no stated end date)`);
+    if (!Array.isArray(x.channels) || !x.channels.length) E(`${w}: channels required — only the channels the e-mail actually names (${ENUM('permission_scope').join(', ')})`);
+    else for (const c of x.channels) inEnum(`${w} channel`, c, 'permission_scope');
+    if (!Array.isArray(x.activities) || !x.activities.length || x.activities.some(a => !PERMISSION_ACTIVITIES.includes(a))) E(`${w}: activities required — subset of ${PERMISSION_ACTIVITIES.join(', ')}, as the e-mail states them`);
+    if (x.media !== undefined && x.media !== 'ALL_SUPPLIED' && !(Array.isArray(x.media) && x.media.every(f => typeof f === 'string'))) E(`${w}: media must be "ALL_SUPPLIED" or a list of the package files the e-mail approves`);
+    if (x.media && !(x.activities || []).includes('PUBLISH_MEDIA')) E(`${w}: media listed but the permission does not include PUBLISH_MEDIA`);
+  }
   for (const [i, m] of (pkg.media || []).entries()) {
     const w = `media[${i}]${m && m.file ? ` (${m.file})` : ''}`;
     if (!m || !m.file) { E(`${w}: file required`); continue; }
@@ -180,6 +203,14 @@ export function validatePackage(pkg, pkgDir) {
     if (!m.source || !srcKeys.has(m.source)) E(`${w}: source "${m.source}" is not a declared source key`);
     inEnum(w, m.media_type, 'media_type'); inEnum(w, m.content_category, 'content_category'); inEnum(w, m.role, 'media_role', true);
     if (!isText(m.caption) || !isText(m.alt)) E(`${w}: caption and alt text (en) required`);
+    if (m && (!m.permission || m.permission.from)) {
+      // permission derived from a project permission record: only for files that record actually approves
+      const ref = m.permission && m.permission.from;
+      const cover = Object.values(perms).filter(x => (!ref || x.id === ref) && (x.activities || []).includes('PUBLISH_MEDIA') && (x.media === 'ALL_SUPPLIED' || (Array.isArray(x.media) && x.media.includes(m.file))));
+      if (ref && !perms[ref]) E(`${w}: permission.from ${ref} is not a permission in this package`);
+      else if (!cover.length) E(`${w}: no permission covers this file — ${ref ? `${ref} does not approve it (media list / PUBLISH_MEDIA)` : 'record {status, scope, evidence_ref, granted_at, expires_at} or a project permission that lists the file'}; use status NOT_REQUESTED if no permission has been sought`);
+      continue;
+    }
     if (!m.permission || typeof m.permission !== 'object') E(`${w}: permission is missing — record {status, scope, evidence_ref, granted_at, expires_at}; use status NOT_REQUESTED if no permission has been sought`);
     else {
       inEnum(`${w} permission`, m.permission.status, 'permission_status');
@@ -220,6 +251,7 @@ export function runGate(store, { fixture, today, repoRoot, staged = null }) {
   const m = methods();
   return validateDataset({ collections: store.collections, origin: storeOrigin(store, fixture) },
     { mode: fixture ? 'fixtures' : 'private', today, mediaCheck, methods: Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.status])),
+      permissions: fixture ? null : (store.private.permissions || []),
       marketGates: { config: loadGateConfig(path.join(repoRoot, 'desk/_tools/market-gates/MG-1.json')), reviews: fixture ? null : (store.private.regulatory_reviews || []), provenance: fixture ? null : store.private.entity_index } });
 }
 
@@ -442,9 +474,28 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   // documents — inventory only, never copied anywhere public
   for (const d of pkg.documents || []) { store.private.documents.push({ package_id: pkg.package_id, project_id: project.id, ...d }); R.documents.push(d.title); }
 
+  // project permissions (sales-office e-mails): recorded privately with the document's hash; never published
+  const permRec = {};
+  for (const x of pkg.permissions || []) {
+    const doc = fs.readFileSync(path.join(pkgDir, x.document));
+    const rec = { id: x.id, package_id: pkg.package_id, project_id: project.id, issuer: x.issuer, document: { file: x.document, sha256: sha256(doc) },
+      granted_at: x.granted_at, received_at: x.received_at || received, valid_until: x.valid_until ?? null, channels: x.channels, activities: x.activities,
+      media: x.media ?? null, conditions: x.conditions || [], attribution_text: x.attribution_text ?? null, statutory_permit: x.statutory_permit ?? null, status: 'GRANTED_WRITTEN', revoked_at: null };
+    const ex = store.private.permissions.find(r => r.id === rec.id && r.project_id === project.id);
+    if (ex && ex.document.sha256 !== rec.document.sha256) { fail(`permission ${x.id}: already recorded for ${project.id} with a different document; record a new permission id`); continue; }
+    if (!ex) store.private.permissions.push(rec);
+    permRec[x.id] = ex || rec;
+    R.permissions = (R.permissions || []).concat(`${x.id} — ${x.issuer.name} (${x.issuer.role}), ${x.granted_at}${x.valid_until ? ' → ' + x.valid_until : ', no end date stated'}; channels ${x.channels.join(', ')}; ${x.activities.join(', ')}${x.media ? `; media ${x.media === 'ALL_SUPPLIED' ? 'all supplied' : x.media.length + ' file(s)'}` : '; no media'}`);
+  }
+  const permFor = (m) => {
+    if (m.permission && !m.permission.from) return { permission: m.permission, attribution: m.attribution };
+    const x = Object.values(permRec).find(p => (!m.permission || p.id === m.permission.from) && p.activities.includes('PUBLISH_MEDIA') && (p.media === 'ALL_SUPPLIED' || (Array.isArray(p.media) && p.media.includes(m.file))));
+    return { permission: { status: 'GRANTED_WRITTEN', scope: x.channels, evidence_ref: x.id, granted_at: x.granted_at, expires_at: x.valid_until },
+      attribution: x.attribution_text && !(m.attribution && m.attribution.required) ? { required: true, text: x.attribution_text } : m.attribution };
+  };
   // media — each image processed independently and bound to this project
   const mediaPlan = [];
-  for (const m of pkg.media || []) {
+  for (let m of pkg.media || []) {
     const raw = path.join(pkgDir, m.file);
     if (!fs.existsSync(raw)) { fail(`media ${m.file}: file not found`); continue; }
     const buf = fs.readFileSync(raw); const rawHash = sha256(buf);
@@ -459,6 +510,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
     const outExt = vector ? '.svg' : '.webp';
     const pub = fixture ? `desk/_fixtures/media/${project.id}/${id}${outExt}` : `desk/media/${project.id}/${id}${outExt}`;
     const dest = fixture ? path.join(repoRoot, pub) : path.join(storeDir, 'media', project.id, `${id}${outExt}`);
+    const pf = permFor(m); m = { ...m, permission: pf.permission, attribution: pf.attribution };
     mediaPlan.push({ m, id, raw, rawHash, vector, dest, pub });
     store.collections.media.push({ id, subject: { type: 'project', id: project.id }, media_type: m.media_type, content_category: m.content_category, caption: m.caption, alt: m.alt,
       depicted_date: m.depicted_date ?? null, provenance: { source_id: srcId[m.source], provided_by_role: pkg.provided_by_role || 'Unspecified', received_at: received, media_kit_ref: m.media_kit_ref ?? null },
@@ -530,6 +582,7 @@ function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, toda
   md.push('## 3. Media', '', '| File | Media ID | Type | Role | Permission | Scope | Metadata |', '|---|---|---|---|---|---|---|');
   for (const m of R.media) md.push(`| ${m.file} | ${m.id} | ${m.type || '—'} | ${m.role || '—'} | ${m.permission || '—'} | ${m.scope || '—'} | ${m.exif || m.result} |`);
   md.push('', `Documents inventoried (private only): ${R.documents.join('; ') || '—'}`, '');
+  md.push('## Project permissions (private)', '', ...(R.permissions && R.permissions.length ? R.permissions.map(x => `- ${x}`) : ['- none supplied — no opportunity of this project can be published until the sales office\'s written permission is recorded']), '');
   md.push('## 4. Gaps, disputes and weak support', '');
   md.push(`- Missing required fields: ${missing.map(m => `${m.field} [${m.state}]`).join('; ') || 'none'}`);
   md.push(`- Disputed (conflicts opened, nothing overwritten): ${R.disputed.map(d => `${d.field}: ${JSON.stringify(d.current)} vs ${JSON.stringify(d.incoming)} → ${d.conflict}`).join('; ') || 'none'}`);
@@ -637,6 +690,7 @@ export function approveMedia({ storeDir, id, by, fixture = false, today, repoRoo
     const m = store.collections.media.find(x => x.id === id); if (!m) throw new Error(`${id} not found`);
     const subj = m.subject && (store.collections.projects.find(p => p.id === m.subject.id) || store.collections.opportunities.find(o => o.id === m.subject.id));
     const why = mediaPermissionProblems(m, today);
+    if (!fixture && m.permission && m.permission.status === 'GRANTED_WRITTEN' && m.subject) for (const w of projectPermissionProblems(store.private.permissions, m.subject.id, m.permission.evidence_ref, 'PUBLISH_MEDIA', today)) why.push(`permission record: ${w}`);
     if (!subj) why.push(`subject ${m.subject && m.subject.id} not found in this store`);
     else if (m.file && !m.file.public_path.includes(`/${m.subject.id}/`)) why.push('file path is not bound to its own project');
     if (why.length) return { approved: false, why };
@@ -867,9 +921,54 @@ export function decisionReportFor({ storeDir, id, analysisPath = null, fixture =
     const r = decisionReport(store, id, { gateWhy: gate.eligibility.opportunities[id] || [], analysis: checked.analysis, provenance: checked.provenance, today });
     const md = reportMarkdown(r);
     if (write) withTxn(storeDir, 'report', (t) => { t.write(path.join(storeDir, 'reports', `decision-${id}.md`), md); t.write(path.join(storeDir, 'reports', `decision-${id}.json`), JSON.stringify(r, null, 2) + '\n'); });
-    return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null };
+    return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null, gateWhy: gate.eligibility.opportunities[id] || [] };
   };
   return write ? withLock(storeDir, 'report', run) : run();
+}
+
+// ------------------------------------------------------------ comparison of several opportunities (OPC-1, internal)
+export function compareFor({ storeDir, ids, fixture = false, today, repoRoot, write = true }) {
+  const run = () => {
+    const reps = ids.map(id => { const r = decisionReportFor({ storeDir, id, fixture, today, repoRoot, write: false }); if (!r.ok) throw new Error(`${id}: analysis refused — ${r.errors.join('; ')}`); return { id, report: r.report, gate_reasons: (r.gateWhy || []) }; });
+    const c = compareOpportunities(reps); const md = compareMarkdown(c, today);
+    if (write && c.status === 'OK') withTxn(storeDir, 'compare', (t) => { t.write(path.join(storeDir, 'reports', `compare-${today}.md`), md); t.write(path.join(storeDir, 'reports', `compare-${today}.json`), JSON.stringify(c, null, 2) + '\n'); });
+    return { comparison: c, markdown: md };
+  };
+  return write ? withLock(storeDir, 'compare', run) : run();
+}
+
+// ------------------------------------------------------------ project permission received after ingestion
+// Records a sales-office permission (JSON file with the same fields as an intake permission, plus "project_id") and its
+// document. Images of that project which the permission explicitly approves, and which have no written permission yet,
+// receive it; revoked images are never changed. Nothing is approved or published by this command.
+export function recordPermission({ storeDir, file, by, today, repoRoot, fixture = false }) {
+  requireOwner(by, 'a project permission record');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'record-permission' }, (dir) => {
+    const store = loadStore(dir); const x = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const project = store.collections.projects.find(p => p.id === x.project_id);
+    if (!project) return { ok: false, errors: [`project ${x.project_id} not found in the store`] };
+    const base = path.dirname(file);
+    const errs = validatePackage({ package_id: 'PERMISSION', received_at: today, category: project.category, market: { slug: 'x' }, project: { name: project.name }, permissions: [x] }, base).filter(e => e.startsWith('permissions'));
+    if (errs.length) return { ok: false, errors: errs };
+    if (store.private.permissions.some(r => r.id === x.id && r.project_id === project.id)) return { ok: false, errors: [`${x.id} is already recorded for ${project.id}; use a new id`] };
+    const rec = { id: x.id, package_id: null, project_id: project.id, issuer: x.issuer, document: { file: path.basename(x.document), sha256: sha256(fs.readFileSync(path.resolve(base, x.document))) },
+      granted_at: x.granted_at, received_at: today, valid_until: x.valid_until ?? null, channels: x.channels, activities: x.activities, media: x.media ?? null,
+      conditions: x.conditions || [], attribution_text: x.attribution_text ?? null, statutory_permit: x.statutory_permit ?? null, status: 'GRANTED_WRITTEN', revoked_at: null };
+    store.private.permissions.push(rec);
+    const files = Object.values(store.private.media_index).filter(v => v.subject === project.id);
+    const updated = [];
+    if (x.activities.includes('PUBLISH_MEDIA')) for (const v of files) {
+      if (!(x.media === 'ALL_SUPPLIED' || (Array.isArray(x.media) && x.media.includes(v.file)))) continue;
+      const m = store.collections.media.find(r => r.id === v.id);
+      if (!m || (m.permission && ['GRANTED_WRITTEN', 'REVOKED'].includes(m.permission.status))) continue;
+      m.permission = { status: 'GRANTED_WRITTEN', scope: x.channels, evidence_ref: x.id, granted_at: x.granted_at, expires_at: x.valid_until ?? null };
+      if (x.attribution_text && !(m.attribution && m.attribution.required)) m.attribution = { required: true, text: x.attribution_text };
+      m.review = null; updated.push(m.id);
+    }
+    audit(store, 'record-permission', project.id, today, { permission_id: x.id, issuer: x.issuer.name, channels: x.channels, activities: x.activities, media_updated: updated });
+    saveStore(store);
+    return { ok: true, updated };
+  });
 }
 
 // ------------------------------------------------------------ market gate (MG-1, owner decisions D1/D3)
@@ -973,7 +1072,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  const STORE_CMDS = ['ingest', 'gate', 'report', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  const STORE_CMDS = ['ingest', 'gate', 'report', 'compare', 'record-permission', 'market-intake', 'record-review', 'market-gate', 'activate-market', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
   if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
@@ -986,6 +1085,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: a.store, fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
     else if (cmd === 'gate') { const s = loadStore(a.store); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const w of g.warnings || []) console.log(`! [${w.code}] ${w.id}: ${w.msg}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
     else if (cmd === 'report') { const r = decisionReportFor({ ...O, analysisPath: a.analysis && a.analysis !== true ? path.resolve(a.analysis) : null }); if (!r.ok) { console.error(`✗ analysis refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(r.markdown); console.log(`\n(written to ${path.join(a.store, 'reports', `decision-${a.id}.md`)}; analysis: ${r.analysisUsed || 'none'})`); }
+    else if (cmd === 'compare') { const r = compareFor({ ...O, ids: String(a.ids || '').split(',').filter(Boolean) }); console.log(r.markdown); }
+    else if (cmd === 'record-permission') { const r = recordPermission({ ...O, file: path.resolve(String(a.file)) }); if (!r.ok) { console.error(`✗ permission not recorded:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } wrote = true; console.log(`permission recorded; images given this written permission: ${r.updated.join(', ') || 'none'} (each still needs approve-media)`); }
     else if (cmd === 'market-intake') { const r = marketIntake({ ...O, file: path.resolve(String(a.file)) }); if (!r.ok) { console.error(`✗ market intake refused — nothing written:\n${r.errors.map(e => '  - ' + e).join('\n')}`); process.exit(1); } console.log(`market intake recorded: ${r.records} record(s)`); }
     else if (cmd === 'record-review') { const r = recordReview({ ...O, market: a.market, topic: a.topic, status: a.status, outcome: a.outcome === true ? null : a.outcome || null, reviewer: a.reviewer, role: a.role, reference: a.reference, reviewedAt: a['reviewed-at'], validUntil: a['valid-until'] || null, conditions: a.conditions && a.conditions !== true ? String(a.conditions).split('|').map(s => s.trim()).filter(Boolean) : [] }); console.log(`${r.id} recorded: ${r.market_id} ${r.topic} ${r.status}${r.outcome ? ' / ' + r.outcome : ''}`); }
     else if (cmd === 'market-gate') { const rs = marketGateReport(O); for (const g of rs) { console.log(`${g.market_id} (${g.gate_version}, ${g.evaluated_at}): ${g.pass ? 'PASS' : 'FAIL'}`); for (const r of g.reasons) console.log(`  - ${r.code} ${r.item} — ${r.detail}`); } console.log(`\n(reports written to ${path.join(a.store, 'reports')})`); }

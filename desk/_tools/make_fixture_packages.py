@@ -68,6 +68,8 @@ def complete_package(pid, letter, tone):
     placeholder(os.path.join(d, 'raw', 'amenity.jpg'), name, 'ARCHITECTURAL RENDERING · AMENITY', tone=tuple(c + 6 for c in tone))
     placeholder(os.path.join(d, 'raw', 'progress.jpg'), name, 'PHOTO · CONSTRUCTION PROGRESS', tone=(70, 66, 60))
     placeholder(os.path.join(d, 'raw', 'siteplan.png'), name, 'SITE PLAN', tone=(80, 82, 86))
+    os.makedirs(os.path.join(d, 'docs'), exist_ok=True)
+    open(os.path.join(d, 'docs', 'permission-email.txt'), 'w').write(f'ILLUSTRATIVE FIXTURE — fictional permission e-mail.\nFrom: Illustrative Developer {letter} sales office (fictional)\nDate: 2026-10-21\nWe authorise Nexus Ways to publish information about the illustrative project and the listed renderings on the Nexus Desk website only.\n')
     plan_svg(os.path.join(d, 'raw', 'plan-2plus1.svg'), f'{name} · 2+1 · fictional')
     perm = lambda status, ref: {'status': status, 'scope': ['desk_web'], 'evidence_ref': ref, 'granted_at': '2026-10-21' if status == 'GRANTED_WRITTEN' else None, 'expires_at': None}
     write(d, {
@@ -108,6 +110,7 @@ def complete_package(pid, letter, tone):
         ],
         'disclosures': [{'kind': 'COMMISSION', 'text': {'en': 'Illustrative disclosure: Nexus Ways may receive a commission from the developer if a purchase completes. This does not affect the research shown.'}}],
         'documents': [{'key': 'D1', 'title': 'Brochure (fictional)', 'kind': 'brochure', 'confidential': False}, {'key': 'D2', 'title': 'Price list (fictional)', 'kind': 'price_list', 'confidential': True}],
+        'permissions': [{'id': 'PRIV-PERM-FIX-1', 'issuer': {'name': f'Illustrative Developer {letter} sales office (fictional)', 'role': 'DEVELOPER_SALES_OFFICE'}, 'document': 'docs/permission-email.txt', 'granted_at': '2026-10-21', 'valid_until': None, 'channels': ['desk_web'], 'activities': ['PUBLISH_PROJECT_INFORMATION', 'ADVERTISE_PROJECT', 'PUBLISH_MEDIA'], 'media': ['raw/exterior.jpg', 'raw/interior.png', 'raw/amenity.jpg', 'raw/plan-2plus1.svg'], 'conditions': ['Illustrative condition: images may not be cropped or altered.'], 'attribution_text': None, 'statutory_permit': None}],
         'media': [
             {'file': 'raw/exterior.jpg', 'source': 'S2', 'media_type': 'RENDERING', 'content_category': 'exterior', 'role': 'cover', 'order': 0, 'caption': {'en': 'Exterior — architectural rendering (illustrative placeholder)'}, 'alt': {'en': 'Grey placeholder labelled illustrative exterior rendering'}, 'permission': perm('GRANTED_WRITTEN', 'PRIV-PERM-FIX-1'), 'attribution': {'required': True, 'text': f'© Illustrative Developer {letter} (fictional)'}},
             {'file': 'raw/interior.png', 'source': 'S2', 'media_type': 'RENDERING', 'content_category': 'interior', 'role': 'gallery', 'order': 1, 'caption': {'en': 'Living room — architectural rendering (illustrative placeholder)'}, 'alt': {'en': 'Grey placeholder labelled illustrative interior rendering'}, 'permission': perm('GRANTED_WRITTEN', 'PRIV-PERM-FIX-1'), 'attribution': {'required': False, 'text': None}},

@@ -26,7 +26,7 @@ jobs:
       - name: Check generated Desk pages are up to date
         run: node desk/_tools/build.mjs --check
       - name: Run Desk test suites (unit rules, ingestion lifecycle, P0 regressions, Phase 2 integrity)
-        run: node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs desk/_tests/phase2.test.mjs desk/_tests/p1.test.mjs desk/_tests/closure.test.mjs desk/_tests/engines.test.mjs desk/_tests/contact.test.mjs desk/_tests/marketgate.test.mjs
+        run: node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs desk/_tests/phase2.test.mjs desk/_tests/p1.test.mjs desk/_tests/closure.test.mjs desk/_tests/engines.test.mjs desk/_tests/contact.test.mjs desk/_tests/marketgate.test.mjs desk/_tests/permissions.test.mjs desk/_tests/workflow.test.mjs
   pages-build-check:
     # Reproduces the real GitHub Pages build (same builder as pages-build-deployment) WITHOUT deploying,
     # then tests the built site served at the domain root, as nexus-ways.com serves it.

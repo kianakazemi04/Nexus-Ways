@@ -123,6 +123,15 @@ async def run():
         srcs = await pg.evaluate("[...document.querySelectorAll('#gal img')].map(i => i.getAttribute('src'))")
         check(srcs and all('RESIDENCE-A/' in s for s in srcs), f'gallery of A shows only A images ({len(srcs)})')
         await pg.click('.gal .main'); check(await pg.evaluate("!!document.querySelector('.lb img')"), 'lightbox opens'); await pg.keyboard.press('Escape')
+        # approved-media carousel: buttons, thumbnails and keys move through the same approved images only
+        nsl = await pg.locator('.car-slide').count()
+        await pg.click('.car-nav.next'); await pg.wait_for_timeout(600)
+        c1 = await pg.inner_text('.car-count')
+        await pg.click('.car-th[data-ct="0"]'); await pg.wait_for_timeout(600)
+        c0 = await pg.inner_text('.car-count')
+        await pg.focus('.car-track'); await pg.keyboard.press('End'); await pg.wait_for_timeout(600)
+        ce = await pg.inner_text('.car-count')
+        check(nsl == len(srcs) - await pg.locator('.car-th').count() and c1 == f'2 / {nsl}' and c0 == f'1 / {nsl}' and ce == f'{nsl} / {nsl}', f'carousel navigates ({nsl} slides: {c1}, {c0}, {ce})')
         # field-level evidence (closure Task 1): a gate-passing opportunity has evidence behind every rendered fact,
         # and a developer claim stays visibly qualified in its evidence drawer
         await pg.goto(B + f'/desk/opportunities/preview/?id={FIX_C}&fixtures=1', wait_until='networkidle')

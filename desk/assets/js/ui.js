@@ -56,25 +56,76 @@ export function gallery(D, o, p) {
   const media = D.mediaFor(o, p);
   const withheld = D.fixture ? D.withheldMedia(o, p) : [];
   if (!media.length) return `<div class="noimg" style="aspect-ratio:16/7;border-radius:var(--r);border:1px dashed var(--line2)">${esc(t('noImages'))}</div>${withheld.length ? `<p class="gnote">${esc(t('withheld', { n: withheld.length }))}</p>` : ''}`;
+  // the cover leads; the rest keep their recorded order. Only media that passed the publication gate reach this list.
   const cover = media.find(m => m.role === 'cover') || media[0];
-  const rest = media.filter(m => m !== cover);
-  const cats = [...new Set(media.map(m => m.content_category))];
-  return `<div class="gtabs" role="group" aria-label="${esc(t('imgFilter'))}"><button type="button" aria-pressed="true" data-gc="all">${esc(t('all'))} · ${media.length}</button>${cats.map(c => `<button type="button" aria-pressed="false" data-gc="${esc(c)}">${lab('content_category', c)} · ${media.filter(m => m.content_category === c).length}</button>`).join('')}</div>
-<div class="gal">
-  <button type="button" class="main th" data-mi="${esc(cover.id)}" data-gcat="${esc(cover.content_category)}" aria-label="${esc(t('openImg', { c: '' }))}${tx(cover.caption)}"><img src="/${esc(cover.file.public_path)}" alt="${tx(cover.alt)}" width="${cover.file.width}" height="${cover.file.height}"><span class="mt mtag">${lab('media_type', cover.media_type)}</span></button>
-  <div class="side">${rest.map(m => `<button type="button" class="th" data-mi="${esc(m.id)}" data-gcat="${esc(m.content_category)}" aria-label="${esc(t('openImg', { c: '' }))}${tx(m.caption)}"><img src="/${esc(m.file.public_path)}" alt="${tx(m.alt)}" width="${m.file.width}" height="${m.file.height}" loading="lazy"><span class="mt mtag">${lab('media_type', m.media_type)}</span></button>`).join('')}</div>
+  const list = [cover, ...media.filter(m => m !== cover)];
+  const cats = [...new Set(list.map(m => m.content_category))];
+  const n = list.length;
+  return `${cats.length > 1 ? `<div class="gtabs" role="group" aria-label="${esc(t('imgFilter'))}"><button type="button" aria-pressed="true" data-gc="all">${esc(t('all'))} · ${n}</button>${cats.map(c => `<button type="button" aria-pressed="false" data-gc="${esc(c)}">${lab('content_category', c)} · ${list.filter(m => m.content_category === c).length}</button>`).join('')}</div>` : ''}
+<div class="gal car" data-car aria-roledescription="carousel" aria-label="${esc(t('carLabel'))}">
+  <div class="car-view">
+    <div class="car-track" tabindex="0">${list.map((m, i) => `<div class="car-slide${i === 0 ? ' main' : ''}" role="group" aria-roledescription="slide" aria-label="${i + 1} / ${n}" data-gcat="${esc(m.content_category)}" data-ci="${i}"><button type="button" class="th car-open" data-mi="${esc(m.id)}" aria-label="${esc(t('openImg', { c: '' }))}${tx(m.caption)}"><img src="/${esc(m.file.public_path)}" alt="${tx(m.alt)}" width="${m.file.width}" height="${m.file.height}"${i ? ' loading="lazy"' : ''}><span class="mt mtag">${lab('media_type', m.media_type)}</span></button></div>`).join('')}</div>
+    ${n > 1 ? `<button type="button" class="car-nav prev" data-cn="-1" aria-label="${esc(t('prev'))}"><span aria-hidden="true">‹</span></button><button type="button" class="car-nav next" data-cn="1" aria-label="${esc(t('next'))}"><span aria-hidden="true">›</span></button>` : ''}
+  </div>
+  <div class="car-bar"><span class="car-count mono" aria-live="polite">1 / ${n}</span><span class="car-cap"></span></div>
+  ${n > 1 ? `<div class="car-thumbs" role="group" aria-label="${esc(t('carThumbs'))}">${list.map((m, i) => `<button type="button" class="car-th" data-ct="${i}" data-gcat="${esc(m.content_category)}" aria-label="${esc(t('carGo', { n: i + 1 }))}" aria-current="${i === 0}"><img src="/${esc(m.file.public_path)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
 </div>
 <p class="gnote">${esc(t('galNote'))}${withheld.length ? ' ' + esc(t('withheld', { n: withheld.length })) : ''}</p>`;
 }
 export function bindGallery(root, D, o, p) {
   const media = D.mediaFor(o, p);
+  const cover = media.find(m => m.role === 'cover') || media[0];
+  const list = cover ? [cover, ...media.filter(m => m !== cover)] : [];
+  const car = root.querySelector('[data-car]'); if (!car) return;
+  const track = car.querySelector('.car-track'); const slides = [...car.querySelectorAll('.car-slide')]; const thumbs = [...car.querySelectorAll('.car-th')];
+  const count = car.querySelector('.car-count'); const cap = car.querySelector('.car-cap');
+  const rtl = getComputedStyle(car).direction === 'rtl';
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const visible = () => slides.filter(s => !s.hidden);
+  let cur = 0;
+  const show = (i) => {
+    const vis = visible(); if (!vis.length) return;
+    cur = Math.max(0, Math.min(i, vis.length - 1));
+    const s = vis[cur]; const m = list[+s.dataset.ci];
+    count.textContent = `${cur + 1} / ${vis.length}`;
+    const att = m.attribution && m.attribution.required && m.attribution.text ? ` · ${m.attribution.text}` : '';
+    cap.textContent = `${(m.caption && (m.caption[LANG] || m.caption.en)) || ''}${att}`;
+    thumbs.forEach(th => th.setAttribute('aria-current', String(th.dataset.ct === s.dataset.ci)));
+    car.querySelectorAll('[data-cn]').forEach(b => { b.disabled = vis.length < 2; });
+  };
+  const go = (i, smooth = true) => {
+    const vis = visible(); if (!vis.length) return;
+    const k = (i + vis.length) % vis.length;
+    const x = k * (track.clientWidth || 0); // every slide is one track width; hidden (filtered) slides take no space
+    track.scrollTo({ left: rtl ? -x : x, behavior: smooth && !reduce ? 'smooth' : 'auto' });
+    show(k);
+  };
+  // swipe / scroll: the slide nearest the left (or right, in Arabic) edge of the track is the current one
+  let raf = 0;
+  track.addEventListener('scroll', () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => {
+    const vis = visible(); const x = Math.abs(track.scrollLeft); const w = track.clientWidth || 1;
+    const k = Math.round(x / w); if (k !== cur && vis[k]) show(k);
+  }); }, { passive: true });
+  car.querySelectorAll('[data-cn]').forEach(b => b.addEventListener('click', () => go(cur + Number(b.dataset.cn))));
+  thumbs.forEach(th => th.addEventListener('click', () => { const k = visible().findIndex(s => s.dataset.ci === th.dataset.ct); if (k >= 0) go(k); }));
+  track.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + (rtl ? -1 : 1)); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur + (rtl ? 1 : -1)); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(visible().length - 1); }
+  });
   root.querySelectorAll('[data-gc]').forEach(b => b.addEventListener('click', () => {
     root.querySelectorAll('[data-gc]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    const c = b.dataset.gc; root.querySelectorAll('[data-gcat]').forEach(el => { el.hidden = c !== 'all' && el.dataset.gcat !== c; });
+    const c = b.dataset.gc; car.querySelectorAll('[data-gcat]').forEach(el => { el.hidden = c !== 'all' && el.dataset.gcat !== c; });
+    go(0, false);
   }));
-  root.querySelectorAll('[data-mi]').forEach(b => b.addEventListener('click', () => lightbox(media, media.findIndex(m => m.id === b.dataset.mi), b)));
+  car.querySelectorAll('[data-mi]').forEach(b => b.addEventListener('click', () => {
+    const vis = visible().map(s => list[+s.dataset.ci]);
+    lightbox(vis, vis.findIndex(m => m.id === b.dataset.mi), b, (k) => go(k, false));
+  }));
+  show(0);
 }
-function lightbox(media, i, opener) {
+function lightbox(media, i, opener, onClose = null) {
   const el = document.createElement('div'); el.className = 'lb'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', t('viewer'));
   const draw = () => {
     const m = media[i];
@@ -88,7 +139,7 @@ function lightbox(media, i, opener) {
     el.querySelector('[data-a=x]').focus();
   };
   const key = (e) => { if (e.key === 'Escape') close(); if (e.key === 'ArrowRight') el.querySelector('[data-a=n]').click(); if (e.key === 'ArrowLeft') el.querySelector('[data-a=p]').click(); if (e.key === 'Tab') trap(e, el); };
-  function close() { document.removeEventListener('keydown', key); el.remove(); document.body.style.overflow = ''; opener && opener.focus(); }
+  function close() { document.removeEventListener('keydown', key); el.remove(); document.body.style.overflow = ''; if (onClose) onClose(i); opener && opener.focus(); }
   document.addEventListener('keydown', key); document.body.appendChild(el); document.body.style.overflow = 'hidden'; draw();
 }
 function trap(e, el) {

@@ -541,5 +541,36 @@
         "text": null
       }
     }
+  ],
+  "permissions": [
+    {
+      "id": "PRIV-PERM-FIX-1",
+      "issuer": {
+        "name": "Illustrative Developer A sales office (fictional)",
+        "role": "DEVELOPER_SALES_OFFICE"
+      },
+      "document": "docs/permission-email.txt",
+      "granted_at": "2026-10-21",
+      "valid_until": null,
+      "channels": [
+        "desk_web"
+      ],
+      "activities": [
+        "PUBLISH_PROJECT_INFORMATION",
+        "ADVERTISE_PROJECT",
+        "PUBLISH_MEDIA"
+      ],
+      "media": [
+        "raw/exterior.jpg",
+        "raw/interior.png",
+        "raw/amenity.jpg",
+        "raw/plan-2plus1.svg"
+      ],
+      "conditions": [
+        "Illustrative condition: images may not be cropped or altered."
+      ],
+      "attribution_text": null,
+      "statutory_permit": null
+    }
   ]
 }
