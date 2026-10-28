@@ -33,6 +33,11 @@ var ql=q.get('lang');if(ql==='en'||ql==='tr'||ql==='ar')s(G,ql);var w=g(G);
 if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(location.pathname.replace(/^\\/desk\\//,'/desk/'+w+'/')+(qs?'?'+qs:'')+location.hash)}})();</script>`;
 const GLOBE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.6 3.9 9.2s-1.3 6.6-3.9 9.2M12 2.8C9.4 5.4 8.1 8.4 8.1 12s1.3 6.6 3.9 9.2"/></svg>`;
 
+// Indexing (owner decision K-4): Desk stays out of search engines until the first opportunity is published; from then
+// on Explore, Markets, Intelligence and published opportunity pages are indexable. Previews, compare, consultation,
+// disclosures and 404 stay noindex.
+let PUBLISHED_N = 0;
+export const indexable = (rest) => PUBLISHED_N > 0 && /^(|index\.html|markets\/.*|intelligence\/.*|opportunities\/(?!preview\/)[^/]+\/)$/.test(rest || '');
 function layout({ lang, rest, title, description, current, body, script }) {
   const t = T(lang); const L = LANGS[lang];
   const u = (p) => localize(p, lang);
@@ -48,7 +53,7 @@ function layout({ lang, rest, title, description, current, body, script }) {
 ${THEME_BOOT}
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="${indexable(rest) ? 'index, follow' : 'noindex, follow'}">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#09090a">
 <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -97,6 +102,7 @@ ${body}
 export function pages() {
   const markets = read('data/public/markets.json').records.filter(m => !m.id.startsWith('FIX-'));
   const published = read('data/public/published.json');
+  PUBLISHED_N = (published.opportunities || []).length;
   const opps = read('data/public/opportunities.json').records.filter(o => published.opportunities.includes(o.id));
   const pubData = Object.fromEntries(['markets', 'districts', 'research_blocks', 'evidence', 'sources', 'conflicts'].map(c => [c, read(`data/public/${c}.json`).records]));
   const gateCfg = loadGateConfig(path.join(DESK, '_tools/market-gates/MG-1.json'));
@@ -150,7 +156,7 @@ ${nojs}
 
     for (const m of markets) {
       const c = cover[m.id]; const src = (id) => pubData.sources.find(s => s.id === id);
-      const statusRows = [[K.stStats, fill(K.stStatsV, { a: c.recorded, b: c.stats.length, v: c.verified })], [K.stBlocks, fill(K.stBlocksV, { a: c.closed, b: c.blocks.length })], [K.stDist, fill(K.stDistV, { a: c.distClosed, n: c.dists.length, m: c.minDist })], [K.stLegal, fill(K.stLegalV, { n: c.topics.length })]];
+      const statusRows = [[K.stStats, fill(K.stStatsV, { a: c.recorded, b: c.stats.length, v: c.verified })], [K.stBlocks, fill(K.stBlocksV, { a: c.closed, b: c.blocks.length })], [K.stDist, fill(K.stDistV, { a: c.distClosed, n: c.dists.length, m: c.minDist })], [K.stLegal, c.certified ? fill(K.stLegalDone, { n: c.topics.length, d: c.cert.activated_at }) : fill(K.stLegalV, { n: c.topics.length })]];
       const indRows = c.stats.map(s => { const e = s.ev; const so = e && src(e.source_id);
         return `<tr data-stat="${esc(s.key)}"><th scope="row">${esc(K.stats[s.key] || s.key)}<br><span class="mono mut" style="font-size:11px">${esc(s.key)}</span></th>${e ? `<td>${fmtN(e.value, e.unit)}</td><td class="mono">${esc(e.period)}</td><td>${so && so.url ? `<a class="lnk" href="${esc(so.url)}" target="_blank" rel="noopener">${esc(so.publisher)}</a>` : esc(so ? so.publisher : '—')}<br><span class="mut" style="font-size:12.5px">${esc(fmtD(e.retrieved_at))}</span></td><td><span class="vs" data-v="${esc(e.verification_status)}">${esc(s.pass ? K.verified : K.reported)}</span></td>` : `<td colspan="3" class="mut">${esc(K.notRec)} — ${esc(K.notRecP)}</td><td><span class="chip dim">${esc(K.notRec)}</span></td>`}</tr>`; }).join('');
       const ORD = ['MARKET', 'MACRO_FX', 'DEVELOPER', 'PROJECT_ASSET', 'RISK'];
@@ -230,7 +236,7 @@ ${nojs}
     const registry = read('data/methods.json').methods;
     // Intelligence workflow: each step lists the registry methods it relies on, with their real status
     const WF_STEPS = [['M-EVIDENCE', 'M-RESEARCH-STATUS', 'M-MISSING-DATA'], ['M-MARKET-GATE', 'M-DOMAIN-ASSESSMENT', 'M-CONVERSION', 'M-AREA-RANKING'], ['M-PUBLICATION-GATE', 'M-ASSET-QUALITY'],
-      ['M-COMPARABLES', 'M-CASHFLOW', 'M-ROI', 'M-NPV', 'M-SCENARIOS', 'M-FAIR-VALUE', 'M-YIELD-RETURNS'], ['M-RISK-LIST', 'M-EXIT-REVIEW', 'M-RISK-SEVERITY', 'M-LIQUIDITY'],
+      ['M-COMPARABLES', 'M-CASHFLOW', 'M-ROI', 'M-NPV', 'M-SCENARIOS', 'M-RETURN-VIEWS', 'M-FAIR-VALUE', 'M-YIELD-RETURNS'], ['M-RISK-LIST', 'M-EXIT-REVIEW', 'M-RISK-SEVERITY', 'M-LIQUIDITY'],
       ['M-INVESTMENT-FIT', 'M-BUDGET-ELIGIBILITY', 'M-OPPORTUNITY-COMPARISON', 'M-DECISION-REPORT']];
     const msState = (m) => m.status === 'ACTIVE' ? 'public' : m.internal === 'ACTIVE' ? 'internal' : 'inactive';
     const engines = `<div class="mlist" role="list">${[...registry].sort((a, b) => a.engines[0] - b.engines[0] || a.id.localeCompare(b.id)).map(m => { const st = msState(m); const nm = lang === 'en' ? m.name : t('mn.' + m.id); return `<div class="mrow" role="listitem" data-method="${esc(m.id)}" data-state="${st}"><div class="mn"><b>${esc(nm)}</b><span class="mono">${esc(m.id)}${m.contract ? ' · ' + esc(m.contract) : ''}</span></div><div class="me">${m.engines.map(e => `<span>${e} · ${esc(t('eng.' + e))}</span>`).join('')}</div><div class="ms"><span class="chip${st === 'public' ? ' on' : st === 'inactive' ? ' dim' : ''}">${esc(t('ms.' + st))}</span></div></div>`; }).join('')}</div><p class="gnote">${esc(t('ms.note'))}</p>`;

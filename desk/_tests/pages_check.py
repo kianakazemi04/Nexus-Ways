@@ -58,8 +58,18 @@ idx = json.load(open(os.path.join(pub, 'published.json'))) if 'published.json' i
 print(f'  published opportunities: {len(idx.get("opportunities", []))} · media: {len(idx.get("media", []))} · markets: {len(idx.get("markets", []))}')
 media = [os.path.relpath(os.path.join(dp, f), SITE) for dp, _, fs in os.walk(os.path.join(SITE, 'desk/media')) for f in fs if f != '.gitkeep']
 check(len(media) == len(idx.get('media', [])), f'media files in the published tree ({len(media)}) match approved media ({len(idx.get("media", []))})')
-# 5. every Desk page is noindex
-noidx = [os.path.relpath(f, SITE) for f in html_files if os.path.relpath(f, SITE).startswith('desk') and 'noindex' not in open(f, encoding='utf-8').read()]
-check(not noidx, 'every Desk page is noindex' + (f': {noidx}' if noidx else ''))
+# 5. indexing (owner decision K-4): every Desk page is noindex until an opportunity is published; afterwards only
+#    Explore, Markets, Intelligence and published opportunity pages may be indexable
+import re as _re
+INDEXABLE = _re.compile(r'^desk/(?:(?:tr|ar)/)?(?:index\.html|markets/.*|intelligence/.*|opportunities/(?!preview/)[^/]+/index\.html)$')
+published_n = len(idx.get('opportunities', []))
+wrong = []
+for f in html_files:
+    rel = os.path.relpath(f, SITE).replace(os.sep, '/')
+    if not rel.startswith('desk'): continue
+    is_noindex = 'content="noindex' in open(f, encoding='utf-8').read()
+    if (published_n == 0 or not INDEXABLE.match(rel)) and not is_noindex: wrong.append(rel)
+    if published_n > 0 and INDEXABLE.match(rel) and is_noindex: wrong.append(rel + ' (should be indexable)')
+check(not wrong, f'Desk indexing follows the publication state ({published_n} published)' + (f': {wrong}' if wrong else ''))
 
 print(f'\n{len(fails)} failure(s)'); sys.exit(1 if fails else 0)

@@ -14,7 +14,7 @@ import { assertStorePath, StorePathError } from '../_tools/ingest.mjs';
 import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TODAY = '2026-10-28';
+import { TODAY } from './helpers.mjs';
 const codes = (r) => r.errors.map(e => e.code);
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 // B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)

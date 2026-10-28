@@ -1,9 +1,9 @@
 # Market gates — MG-1 (Istanbul · Dubai · Abu Dhabi)
 
-Status (28 Oct 2026): **implemented, merged and live on `main`; the gate is INACTIVE pending owner approval of the rules.**
-No market is active and no opportunity is published. Every market currently fails its gate (see the Markets pages). Owner decisions D1 (superseded: three-market programme) and
-D3 (shared engine, market-specific rules), 28 Oct 2026. This document is a research and control specification, not
-legal advice; every statutory item below is an open check, not a conclusion.
+Status (28 Oct 2026, after the engineering audit): **rules approved by the owner (registry ACTIVE / RULES_APPROVED); every
+market still fails its own gate and stays INACTIVE.** A market becomes public only through activate-market → export-market
+with its gate certificate. This document is a research and control specification, not legal advice; every statutory item
+below is an open check, not a conclusion.
 
 ## 1. Design
 
@@ -12,11 +12,16 @@ legal advice; every statutory item below is an open check, not a conclusion.
   each configuration.
 - **Computed, never hand-set.** A real market becomes ACTIVE only through
   `ingest.mjs activate-market --id <MKT> --by owner`, which recomputes that market's gate and refuses unless
-  (a) the gate passes and (b) the registry entry `M-MARKET-GATE` is ACTIVE with `RULES_APPROVED` (the owner's approval
-  of these rules). Activation writes the stamp `review.gate_version = "MG-1"` and an audit entry.
+  (a) the gate passes and (b) the registry entry `M-MARKET-GATE` is ACTIVE with `RULES_APPROVED` (approved 28 Oct 2026).
+  Activation writes the stamp `review.gate_version = "MG-1"`, a non-confidential **gate certificate** (gate and engine
+  versions, evaluation time, waived per-opportunity requirements, topics carrying counsel conditions — never review text)
+  and an audit entry. `export-market --by owner` then publishes the market record, its districts and its public-safe
+  research from the store (the single source of market research); `deactivate-market --by owner --reason` rolls back.
 - **Fail closed everywhere.** The validator (V21) rejects a real market that is ACTIVE/PUBLISHED (a) while the registry
   is INACTIVE, (b) in the private store, whenever its computed gate fails — including later, when evidence ages or a
-  review is withdrawn — and (c) in the public tree, without the MG-1 activation stamp. Opportunities in a market whose
+  review is withdrawn — and (c) in the public tree, without the MG-1 activation stamp and gate certificate. On the public tree the non-statutory part
+  of the gate is re-checked from the public evidence: when it ages out, new opportunities are blocked and W04 is raised,
+  without blocking deployments (so a withdrawal can always be published). Opportunities in a market whose
   gate fails are not eligible, and each opportunity must also carry its market's per-project requirements.
 - **Independent markets.** Each market is evaluated on its own records and its own review records. Dubai evidence and
   Dubai reviews never satisfy Abu Dhabi (and vice versa), even where the currency and federal FX source are shared. A
@@ -141,7 +146,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 | Topic | Question | Restriction until recorded | What the owner records | Accepted basis |
 |---|---|---|---|---|
 | DXB-AGENT-AUTHORIZATION | Broker authorization in Dubai: under which RERA/DLD broker registration (the owner's own broker card or freelance permit, or a licensed brokerage) does Nexus Ways market Dubai projects and receive a commission? | Until recorded, no Dubai opportunity is published. | Broker card / permit number and the licensed office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
-| DXB-ADVERTISING-PERMIT | Real-estate advertising in Dubai requires a DLD advertising permit (Trakheesi). How is the permit obtained for Desk opportunity pages (per listing, by the owner's licensed office), or does counsel conclude it does not apply? | Each Dubai opportunity needs its advertising-permit number recorded (DXB-ADVERTISING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official DLD guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
+| DXB-ADVERTISING-PERMIT | Real-estate advertisements in Dubai fall under the DLD advertising-permit system (Trakheesi). Whether and how it applies to Desk opportunity pages (a website hosted outside the UAE, run by a freelance agent) is not yet confirmed: record how the permit is obtained (per listing, through the licensed office) or the official basis on which it does not apply. Until then the permit is required (fail closed). | Each Dubai opportunity needs its advertising-permit number recorded (DXB-ADVERTISING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official DLD guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
 
 **Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired; plus the sales office’s written permission for the page and each image):
 
@@ -149,7 +154,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 |---|---|---|---|
 | DXB-PROJECT-REGISTRATION | DLD project registration and status (project number, status, completion) | always | none |
 | DXB-ESCROW-ACCOUNT | Escrow account registered for the project | OFF_PLAN, UNDER_CONSTRUCTION (or unknown status) | none |
-| DXB-ADVERTISING-PERMIT | Advertising permit for the opportunity page, if counsel confirms it is required | always | only a valid DXB-ADVERTISING-PERMIT record with outcome NOT_APPLICABLE |
+| DXB-ADVERTISING-PERMIT | Advertising permit for the opportunity page, if counsel confirms it is required | always | only a valid DXB-ADVERTISING-PERMIT record with outcome NOT_APPLICABLE (shown publicly through the gate certificate) |
 
 **Publication restrictions.** Financial figures: PRIVATE (D10). Categories: real_estate.
 
@@ -185,7 +190,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 | Topic | Question | Restriction until recorded | What the owner records | Accepted basis |
 |---|---|---|---|---|
 | AUH-AGENT-AUTHORIZATION | Broker authorization in Abu Dhabi: under which ADREC/DMT broker licence or registration does Nexus Ways market Abu Dhabi projects and receive a commission? (Dubai registration does not apply in Abu Dhabi.) | Until recorded, no Abu Dhabi opportunity is published. | Licence / registration number and the licensed office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
-| AUH-LISTING-PERMIT | Real-estate advertisements in Abu Dhabi require a Madhmoun listing permit (ADREC, via DARI). How is it obtained for Desk opportunity pages, or does counsel conclude it does not apply? Projects in ADGM areas follow ADGM's own advertising rules and are flagged per project. | Each Abu Dhabi opportunity needs its Madhmoun permit number recorded (AUH-LISTING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official ADREC guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
+| AUH-LISTING-PERMIT | Real-estate advertisements in Abu Dhabi fall under the Madhmoun listing-permit system (ADREC, via DARI). Whether and how it applies to Desk opportunity pages (a website hosted outside the UAE, run by a freelance agent) is not yet confirmed: record how the permit is obtained or the official basis on which it does not apply. Until then the permit is required (fail closed). Projects in ADGM areas follow ADGM's own advertising rules and are flagged per project. | Each Abu Dhabi opportunity needs its Madhmoun permit number recorded (AUH-LISTING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official ADREC guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
 
 **Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired; plus the sales office’s written permission for the page and each image):
 
@@ -193,7 +198,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 |---|---|---|---|
 | AUH-PROJECT-REGISTRATION | ADREC project registration and status | always | none |
 | AUH-ESCROW-ACCOUNT | Escrow details for off-plan projects | OFF_PLAN, UNDER_CONSTRUCTION (or unknown status) | none |
-| AUH-LISTING-PERMIT | Madhmoun listing permit for the opportunity page, if counsel confirms it is required | always | only a valid AUH-LISTING-PERMIT record with outcome NOT_APPLICABLE |
+| AUH-LISTING-PERMIT | Madhmoun listing permit for the opportunity page, if counsel confirms it is required | always | only a valid AUH-LISTING-PERMIT record with outcome NOT_APPLICABLE (shown publicly through the gate certificate) |
 
 **Publication restrictions.** Financial figures: PRIVATE (D10). Categories: real_estate.
 
@@ -254,20 +259,17 @@ a broker licence or a regulator's advertising permit.
    tools refuse any store inside it) and give the session access. Not created by Claude (standing rule).
 2. **Statutory checks** — record your broker/licence status and the permit route per market (section 5) with
    `record-review --by owner` and the official reference; counsel only where you choose or the rule is unclear.
-3. **Approve or amend the MG-1 rules** — especially freshness limits, reviewer roles and per-opportunity requirements.
-   On approval, the registry entry `M-MARKET-GATE` is set to ACTIVE / RULES_APPROVED in a reviewed commit.
+3. **MG-1 rules — approved (28 Oct 2026).** The registry is ACTIVE / RULES_APPROVED; amendments are made in
+   `MG-1.json` through a reviewed pull request.
 4. **Market research intake** — supply or approve the official statistics and research blocks per market
    (`market-intake --file <MI-….json> --by owner`); Claude drafts the intake files from the official sources.
-5. **Decide the public gate record (proposed D11)** — the public validator cannot see private review records, so a
-   counsel waiver (NOT_APPLICABLE) of a Dubai/Abu Dhabi permit cannot be honoured at export time; the permit
-   requirement therefore always applies publicly. Options: keep it (strictest), or publish a non-confidential gate
-   certificate (gate version, date, pass, waived topics) — owner decision.
-6. **Public market activation step** — `activate-market` changes the private store only. Exporting an activated
-   market record to the public tree (`export-market`) is not built in this milestone and needs owner review first.
+5. **Public gate record (D11) — implemented:** a waiver recorded privately reaches the public check only through the
+   market's gate certificate written by `activate-market`.
+6. **Public market activation step (D12) — implemented:** `export-market` and `deactivate-market` (tested).
 
 ## 7. Test evidence
 
-`node --test desk/_tests/marketgate.test.mjs` — 49 tests, all passing; the full suite (158 tests) passes. Every
+`node --test desk/_tests/marketgate.test.mjs` — 52 tests, all passing (including activation → export → rollback and the certificate waiver). Every
 negative test spoils exactly one element of an otherwise passing synthetic (TEST-ONLY) dataset, for each of the three
 configurations. Mutation checks (removing the review check, the geography check or the district check from the
 engine) make 15, 3 and 9 tests fail respectively.

@@ -115,15 +115,15 @@ Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingest
   an explicit missing-data state. "No evidence linked" / "Not recorded" are display states, never a substitute for these
   gate rules. `closure.test.mjs` fails if a page renders a field that is not classified. Risk evidence is shown through
   the claim policy, and a risk may cite only evidence about its own project (V03).
-- **Market gate (M-MARKET-GATE, MG-1).** Implemented as one shared engine (`engines/marketgate.mjs`, MGE-1) with a
-  separate configuration per market (`market-gates/MG-1.json`: Istanbul, Dubai, Abu Dhabi); see `MARKET-GATES.md`.
-  The registry keeps it INACTIVE (`IMPLEMENTED_PENDING_OWNER_APPROVAL`) until the owner approves the rules. Fail
-  closed: while it is not ACTIVE no real market may be ACTIVE or PUBLISHED (V21), no opportunity in a real market is
-  eligible, and `published.json` lists no market. Once approved, a market becomes ACTIVE only through
-  `activate-market`, which refuses unless that market's own computed gate passes; the store validator re-checks the
-  gate continuously (V21) and the public validator requires the MG-1 activation stamp. Legal review is recorded per
-  market and topic with `record-review` (private, append-only); evidence never counts as legal approval. Tests switch
-  the registry entry on only inside temporary copies (`enableTestMarketGate`, `seedTestMarketGate`).
+- **Market gate (M-MARKET-GATE, MG-1).** One shared engine (`engines/marketgate.mjs`, MGE-1) with a separate
+  configuration per market (`market-gates/MG-1.json`: Istanbul, Dubai, Abu Dhabi); see `MARKET-GATES.md`. Rules
+  approved by the owner on 28 Oct 2026 (registry ACTIVE / RULES_APPROVED; setting it INACTIVE closes every real market).
+  A market becomes ACTIVE only through `activate-market` (its own computed gate must pass; writes the stamp and the
+  gate certificate) and reaches the public tree only through `export-market`; `deactivate-market` rolls back. The store
+  validator re-checks the full gate (V21); the public validator requires stamp + certificate (V21) and warns (W04) when
+  an active market's public evidence ages out, blocking new publications. Statutory checks are recorded per market and
+  topic with `record-review` (private, append-only); evidence never counts as legal approval. Tests seed a TEST-ONLY
+  market (`seedTestMarketGate`) and simulate the unapproved state with `disableTestMarketGate`.
 - **Freshness.** The ingestion report uses review policy RP-1 (the same function as the gate and the pages). No
   scheduled job exists: stale-evidence alerts are not implemented.
 - **Identity.** Ingestion links an existing developer, district, area or project only by ID (`<entity>.ref`). A record

@@ -1,14 +1,15 @@
 {
-  "_how_to_use": "PRIVATE analysis file for one opportunity. Save as <store>/private/analysis/<OPP-id>.json (never in the public repository). Every number is {value, ref}: ref = an evidence ID (EVD-…), PRIVATE:<package_id>/<fact key>, or ASSUMPTION with a note. A value that differs from its referenced record needs a note explaining the derivation. Then run: node desk/_tools/ingest.mjs report --store <store> --id <OPP-id>",
+  "_how_to_use": "PRIVATE analysis file for one opportunity. Save as <store>/private/analysis/<OPP-id>.json (never in the public repository). Every number is {value, ref}: ref = an evidence ID (EVD-…), PRIVATE:<package_id>/<fact key>, or ASSUMPTION with a note. A value that differs from its referenced record needs a note explaining the derivation. Then run: node desk/_tools/ingest.mjs report --store <store> --id <OPP-id> FIN-2 conventions: payment times t are in years from today and may be decimals (0.25 = month 3; monthly instalments can be listed one by one); rent.gross_annual is the gross rent of the FIRST RENTED YEAR (the year after delivery), not today's rent; ROI is a total over the horizon, IRR is the annual rate; in TRY always add views.inflation (and, for a foreign investor, views.home_currency) — nominal TRY figures alone overstate the return. Every fx row needs ref = the evidence ID (or PRIVATE fact) of that rate, with the same value and date.",
   "opportunity_id": "OPP-…",
   "as_of": "YYYY-MM-DD",
   "fx": [
     {
-      "base": "EUR",
+      "base": "USD",
       "quote": "TRY",
       "rate": 0,
       "date": "YYYY-MM-DD",
-      "source": "central bank table, URL or document"
+      "source": "CBRT indicative rate",
+      "ref": "EVD-… (FX evidence of that date)"
     }
   ],
   "finance": {
@@ -35,13 +36,22 @@
             "ref": "PRIVATE:<package_id>/<fact key>"
           },
           "label": "down payment"
+        },
+        {
+          "t": 0.5,
+          "amount": {
+            "value": 0,
+            "ref": "PRIVATE:<package_id>/<fact key>"
+          },
+          "label": "instalment at month 6 (decimal years allowed)"
         }
       ]
     },
     "rent": {
       "gross_annual": {
         "value": 0,
-        "ref": "EVD-…"
+        "ref": "EVD-…",
+        "note": "gross annual rent of the first rented year (year after delivery), not today's rent"
       },
       "occupancy": {
         "value": 0.9,
@@ -96,6 +106,29 @@
         "note": "investor's required return"
       },
       "basis": "written basis for the discount rate"
+    },
+    "views": {
+      "inflation": {
+        "rate": {
+          "value": 0,
+          "ref": "EVD-… (e.g. the market's TR-CPI evidence) or ASSUMPTION",
+          "note": "annual inflation used to deflate"
+        },
+        "basis": "index, period and source of the inflation assumption"
+      },
+      "home_currency": {
+        "code": "USD",
+        "spot": {
+          "value": 0,
+          "ref": "EVD-… (the market's FX evidence)"
+        },
+        "annual_change": {
+          "value": 0,
+          "ref": "ASSUMPTION",
+          "note": "assumed annual change of the rate; 0 = constant"
+        },
+        "basis": "rate source and date; path assumption"
+      }
     }
   },
   "scenarios": {

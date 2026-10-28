@@ -57,11 +57,12 @@ export function decisionReport(store, oppId, { gateWhy = [], analysis = null, pr
   let comparables = { status: 'UNAVAILABLE', missing: ['analysis.comparables'] };
   if (A.comparables) comparables = selectComparables({ ...A.comparables.subject, as_of: (A.comparables.subject || {}).as_of || A.as_of }, A.comparables.candidates, A.comparables.rules, A.fx || []);
   let fit = { status: 'UNAVAILABLE', missing: ['analysis.investor_profile'] };
-  if (A.investor_profile) fit = investmentFit(A.investor_profile, { investor_objective_tags: o.investor_objective_tags, delivery_status: p && p.delivery_status, expected_delivery: p && p.expected_delivery, market_id: o.market_id, risk_types: risks.map(r => r.type), price: A.price_evidence ? { min: A.price_evidence.min, currency: A.price_evidence.currency, evidence_id: (provenance.find(x => x.path === '$.price_evidence.min') || {}).ref } : null, as_of: A.as_of });
+  if (A.investor_profile) fit = investmentFit(A.investor_profile, { investor_objective_tags: o.investor_objective_tags, delivery_status: p && p.delivery_status, expected_delivery: p && p.expected_delivery, market_id: o.market_id, risk_types: risks.map(r => r.type), price: A.price_evidence ? { min: A.price_evidence.min, costs: typeof A.price_evidence.costs === 'number' ? A.price_evidence.costs : undefined, currency: A.price_evidence.currency, evidence_id: (provenance.find(x => x.path === '$.price_evidence.min') || {}).ref } : null, as_of: A.as_of });
 
   // Engine 1: method eligibility
   const methods = {
     'M-CASHFLOW/M-ROI': finance.scenarios ? (finance.scenarios.base.roi.status === 'OK' ? 'RUN' : `NOT RUN — missing ${[...(finance.scenarios.base.roi.missing || []), ...(finance.scenarios.base.roi.invalid || [])].join(', ')}`) : 'NOT RUN — no finance inputs',
+    'M-RETURN-VIEWS (IRR, real terms, home currency)': finance.scenarios ? (finance.scenarios.base.roi.status !== 'OK' ? 'NOT RUN — finance inputs incomplete' : `IRR ${finance.scenarios.base.irr.status}; real view ${finance.scenarios.base.views.real.status === 'NOT RUN' ? 'NOT RUN — no recorded inflation input' : 'RUN'}; home-currency view ${finance.scenarios.base.views.home.status === 'NOT RUN' ? 'NOT RUN — no recorded FX path' : 'RUN'}`) : 'NOT RUN — no finance inputs',
     'M-NPV': finance.scenarios ? (finance.scenarios.base.npv.status === 'OK' ? 'RUN' : `NOT RUN — missing ${[...(finance.scenarios.base.npv.missing || []), ...(finance.scenarios.base.npv.invalid || [])].join(', ')}`) : 'NOT RUN — no finance inputs',
     'M-COMPARABLES': comparables.status === 'OK' ? 'RUN' : `NOT RUN — ${comparables.status}${comparables.missing ? ': ' + comparables.missing.join(', ') : comparables.n !== undefined ? ` (${comparables.n} of ${comparables.min_sample} required)` : ''}`,
     'M-INVESTMENT-FIT': fit.status === 'OK' ? 'RUN (qualitative criteria)' : 'NOT RUN — no investor profile',
@@ -105,12 +106,18 @@ export function reportMarkdown(r) {
   L.push('## 5. Risks', '', ...(r.risks.length ? r.risks.map(k => `- **${k.type}** ${k.title}${k.cause ? ` — cause: ${k.cause}` : ''}${k.mitigation ? `; mitigation: ${k.mitigation}` : ''}; severity ${k.severity}; evidence ${k.evidence.join(', ') || 'none'}`) : ['- none documented']), '');
   L.push('## 6. Conflicts and data gaps', '', ...r.conflicts.map(c => `- ${c.id} ${c.field}: ${c.status} (${c.evidence.join(', ')})`), ...r.gaps.map(g => `- ${g}`), ...(r.conflicts.length || r.gaps.length ? [] : ['- none']), '');
   L.push('## 7. Method eligibility (Engine 1)', '', ...Object.entries(r.methods).map(([k, v]) => `- **${k}:** ${v}`), '');
-  L.push('## 8. Financial scenarios (internal; FIN-1)', '');
+  L.push(`## 8. Financial scenarios (internal; ${FIN_VERSION})`, '');
   if (!r.finance.scenarios) L.push(`Unavailable: ${(r.finance.missing || []).join(', ')}`, '');
   else for (const [name, s] of Object.entries(r.finance.scenarios)) {
     L.push(`### ${name}`, '');
     if (s.roi.status !== 'OK') { L.push(`Unavailable — missing: ${(s.roi.missing || []).join(', ') || '—'}; invalid: ${(s.roi.invalid || []).join(', ') || '—'}`, ''); continue; }
-    L.push(`- ROI (${s.roi.definition}): **${pct(s.roi.value)}**`, `- Net rental yield, first rented year (${s.net_rental_yield.definition}): ${pct(s.net_rental_yield.value)}`, `- NPV: ${s.npv.status === 'OK' ? `**${n(s.npv.value)} ${r.finance.currency}** at ${pct(s.npv.discount_rate)} — basis: ${s.npv.discount_basis}` : `unavailable (${(s.npv.missing || []).join(', ')})`}`, '');
+    L.push(`- ROI (${s.roi.definition}): **${pct(s.roi.value)}** — a total over the horizon, not an annual rate`, `- IRR (${s.irr.definition || 'annual'}): ${s.irr.status === 'OK' ? `**${pct(s.irr.value)} per year**` : `${s.irr.status} — ${s.irr.reason || ''}`}`, `- Net rental yield, first rented year (${s.net_rental_yield.definition}): ${pct(s.net_rental_yield.value)}`, `- NPV: ${s.npv.status === 'OK' ? `**${n(s.npv.value)} ${r.finance.currency}** at ${pct(s.npv.discount_rate)} — basis: ${s.npv.discount_basis}` : `unavailable (${(s.npv.missing || []).join(', ')})`}`);
+    const V = s.views || {};
+    if (V.real && V.real.status !== 'NOT RUN') L.push(`- Real terms (inflation ${pct(V.real.inflation_rate)} a year — ${V.real.basis}): real ROI **${pct(V.real.roi)}**; real IRR ${V.real.irr.status === 'OK' ? `**${pct(V.real.irr.value)} per year**` : V.real.irr.status}`);
+    else L.push(`- Real terms: NOT RUN — no recorded inflation input${r.finance.currency === 'TRY' ? ' (in TRY the nominal figures above overstate the return; record views.inflation)' : ''}`);
+    if (V.home && V.home.status !== 'NOT RUN') L.push(`- In ${V.home.currency} (spot ${V.home.spot} ${r.finance.currency}/${V.home.currency}, assumed change ${pct(V.home.annual_change)} a year — ${V.home.basis}): invested ${n(V.home.invested)} ${V.home.currency}, net ${n(V.home.net)} ${V.home.currency}, ROI **${pct(V.home.roi)}**; IRR ${V.home.irr.status === 'OK' ? `**${pct(V.home.irr.value)} per year**` : V.home.irr.status}`);
+    else L.push('- Home-currency view: NOT RUN — no recorded FX path');
+    L.push('');
     L.push('| t | payments | collected rent | operating | rental tax | exit net | cash flow |', '|---|---|---|---|---|---|---|', ...s.cash_flows.rows.map(x => `| ${x.t} | ${n(x.payments)} | ${n(x.collected_rent)} | ${n(x.operating)} | ${n(x.rental_tax)} | ${n(x.exit_net)} | ${n(x.cf)} |`), '');
   }
   L.push('Projections are conditional on the recorded inputs; they are not forecasts or guarantees.', '', '### Inputs and provenance', '', ...(r.provenance.length ? r.provenance.map(x => `- ${x.path} = ${x.value} — ${x.ref}${x.note ? ` (${x.note})` : ''}`) : ['- none']), '');
@@ -124,7 +131,7 @@ export function reportMarkdown(r) {
   for (const x of r.exit.context) L.push(`- context: ${x.text} (${x.ref})`);
   for (const x of r.exit.not_available) L.push(`- DATA NOT AVAILABLE: ${x.text}`);
   L.push('', r.exit.note);
-  L.push('', '## 10. Investment fit (FIT-1, qualitative)', '', ...(r.fit.status === 'OK' ? [`Outcome: **${r.fit.outcome}**`, ...r.fit.criteria.map(c => `- ${c.criterion}: ${c.result} — ${c.reason}`)] : ['Not run: no investor profile.']), '');
+  L.push('', '## 10. Investment fit (FIT-2, qualitative)', '', ...(r.fit.status === 'OK' ? [`Outcome: **${r.fit.outcome}**`, ...r.fit.criteria.map(c => `- ${c.criterion} (${c.kind || 'HARD'}): ${c.result} — ${c.reason}`)] : ['Not run: no investor profile.']), '');
   L.push('## 11. Limitations', '', ...(r.limitations.length ? r.limitations.map(x => `- ${x}`) : ['- none recorded']), '', '## 12. Next steps', '', ...(r.next_steps.length ? r.next_steps.map(x => `- ${x}`) : ['- none']), '', '## Conclusion', '', r.conclusion, '');
   return L.join('\n');
 }

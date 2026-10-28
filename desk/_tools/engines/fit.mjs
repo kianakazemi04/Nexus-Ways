@@ -1,14 +1,19 @@
-// Engine 7 — Comparison & Investment Fit (method contract M-INVESTMENT-FIT, version FIT-1). Internal only.
+// Engine 7 — Comparison & Investment Fit (method contract M-INVESTMENT-FIT, version FIT-2). Internal only.
 // Fit is a list of explicit criteria checked one by one: MATCH, NO_MATCH or CANNOT_CONFIRM (data missing). There is no
 // score, no weight and no ranking. Missing data is never a match. Asset quality is not part of fit.
+// FIT-2 (audit C-06): each criterion is a HARD constraint unless the profile lists it in `preferences`. A preference
+// that is not met is reported as DIFFERS_FROM_PREFERENCE and never makes the opportunity NOT_SUITABLE on its own.
+// Budget is always a hard constraint; the budget check uses the lowest recorded price plus any recorded acquisition
+// costs (profile.budget.includes_costs), so a price inside the budget with costs outside it is not a match.
 // Ranking (M-AREA-RANKING and any opportunity ranking) is not implemented: rank() always refuses.
 
-export const FIT_VERSION = 'FIT-1';
+export const FIT_VERSION = 'FIT-2';
 
 // profile: { objectives?: [tag], horizon_years?: n, delivery_statuses?: [OFF_PLAN|UNDER_CONSTRUCTION|COMPLETED],
-//            market_ids?: [id], excluded_risk_types?: [type], budget?: { max, currency } }
+//            market_ids?: [id], excluded_risk_types?: [type], budget?: { max, currency },
+//            preferences?: ['objective'|'market'|'delivery_status'|'horizon'|'risk_exclusions'] }  (soft criteria)
 // opp:     { investor_objective_tags: [], delivery_status, expected_delivery ('YYYY-MM'), market_id, risk_types: [],
-//            price?: { min, currency, evidence_id } (private), as_of: 'YYYY-MM-DD' }
+//            price?: { min, currency, evidence_id, costs? } (private; costs = recorded acquisition costs), as_of }
 export function investmentFit(profile, opp) {
   const crit = [];
   const add = (key, result, reason) => crit.push({ criterion: key, result, reason });
@@ -39,11 +44,20 @@ export function investmentFit(profile, opp) {
     const p = opp.price;
     if (!p || typeof p.min !== 'number' || !p.evidence_id) add('budget', 'CANNOT_CONFIRM', 'no internal price evidence');
     else if (p.currency !== profile.budget.currency) add('budget', 'CANNOT_CONFIRM', `price in ${p.currency}, budget in ${profile.budget.currency}; convert with a recorded rate first`);
-    else add('budget', p.min <= profile.budget.max ? 'MATCH' : 'NO_MATCH', `lowest recorded price ${p.min} ${p.currency} (evidence ${p.evidence_id})`);
+    else {
+      const costs = typeof p.costs === 'number' ? p.costs : 0;
+      const total = p.min + costs;
+      add('budget', total <= profile.budget.max ? 'MATCH' : 'NO_MATCH', `lowest recorded price ${p.min}${costs ? ` + recorded acquisition costs ${costs}` : ' (no acquisition costs recorded)'} = ${total} ${p.currency} vs budget ${profile.budget.max} (evidence ${p.evidence_id})`);
+    }
   }
   if (!crit.length) return { status: 'UNAVAILABLE', version: FIT_VERSION, criteria: [], missing: ['at least one profile criterion'] };
-  const outcome = crit.some(c => c.result === 'NO_MATCH') ? 'NOT_SUITABLE' : crit.some(c => c.result === 'CANNOT_CONFIRM') ? 'INSUFFICIENT_DATA' : 'CRITERIA_MET';
-  return { status: 'OK', version: FIT_VERSION, outcome, criteria: crit, note: 'Qualitative criteria only; no score, weight or ranking.' };
+  const soft = new Set((profile.preferences || []).filter(k => k !== 'budget'));
+  for (const c of crit) { c.kind = soft.has(c.criterion) ? 'PREFERENCE' : 'HARD'; if (c.kind === 'PREFERENCE' && c.result === 'NO_MATCH') c.result = 'DIFFERS_FROM_PREFERENCE'; }
+  const hardFail = crit.some(c => c.result === 'NO_MATCH');
+  const unknown = crit.some(c => c.result === 'CANNOT_CONFIRM' && c.kind === 'HARD');
+  const differs = crit.some(c => c.result === 'DIFFERS_FROM_PREFERENCE');
+  const outcome = hardFail ? 'NOT_SUITABLE' : unknown ? 'INSUFFICIENT_DATA' : differs ? 'CRITERIA_MET_WITH_DIFFERENCES' : 'CRITERIA_MET';
+  return { status: 'OK', version: FIT_VERSION, outcome, criteria: crit, note: 'Qualitative criteria only; no score, weight or ranking. HARD criteria decide suitability; PREFERENCE criteria are reported, never decisive.' };
 }
 
 export function rank() {

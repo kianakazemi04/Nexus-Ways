@@ -188,7 +188,8 @@ test('B4: withdrawal removes the opportunity, its media, page and index entry; k
     assert.equal(r.code, 0, r.out);
     assert.deepEqual(readJson(path.join(s.repo, 'desk/data/public/published.json')).opportunities, [], 'index no longer lists it');
     // everything exported for the project is gone; the market research records committed before the test remain
-    const baseline = (c) => readJson(path.join(ROOT, 'desk/data/public', `${c}.json`)).records.map(x => x.id).sort();
+    // (plus the TEST-ONLY market's public research, which the helper seeds as export-market would)
+    const baseline = (c) => [...readJson(path.join(ROOT, 'desk/data/public', `${c}.json`)).records.map(x => x.id), ...pub(s.repo, c).map(x => x.id).filter(i => /TSTMG/.test(i))].sort();
     for (const c of ['opportunities', 'projects', 'assets', 'evidence', 'media', 'disclosures', 'risks', 'research_blocks', 'developers', 'districts', 'sources']) assert.deepEqual(pub(s.repo, c).map(x => x.id).sort(), baseline(c), `${c}: only the pre-existing public records remain`);
     assert.ok(!fs.existsSync(page), 'generated page removed');
     assert.ok(!fs.existsSync(path.join(s.repo, 'desk/media', PRJ)) || !fs.readdirSync(path.join(s.repo, 'desk/media', PRJ)).length, 'no orphan media');

@@ -47,12 +47,28 @@ private store. The public repository receives only what `export` writes after ow
 A full run on clearly labelled demonstration data: `node desk/_tools/demo/run-demo.mjs --out <dir>` (throw-away copies
 only; it also re-computes NPV and ROI by hand and checks that no private figure reached the public tree).
 
+## Rules added after the 28 Oct 2026 audit
+- **Disclosures:** use `{"template": "DT-COMMISSION-1"}` and `{"template": "DT-NOT-ADVICE-1"}` in the intake. Once the
+  owner has approved a standard text (`approve-disclosure-template --by owner`), every new opportunity gets it as
+  APPROVED; no per-project legal step.
+- **FX:** every `fx[]` row in the analysis file references the evidence (or private fact) of that rate; same value
+  (or its inverse) and date.
+- **Returns:** payments may be listed at decimal times (monthly instalments); `rent.gross_annual` is the first rented
+  year's rent; in TRY always add `views.inflation`, and `views.home_currency` for a foreign investor — the report shows
+  nominal, real and home-currency ROI and IRR side by side.
+- **Fit:** list soft criteria in the investor profile's `preferences`; budget is always hard and includes recorded
+  acquisition costs (`price_evidence.costs`).
+- **Markets:** market research enters the store with `market-intake` and reaches the site only with
+  `activate-market` → `export-market`.
+
 ## Commands
 ```
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store>            # dry run: report only
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store> --apply    # all-or-nothing write
 node desk/_tools/ingest.mjs report --store <store> --id <OPP-…>               # private decision report
 node desk/_tools/ingest.mjs gate   --store <store>                            # publication gate reasons
+node desk/_tools/ingest.mjs approve-disclosure-template --store <store> --id DT-… --by owner   # once per standard text
+node desk/_tools/ingest.mjs export-market --store <store> --id <MKT> --by owner   # activated market → public site
 node desk/_tools/ingest.mjs compare --store <store> --ids <OPP-…>,<OPP-…>       # side by side + research queue (private)
 node desk/_tools/ingest.mjs record-permission --file <perm.json> --store <store> --by owner   # permission received later
 node desk/_tools/ingest.mjs market-intake --file <MI-….json> --store <store> --by owner   # market statistics, blocks, districts

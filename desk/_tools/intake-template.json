@@ -107,10 +107,10 @@
   ],
   "disclosures": [
     {
-      "kind": "COMMISSION",
-      "text": {
-        "en": ""
-      }
+      "template": "DT-COMMISSION-1"
+    },
+    {
+      "template": "DT-NOT-ADVICE-1"
     }
   ],
   "documents": [

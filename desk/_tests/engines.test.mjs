@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { cashFlows, roi, npv, netRentalYield, scenarios, checkInputs } from '../_tools/engines/finance.mjs';
+import { cashFlows, roi, npv, netRentalYield, scenarios, checkInputs, irr, irrOf, returnViews, timedFlows } from '../_tools/engines/finance.mjs';
 import { convertArea, convertMoney, fxRate, M2_PER_SQFT } from '../_tools/engines/units.mjs';
 import { selectComparables, quantile } from '../_tools/engines/comparables.mjs';
 import { investmentFit, rank } from '../_tools/engines/fit.mjs';
@@ -25,6 +25,57 @@ const BASE = () => ({
 });
 
 // ================================================================== Engine 5: cash flows, ROI, NPV, scenarios
+// FIN-2 additions — independently hand-checked
+test('FIN-2: a payment within a year is discounted at its exact time; whole-year results are unchanged', () => {
+  const x = { ...BASE(), acquisition: { price: 1000000, payments: [{ t: 0, amount: 520000 }, { t: 0.5, amount: 520000 }] } };
+  const rows = cashFlows(x).rows; assert.equal(rows[1].payments, 520000, 'a mid-year payment is shown in the row of the year that contains it');
+  // hand: NPV = base NPV + 520000 − 520000/1.08^0.5 (the second half moved from t = 0 to t = 0.5)
+  close(npv(x).value, npv(BASE()).value + 520000 - 520000 / Math.pow(1.08, 0.5), 1e-9);
+  close(roi(x).value, roi(BASE()).value, 1e-12, 'ROI is undiscounted: timing within the horizon does not change it');
+  assert.equal(checkInputs({ ...BASE(), acquisition: { price: 1, payments: [{ t: 6, amount: 1 }] } }).ok, false, 'beyond the horizon is refused');
+});
+
+test('FIN-2: IRR — textbook cases are exact; several sign changes are refused, never guessed', () => {
+  close(irrOf([{ t: 0, amount: -100 }, { t: 1, amount: 110 }]).value, 0.10, 1e-9);
+  close(irrOf([{ t: 0, amount: -100 }, { t: 2, amount: 121 }]).value, 0.10, 1e-9);
+  // annuity: −1000 now, 400 a year for 3 years → IRR solves Σ 400/(1+r)^t = 1000
+  const a = irrOf([{ t: 0, amount: -1000 }, { t: 1, amount: 400 }, { t: 2, amount: 400 }, { t: 3, amount: 400 }]).value;
+  close(400 / (1 + a) + 400 / (1 + a) ** 2 + 400 / (1 + a) ** 3, 1000, 1e-9);
+  assert.equal(irrOf([{ t: 0, amount: -100 }, { t: 1, amount: 230 }, { t: 2, amount: -132 }]).status, 'AMBIGUOUS');
+  assert.equal(irrOf([{ t: 0, amount: 100 }, { t: 1, amount: 10 }]).status, 'UNAVAILABLE');
+  // the engine's IRR sets its own NPV to zero
+  const r = irr(BASE()); assert.equal(r.status, 'OK');
+  close(npv({ ...BASE(), discount: { rate: r.value, basis: 'TEST-ONLY discount at the IRR itself' } }).value, 0, 1e-6);
+});
+
+test('FIN-2: real-terms and home-currency views (hand calculation); not run without recorded inputs', () => {
+  const s = { currency: 'TRY', horizon_years: 2, delivery_year: 0, acquisition: { price: 100, payments: [{ t: 0, amount: 100 }] }, rent: { gross_annual: 0, occupancy: 0, growth_rate: 0 }, operating: { fixed_annual: 0, pct_of_collected_rent: 0 }, tax: { rental_income_rate: 0, capital_gains_rate: 0 }, exit: { sale_price: 169, selling_cost_rate: 0 },
+    views: { inflation: { rate: 0.30, basis: 'TEST-ONLY annual CPI assumption for the check' }, home_currency: { code: 'USD', spot: 40, annual_change: 0.25, basis: 'TEST-ONLY spot and depreciation path for the check' } } };
+  const v = returnViews(s);
+  close(roi(s).value, 0.69, 1e-12);                            // nominal: 169/100 − 1
+  close(v.real.roi, 169 / 1.69 / 100 - 1, 1e-12);              // deflated by 1.3² = 1.69 → 0% real
+  close(v.real.irr.value, 1.3 / 1.3 - 1, 1e-9);                // nominal IRR 30% → real 0%
+  close(v.home.invested, 100 / 40, 1e-12);                     // 2.5 USD
+  close(v.home.net, 169 / (40 * 1.25 ** 2) - 2.5, 1e-12);      // 169/62.5 − 2.5 = 0.204 USD
+  close(v.home.roi, (169 / 62.5) / 2.5 - 1, 1e-12);            // 8.16%
+  close(v.home.irr.value, Math.sqrt((169 / 62.5) / 2.5) - 1, 1e-9);
+  const none = returnViews(BASE()); assert.equal(none.real.status, 'NOT RUN'); assert.equal(none.home.status, 'NOT RUN');
+  assert.equal(checkInputs({ ...s, views: { inflation: { rate: 0.3 } } }).ok, false, 'a view without a written basis is refused');
+  assert.equal(checkInputs({ ...s, views: { home_currency: { code: 'TRY', spot: 1, annual_change: 0, basis: 'TEST-ONLY same currency' } } }).ok, false);
+});
+
+test('ANL-2: an FX rate must come from a recorded evidence or private fact, with the same value and date', () => {
+  const store = { collections: { evidence: [{ id: 'EVD-FX', value: 41.25, period: '2026-10-27' }] }, private: { private_facts: [] } };
+  const doc = (fx) => ({ opportunity_id: 'OPP-X', as_of: '2026-10-28', fx: [fx] });
+  assert.ok(checkAnalysis(doc({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-27', source: 'CBRT', ref: 'EVD-FX' }), store, 'OPP-X').ok);
+  assert.ok(checkAnalysis(doc({ base: 'TRY', quote: 'USD', rate: 1 / 41.25, date: '2026-10-27', source: 'CBRT', ref: 'EVD-FX' }), store, 'OPP-X').ok, 'the inverse quotation is accepted');
+  const e = (fx) => checkAnalysis(doc(fx), store, 'OPP-X').errors.join(' ');
+  assert.match(e({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-27', source: 'CBRT' }), /ref required/);
+  assert.match(e({ base: 'USD', quote: 'TRY', rate: 40, date: '2026-10-27', source: 'CBRT', ref: 'EVD-FX' }), /differs from EVD-FX/);
+  assert.match(e({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-20', source: 'CBRT', ref: 'EVD-FX' }), /differs from the observation date/);
+  assert.match(e({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-27', source: 'x', ref: 'ASSUMPTION' }), /ref required/);
+});
+
 test('FIN-1 cash flows match a hand calculation, year by year', () => {
   const cf = cashFlows(BASE()); assert.equal(cf.status, 'OK');
   // net rent after operating costs and 15% tax = 0.765 × collected − 4,250 (collected = 54,000 × 1.1^(t−1))
@@ -136,12 +187,21 @@ test('investment fit: explicit criteria only; missing data is never a match; no 
   f = investmentFit({ excluded_risk_types: ['CONSTRUCTION_DELIVERY'] }, opp); assert.equal(f.outcome, 'NOT_SUITABLE');
   assert.equal(investmentFit({}, opp).status, 'UNAVAILABLE');
   assert.equal(rank().status, 'INACTIVE');
+  // FIT-2: preferences never decide suitability; a hard criterion does; budget includes recorded costs and stays hard
+  f = investmentFit({ delivery_statuses: ['OFF_PLAN'], preferences: ['delivery_status'] }, opp);
+  assert.equal(f.outcome, 'CRITERIA_MET_WITH_DIFFERENCES'); assert.equal(f.criteria[0].result, 'DIFFERS_FROM_PREFERENCE'); assert.equal(f.criteria[0].kind, 'PREFERENCE');
+  assert.equal(investmentFit({ delivery_statuses: ['OFF_PLAN'] }, opp).outcome, 'NOT_SUITABLE', 'the same criterion as a hard constraint');
+  f = investmentFit({ budget: { max: 5100000, currency: 'TRY' }, preferences: ['budget'] }, { ...opp, price: { min: 5000000, costs: 200000, currency: 'TRY', evidence_id: 'PRIVATE:X/F-PRICE' } });
+  assert.equal(f.outcome, 'NOT_SUITABLE', 'price within budget, price + costs outside → not suitable; budget cannot be made a preference');
+  assert.match(f.criteria[0].reason, /\+ recorded acquisition costs 200000 = 5200000/);
+  f = investmentFit({ objectives: ['income'], preferences: ['objective'], delivery_statuses: ['COMPLETED'] }, { ...opp, investor_objective_tags: [] });
+  assert.equal(f.outcome, 'NOT_SUITABLE', 'an unknown preference does not hide a failed hard criterion');
 });
 
 // ================================================================== analysis handoff + Engine 8 decision report (end to end)
 const analysisDoc = (o = {}) => ({
   opportunity_id: OPP, as_of: '2026-10-27',
-  fx: [{ base: 'EUR', quote: 'TRY', rate: 40, date: '2026-10-20', source: 'TEST-ONLY table' }],
+  fx: [],
   finance: {
     currency: 'TRY', horizon_years: { value: 5, ref: 'ASSUMPTION', note: 'TEST-ONLY investor horizon from the brief' }, delivery_year: { value: 2, ref: 'ASSUMPTION', note: 'TEST-ONLY delivery 2028 per developer claim' },
     acquisition: { price: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY list price line scaled to the whole unit' }, payments: [{ t: 0, amount: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY full price paid at signing' }, label: 'price' }] },
@@ -149,7 +209,8 @@ const analysisDoc = (o = {}) => ({
     operating: { fixed_annual: { value: 20000, ref: 'ASSUMPTION', note: 'TEST-ONLY building fees quoted by sales office' }, pct_of_collected_rent: { value: 0.1, ref: 'ASSUMPTION', note: 'TEST-ONLY management fee' } },
     tax: { rental_income_rate: { value: 0.15, ref: 'ASSUMPTION', note: 'TEST-ONLY flat rate; counsel to confirm' }, capital_gains_rate: { value: 0, ref: 'ASSUMPTION', note: 'TEST-ONLY exemption after five years; counsel to confirm' } },
     exit: { appreciation_rate: { value: 0.25, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal price growth assumption' }, selling_cost_rate: { value: 0.03, ref: 'ASSUMPTION', note: 'TEST-ONLY agency and title costs' } },
-    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'TEST-ONLY investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (TEST-ONLY)' }
+    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'TEST-ONLY investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (TEST-ONLY)' },
+    views: { inflation: { rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY annual inflation assumption' }, basis: 'TEST-ONLY annual CPI assumption' } }
   },
   scenarios: { adverse: { rent: { occupancy: { value: 0.7, ref: 'ASSUMPTION', note: 'TEST-ONLY weak letting market' } } } },
   findings: [{ type: 'STRENGTH', class: 'FACT', text: 'Project identity confirmed in the title registry.', refs: ['EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001'] }],
@@ -192,6 +253,9 @@ test('decision report (end to end): private, traceable, runs only supported meth
     assert.match(md, /Project identity confirmed in the title registry\. — EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001/);
     assert.match(md, /\$\.finance\.acquisition\.price = 7654321 — PRIVATE:TEST-PKG-1\/F-PRICE/);
     assert.match(md, /financial input\(s\) are assumptions, not evidence/);
+    assert.match(md, /- IRR \(annual rate/); assert.match(md, /not an annual rate/);
+    assert.match(md, /Real terms \(inflation 30\.00% a year/); assert.match(md, /Home-currency view: NOT RUN/);
+    assert.equal(js.finance.scenarios.base.views.real.status, 'OK');
     assert.match(md, /M-COMPARABLES:\*\* NOT RUN — UNAVAILABLE: analysis\.comparables/);
     assert.match(md, /M-FAIR-VALUE, M-AREA-RANKING, M-RISK-SEVERITY, M-ASSET-QUALITY, M-LIQUIDITY:\*\* INACTIVE/);
     assert.equal(js.fit.outcome, 'CRITERIA_MET'); assert.equal(js.fit.criteria.length, 2);
@@ -218,7 +282,8 @@ test('decision-engines page (EN/TR/AR) lists every registry method with its real
   for (const id of ['M-CASHFLOW', 'M-ROI', 'M-NPV', 'M-SCENARIOS', 'M-COMPARABLES', 'M-INVESTMENT-FIT']) {
     const m = reg.find(x => x.id === id); assert.equal(m.status, 'INACTIVE', id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'PROHIBITED_IN_MVP', id);
   }
-  for (const id of ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-RISK-SEVERITY', 'M-ASSET-QUALITY', 'M-LIQUIDITY', 'M-MARKET-GATE']) assert.equal(want[id], 'inactive', id);
+  for (const id of ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-RISK-SEVERITY', 'M-ASSET-QUALITY', 'M-LIQUIDITY']) assert.equal(want[id], 'inactive', id);
+  assert.equal(want['M-MARKET-GATE'], 'public', 'the market gate is an approved, operating control; its result is shown on the Markets pages');
   // the methodology no longer says that nothing is calculated, and links to the engines page
   const ev = fs.readFileSync(path.join(ROOT, 'desk/intelligence/evaluation/index.html'), 'utf8');
   assert.doesNotMatch(ev, /What is not calculated in the MVP/); assert.match(ev, /href="\.\.\/decision-engines\/"/);
