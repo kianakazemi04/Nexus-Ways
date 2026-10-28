@@ -28,7 +28,7 @@ const base = (o = {}) => ({
   }
 });
 let n = 0;
-const ev = (o) => ({ id: `EVD-T-${++n}`, source_id: 'SRC-T1', subject: { type: 'project', id: PA }, field: 'district_id', claim: { en: 'c' }, value: null, unit: null, currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'VERIFIED', source_tier: 1, retrieved_at: '2026-10-01', last_verified: null, conflict_ids: [], is_illustrative: false, ...o });
+const ev = (o) => ({ id: `EVD-T-${++n}`, source_id: 'SRC-T1', subject: { type: 'project', id: PA }, field: 'district_id', claim: { en: 'c' }, value: null, unit: null, currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'VERIFIED', source_tier: 1, retrieved_at: '2026-10-01', last_verified: null, source_locator: 'TEST-ONLY p.1', conflict_ids: [], is_illustrative: false, ...o });
 const run = (ds, mode = 'private', methods = GATE_ON) => validateDataset(ds, { mode, today: TODAY, methods });
 const why = (r, id = 'OPP-T-A') => r.eligibility.opportunities[id];
 const msgs = (r, code) => r.errors.filter(e => e.code === code).map(e => `${e.id}: ${e.msg}`);
@@ -60,6 +60,15 @@ test('T1: a rendered value with no evidence, or only unverified / Tier 4 / hypot
   }
   // a qualified developer claim is enough for a non-identity field
   assert.ok(!why(run(base({ evidence: [ev({ source_id: 'SRC-T3', source_tier: 3, verification_status: 'DEVELOPER-CLAIM' })] }))).some(w => w.startsWith(`${PA}:district_id`)));
+});
+
+test('T1 (readiness closure): a publishable fact without a source URL or locator blocks publication (acceptance A2)', () => {
+  const ok = why(run(base({ evidence: [ev({})] })));
+  assert.ok(!ok.some(w => w.startsWith(`${PA}:district_id evidence has no source URL or locator`)), ok.join(' | '));
+  const no = why(run(base({ evidence: [ev({ source_locator: null })] })));
+  assert.ok(no.includes(`${PA}:district_id evidence has no source URL or locator (page, section or register entry)`), no.join(' | '));
+  const url = why(run(base({ evidence: [ev({ source_locator: null, source_url: 'https://example.org/register/1' })] })));
+  assert.ok(!url.some(w => w.startsWith(`${PA}:district_id evidence has no source URL`)), 'a URL is enough');
 });
 
 test('T1: the project–developer relationship is an identity field — a developer claim is not enough', () => {

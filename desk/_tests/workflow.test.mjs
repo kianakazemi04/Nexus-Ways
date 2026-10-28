@@ -7,7 +7,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { publishedSetup, cli, readJson, writeJson, OPP, deskSnap } from './helpers.mjs';
 import { exitReview } from '../_tools/engines/exit.mjs';
-import { compareOpportunities, classify } from '../_tools/engines/oppcompare.mjs';
+import { compareOpportunities, classify, REASON_KIND } from '../_tools/engines/oppcompare.mjs';
+import { ROOT } from './helpers.mjs';
 
 test('EXR-1: with no liquidity evidence every input is DATA NOT AVAILABLE and no estimate is produced', () => {
   const r = exitReview({ collections: {}, subjects: [{ type: 'project', id: 'P' }], marketId: 'M' });
@@ -29,18 +30,36 @@ test('EXR-1: risks weaken, closed liquidity research supports, market counts are
 });
 
 const rep = (o) => ({ overview: { title: o.id, publishable: !o.why.length }, facts: o.facts || [], gaps: o.gaps || [], conflicts: o.conflicts || [], risks: [], finance: {}, comparables: { status: 'UNAVAILABLE' }, fit: o.fit || { status: 'UNAVAILABLE' }, exit: { not_available: [1, 2, 3, 4] }, next_steps: o.next || [] });
-test('OPC-1: explicit classes from the evidence, and a work-planning queue that is not an investment ranking', () => {
-  assert.equal(classify({ ...rep({ id: 'A', why: [] }), gate_reasons: [] }).class, 'READY_FOR_PUBLICATION_REVIEW');
-  assert.equal(classify({ ...rep({ id: 'B', why: ['disclosure DSC-1 (COMMISSION) legal review pending'] }), gate_reasons: ['disclosure DSC-1 (COMMISSION) legal review pending'] }).class, 'AWAITING_OWNER_OR_EXTERNAL_INPUT');
-  assert.equal(classify({ ...rep({ id: 'C', why: ['no RISK research block'] }), gate_reasons: ['no RISK research block'] }).class, 'RESEARCH_NEXT');
-  assert.equal(classify({ ...rep({ id: 'D', why: [], fit: { status: 'OK', outcome: 'NOT_SUITABLE', criteria: [{ criterion: 'market', result: 'NO_MATCH', reason: 'market M' }] } }), gate_reasons: [] }).class, 'NOT_SUITABLE_FOR_PROFILE');
+const G = (code, msg = code) => ({ code, msg });
+test('OPC-2: explicit classes from structured gate codes, and a work-planning queue that is not an investment ranking', () => {
+  assert.equal(classify({ ...rep({ id: 'A', why: [] }), gate_codes: [] }).class, 'READY_FOR_PUBLICATION_REVIEW');
+  assert.equal(classify({ ...rep({ id: 'B', why: ['x'] }), gate_codes: [G('DISCLOSURE_PENDING', 'disclosure DSC-1 (COMMISSION) legal review pending')] }).class, 'AWAITING_OWNER_OR_EXTERNAL_INPUT');
+  assert.equal(classify({ ...rep({ id: 'C', why: ['x'] }), gate_codes: [G('RESEARCH_BLOCK_MISSING', 'no RISK research block')] }).class, 'RESEARCH_NEXT');
+  assert.equal(classify({ ...rep({ id: 'D', why: [], fit: { status: 'OK', outcome: 'NOT_SUITABLE', criteria: [{ criterion: 'market', result: 'NO_MATCH', reason: 'market M' }] } }), gate_codes: [] }).class, 'NOT_SUITABLE_FOR_PROFILE');
+  // the class no longer depends on wording: an owner reason whose text says "research" stays an owner reason, and
+  // research text that mentions "approval" stays research (the defect of the text matcher in OPC-1)
+  assert.equal(classify({ ...rep({ id: 'E', why: ['x'] }), gate_codes: [G('PROJECT_PERMISSION', 'project permission: research note')] }).class, 'AWAITING_OWNER_OR_EXTERNAL_INPUT');
+  assert.equal(classify({ ...rep({ id: 'F', why: ['x'] }), gate_codes: [G('EVIDENCE_NOT_PUBLISHABLE', 'PRJ:approval_date has no publishable evidence')] }).class, 'RESEARCH_NEXT');
+  // mixed owner + research → research first; an unknown code is research and is reported, never silently owner
+  const mix = classify({ ...rep({ id: 'G', why: ['x'] }), gate_codes: [G('DISCLOSURE_PENDING'), G('NO_RISK'), G('SOMETHING_NEW')] });
+  assert.equal(mix.class, 'RESEARCH_NEXT'); assert.ok(mix.basis.includes('unclassified reason code SOMETHING_NEW'));
   const c = compareOpportunities([
-    { id: 'OPP-X', report: rep({ id: 'X', why: ['a', 'b'], gaps: ['g'] }), gate_reasons: ['no RISK research block', 'no DEVELOPER research block'] },
-    { id: 'OPP-Y', report: rep({ id: 'Y', why: [] }), gate_reasons: [] }
+    { id: 'OPP-X', report: rep({ id: 'X', why: ['a', 'b'], gaps: ['g'] }), gate_codes: [G('RESEARCH_BLOCK_MISSING', 'no RISK research block'), G('RESEARCH_BLOCK_MISSING', 'no DEVELOPER research block')] },
+    { id: 'OPP-Y', report: rep({ id: 'Y', why: [] }), gate_codes: [] }
   ]);
-  assert.equal(c.status, 'OK'); assert.deepEqual(c.research_queue.map(q => q.id), ['OPP-Y', 'OPP-X']);
+  assert.equal(c.status, 'OK'); assert.equal(c.version, 'OPC-2'); assert.deepEqual(c.research_queue.map(q => q.id), ['OPP-Y', 'OPP-X']);
   assert.match(c.note, /not an investment ranking/); assert.doesNotMatch(JSON.stringify(c), /"(score|weight|rank)"/);
   assert.equal(compareOpportunities([{ id: 'A', report: rep({ id: 'A', why: [] }) }]).status, 'UNAVAILABLE');
+});
+
+test('OPC-2: every reason code the publication gate can emit is classified, and every message carries a code', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'desk/_tools/validate.mjs'), 'utf8');
+  const emitted = [...new Set([...src.matchAll(/\bP\('([A-Z_]+)'/g)].map(m => m[1]))];
+  assert.ok(emitted.length >= 30, `${emitted.length} codes`);
+  assert.deepEqual(emitted.filter(c => !(c in REASON_KIND)), [], 'unclassified codes');
+  assert.deepEqual(Object.keys(REASON_KIND).filter(c => !emitted.includes(c)), [], 'classified codes the gate never emits');
+  const blk = src.slice(src.indexOf('const opp = {}; const oppCodes = {};'), src.indexOf('opp[r.id] = why;'));
+  assert.equal((blk.match(/why\.push\(/g) || []).length, 1, 'only the coded helper pushes reasons');
 });
 
 test('workflow end to end (TEST-ONLY): two projects → reports → comparison → only the approved one is public', () => {

@@ -10,7 +10,7 @@ import { convertArea, convertMoney, fxRate, M2_PER_SQFT } from '../_tools/engine
 import { selectComparables, quantile } from '../_tools/engines/comparables.mjs';
 import { investmentFit, rank } from '../_tools/engines/fit.mjs';
 import { checkAnalysis } from '../_tools/engines/analysis.mjs';
-import { readJson, writeJson, cli, OPP, PRJ, publishedSetup, deskSnap, pub, ROOT } from './helpers.mjs';
+import { readJson, writeJson, cli, OPP, PRJ, publishedSetup, deskSnap, pub, ROOT, analysisDoc } from './helpers.mjs';
 
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps * Math.max(1, Math.abs(b)), `${a} ≠ ${b}`);
 // reference case (TRY, 5 years, rent from year 1, 10% rent growth, 20% appreciation a year, 2% selling costs)
@@ -74,6 +74,43 @@ test('ANL-2: an FX rate must come from a recorded evidence or private fact, with
   assert.match(e({ base: 'USD', quote: 'TRY', rate: 40, date: '2026-10-27', source: 'CBRT', ref: 'EVD-FX' }), /differs from EVD-FX/);
   assert.match(e({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-20', source: 'CBRT', ref: 'EVD-FX' }), /differs from the observation date/);
   assert.match(e({ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-27', source: 'x', ref: 'ASSUMPTION' }), /ref required/);
+});
+
+test('readiness closure (FIN-2): zero investment, invalid rates, sign patterns and zero discount never give an indefensible number', () => {
+  const zero = { ...BASE(), acquisition: { price: 1000000, payments: [{ t: 0, amount: 0 }] } };
+  for (const r of [roi(zero), netRentalYield(zero), irr(zero), npv(zero)]) { assert.equal(r.status, 'UNAVAILABLE'); assert.equal(r.value, undefined); }
+  assert.ok(checkInputs(zero).invalid.some(m => /total invested must be greater than 0/.test(m)));
+  for (const bad of [{ rent: { gross_annual: 1, occupancy: -0.1, growth_rate: 0 } }, { tax: { rental_income_rate: 1.2, capital_gains_rate: 0 } }, { operating: { fixed_annual: -1, pct_of_collected_rent: 0 } }, { exit: { appreciation_rate: -0.95, selling_cost_rate: 0 } }, { discount: { rate: -1, basis: 'TEST-ONLY impossible discount rate' } }, { horizon_years: 0 }, { currency: 'try' }]) {
+    const x = { ...BASE(), ...bad }; assert.notEqual(npv(x).status, 'OK', JSON.stringify(bad));
+  }
+  // negative-only flows: no IRR exists → UNAVAILABLE, never a number
+  const loss = { ...BASE(), rent: { gross_annual: 0, occupancy: 0, growth_rate: 0 }, exit: { sale_price: 0, selling_cost_rate: 0 } };
+  assert.equal(irr(loss).status, 'UNAVAILABLE'); assert.ok(roi(loss).value < 0, 'ROI of a total loss is reported as a loss');
+  close(roi(loss).value, (-1040000 - 5000 * 5) / 1040000, 1e-12);
+  // zero discount rate is allowed with a basis and equals the undiscounted sum
+  const r0 = npv({ ...BASE(), discount: { rate: 0, basis: 'TEST-ONLY zero rate stated for the identity check' } });
+  close(r0.value, cashFlows(BASE()).totals.net_cash_flow, 1e-9);
+  // a basis is explicit in every NPV result
+  assert.match(npv(BASE()).discount_basis, /TEST-ONLY/);
+});
+
+test('readiness closure (ANL-2): stale or future FX rows and silent currency mixing are refused', () => {
+  const store = { collections: { evidence: [{ id: 'EVD-FX', value: 41.25, period: '2026-10-20' }, { id: 'EVD-FX2', value: 41.3, period: '2026-10-27' }, { id: 'EVD-FUT', value: 41.4, period: '2026-10-30' }] },
+    private: { private_facts: [{ package_id: 'PKG', key: 'price_usd', value: 100000, currency: 'USD' }, { package_id: 'PKG', key: 'price_try', value: 4125000, currency: 'TRY' }] } };
+  const A = (value) => ({ value, ref: 'ASSUMPTION', note: 'TEST-ONLY structural input for the check' });
+  const fin = (price) => ({ currency: 'TRY', horizon_years: A(1), delivery_year: A(0), acquisition: { price, payments: [{ t: 0, amount: price }] } });
+  const run = (doc) => checkAnalysis({ opportunity_id: 'OPP-X', as_of: '2026-10-28', ...doc }, store, 'OPP-X');
+  assert.match(run({ fx: [{ base: 'USD', quote: 'TRY', rate: 41.25, date: '2026-10-20', source: 'CBRT', ref: 'EVD-FX' }] }).errors.join(' '), /8 days older than the analysis date \(CNV-1 maximum 7\)/);
+  assert.match(run({ fx: [{ base: 'USD', quote: 'TRY', rate: 41.4, date: '2026-10-30', source: 'CBRT', ref: 'EVD-FUT' }] }).errors.join(' '), /after the analysis date/);
+  // a USD price used in a TRY analysis: refused without an fx row, refused without a note, accepted with both
+  const usd = { value: 4130000, ref: 'PRIVATE:PKG/price_usd' };
+  assert.match(run({ finance: fin(usd) }).errors.join(' '), /is in USD, the analysis is in TRY; record the USD\/TRY rate/);
+  const fx = [{ base: 'USD', quote: 'TRY', rate: 41.3, date: '2026-10-27', source: 'CBRT', ref: 'EVD-FX2' }];
+  assert.match(run({ fx, finance: fin({ ...usd }) }).errors.join(' '), /differs from PRIVATE:PKG\/price_usd|add a note/);
+  const noted = { ...usd, note: 'TEST-ONLY 100,000 USD × 41.30 (CBRT 27 Oct 2026, fx[0])' };
+  assert.deepEqual(run({ fx, finance: fin(noted) }).errors, []);
+  // same currency: no fx row needed
+  assert.deepEqual(run({ finance: fin({ value: 4125000, ref: 'PRIVATE:PKG/price_try' }) }).errors, []);
 });
 
 test('FIN-1 cash flows match a hand calculation, year by year', () => {
@@ -199,25 +236,6 @@ test('investment fit: explicit criteria only; missing data is never a match; no 
 });
 
 // ================================================================== analysis handoff + Engine 8 decision report (end to end)
-const analysisDoc = (o = {}) => ({
-  opportunity_id: OPP, as_of: '2026-10-27',
-  fx: [],
-  finance: {
-    currency: 'TRY', horizon_years: { value: 5, ref: 'ASSUMPTION', note: 'TEST-ONLY investor horizon from the brief' }, delivery_year: { value: 2, ref: 'ASSUMPTION', note: 'TEST-ONLY delivery 2028 per developer claim' },
-    acquisition: { price: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY list price line scaled to the whole unit' }, payments: [{ t: 0, amount: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY full price paid at signing' }, label: 'price' }] },
-    rent: { gross_annual: { value: 360000, ref: 'ASSUMPTION', note: 'TEST-ONLY rent quote from two agents' }, occupancy: { value: 0.9, ref: 'ASSUMPTION', note: 'TEST-ONLY ten per cent vacancy allowance' }, growth_rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal TRY rent growth' } },
-    operating: { fixed_annual: { value: 20000, ref: 'ASSUMPTION', note: 'TEST-ONLY building fees quoted by sales office' }, pct_of_collected_rent: { value: 0.1, ref: 'ASSUMPTION', note: 'TEST-ONLY management fee' } },
-    tax: { rental_income_rate: { value: 0.15, ref: 'ASSUMPTION', note: 'TEST-ONLY flat rate; counsel to confirm' }, capital_gains_rate: { value: 0, ref: 'ASSUMPTION', note: 'TEST-ONLY exemption after five years; counsel to confirm' } },
-    exit: { appreciation_rate: { value: 0.25, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal price growth assumption' }, selling_cost_rate: { value: 0.03, ref: 'ASSUMPTION', note: 'TEST-ONLY agency and title costs' } },
-    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'TEST-ONLY investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (TEST-ONLY)' },
-    views: { inflation: { rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY annual inflation assumption' }, basis: 'TEST-ONLY annual CPI assumption' } }
-  },
-  scenarios: { adverse: { rent: { occupancy: { value: 0.7, ref: 'ASSUMPTION', note: 'TEST-ONLY weak letting market' } } } },
-  findings: [{ type: 'STRENGTH', class: 'FACT', text: 'Project identity confirmed in the title registry.', refs: ['EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001'] }],
-  investor_profile: { objectives: ['long_term_hold'], horizon_years: 5 },
-  ...o
-});
-
 test('analysis handoff: every number needs provenance; findings need evidence; bad files are refused with reasons', () => {
   const s = publishedSetup({ exportIt: false });
   try {

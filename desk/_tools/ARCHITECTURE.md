@@ -70,7 +70,7 @@ findings text; every number, calculation, gate decision and publication step is 
 | 4 Pricing & comparables | `engines/comparables.mjs`, `engines/units.mjs` | M-COMPARABLES (CMP-1), M-CONVERSION (CNV-1); M-FAIR-VALUE | internal & tested; fair value not implemented |
 | 5 Rental & financial | `engines/finance.mjs` | M-CASHFLOW, M-ROI, M-NPV, M-SCENARIOS, M-RETURN-VIEWS (FIN-2); M-YIELD-RETURNS (public figures) | internal & tested; public figures prohibited (D10) |
 | 6 Risk & exit | validator + report §5 | M-RISK-LIST; M-RISK-SEVERITY, M-LIQUIDITY | list public & tested; severity/liquidity inactive |
-| 7 Comparison & fit | `assets/js/compare.js`, `engines/fit.mjs`, `engines/oppcompare.mjs` | Compare (public); M-INVESTMENT-FIT (FIT-2); M-OPPORTUNITY-COMPARISON (OPC-1); M-AREA-RANKING | compare public; fit internal qualitative; ranking inactive (`rank()` refuses) |
+| 7 Comparison & fit | `assets/js/compare.js`, `engines/fit.mjs`, `engines/oppcompare.mjs` | Compare (public); M-INVESTMENT-FIT (FIT-2); M-OPPORTUNITY-COMPARISON (OPC-2); M-AREA-RANKING | compare public; fit internal qualitative; ranking inactive (`rank()` refuses) |
 | 8 Decision report | `engines/report.mjs`, `ingest.mjs report` | M-DECISION-REPORT (RPT-1) | internal & tested |
 
 ## 4. Method contracts (summary; code headers are authoritative)

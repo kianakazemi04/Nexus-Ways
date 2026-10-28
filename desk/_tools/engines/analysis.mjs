@@ -8,6 +8,7 @@
 // evidence reference; a finding with none is refused. Nothing here is ever exported to public data.
 
 export const ANL_VERSION = 'ANL-2';
+export const FX_MAX_AGE_DAYS = 7; // CNV-1 default (units.mjs); the same limit applies to the analysis fx table
 const isWrapped = (v) => v && typeof v === 'object' && !Array.isArray(v) && 'value' in v && 'ref' in v;
 
 // resolveRef(ref) -> { kind: 'evidence'|'private'|'assumption', id, publicClaim?: bool } | null
@@ -17,8 +18,8 @@ export function makeResolver(store) {
   return (ref) => {
     if (ref === 'ASSUMPTION') return { kind: 'assumption', id: 'ASSUMPTION' };
     if (typeof ref !== 'string') return null;
-    if (ref.startsWith('PRIVATE:')) return pf.has(ref.slice(8)) ? { kind: 'private', id: ref, value: pf.get(ref.slice(8)).value } : null;
-    return ev.has(ref) ? { kind: 'evidence', id: ref, evidence: ev.get(ref), value: ev.get(ref).value } : null;
+    if (ref.startsWith('PRIVATE:')) return pf.has(ref.slice(8)) ? { kind: 'private', id: ref, value: pf.get(ref.slice(8)).value, currency: pf.get(ref.slice(8)).currency || null } : null;
+    return ev.has(ref) ? { kind: 'evidence', id: ref, evidence: ev.get(ref), value: ev.get(ref).value, currency: ev.get(ref).currency || null } : null;
   };
 }
 
@@ -33,7 +34,7 @@ export function unwrap(node, resolve, path = '$') {
       if (typeof v.value !== 'number' && typeof v.value !== 'string') errors.push(`${p}: value must be a number or text`);
       // a value taken from a record must equal it, unless a note explains the derivation (conversion, share, sum …)
       if (r && r.kind !== 'assumption' && typeof r.value === 'number' && r.value !== v.value && !(typeof v.note === 'string' && v.note.trim().length >= 10)) errors.push(`${p}: value ${v.value} differs from ${v.ref} (${r.value}); add a note explaining the derivation`);
-      provenance.push({ path: p, value: v.value, ref: v.ref, kind: r ? r.kind : 'unresolved', note: v.note ?? null });
+      provenance.push({ path: p, value: v.value, ref: v.ref, kind: r ? r.kind : 'unresolved', note: v.note ?? null, currency: r ? r.currency || null : null });
       return v.value;
     }
     if (Array.isArray(v)) return v.map((x, i) => walk(x, `${p}[${i}]`));
@@ -63,6 +64,12 @@ export function checkAnalysis(doc, store, oppId) {
     if (!res) { errors.push(`fx[${i}]: reference ${r.ref} not found in the store`); continue; }
     if (typeof res.value === 'number' && Math.abs(res.value - r.rate) > 1e-9 && Math.abs(1 / res.value - r.rate) > 1e-9) errors.push(`fx[${i}]: rate ${r.rate} differs from ${r.ref} (${res.value})`);
     if (res.kind === 'evidence' && /^\d{4}-\d{2}-\d{2}$/.test(res.evidence.period || '') && res.evidence.period !== r.date) errors.push(`fx[${i}]: date ${r.date} differs from the observation date of ${r.ref} (${res.evidence.period})`);
+    // CNV-1 at the analysis date: a rate dated after as_of, or more than FX_MAX_AGE_DAYS before it, is stale (readiness closure)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(r.date) && /^\d{4}-\d{2}-\d{2}$/.test(doc.as_of || '')) {
+      const age = Math.round((Date.parse(doc.as_of) - Date.parse(r.date)) / 86400000);
+      if (age < 0) errors.push(`fx[${i}]: rate dated ${r.date} is after the analysis date ${doc.as_of}`);
+      else if (age > FX_MAX_AGE_DAYS) errors.push(`fx[${i}]: rate dated ${r.date} is ${age} days older than the analysis date (CNV-1 maximum ${FX_MAX_AGE_DAYS})`);
+    }
     out.fx.push(r); provenance.push({ path: `$.fx[${i}].rate`, value: r.rate, ref: r.ref, kind: res.kind, note: null });
   }
   const take = (key, node) => { if (node === undefined || node === null) return null; const u = unwrap(node, resolve, `$.${key}`); errors.push(...u.errors); provenance.push(...u.provenance); return u.value; };
@@ -82,6 +89,15 @@ export function checkAnalysis(doc, store, oppId) {
     }
   }
   if (doc.price_evidence) out.price_evidence = take('price_evidence', doc.price_evidence);
+  // currency consistency (readiness closure): an amount taken from a record in another currency than the analysis
+  // currency must be converted with a recorded fx row for that pair and say so in its note — never mixed silently
+  const cur = doc.finance && typeof doc.finance.currency === 'string' ? doc.finance.currency : null;
+  if (cur) for (const pv of provenance) {
+    if (!pv.currency || pv.currency === cur || !/^\$\.(finance|scenarios|price_evidence)\b/.test(pv.path)) continue;
+    const pair = out.fx.some(r => (r.base === pv.currency && r.quote === cur) || (r.base === cur && r.quote === pv.currency));
+    if (!pair) errors.push(`${pv.path}: ${pv.ref} is in ${pv.currency}, the analysis is in ${cur}; record the ${pv.currency}/${cur} rate in fx[] (CNV-1) before using it`);
+    else if (!(typeof pv.note === 'string' && pv.note.trim().length >= 10)) errors.push(`${pv.path}: converted from ${pv.currency} (${pv.ref}); add a note stating the conversion`);
+  }
   // the investor profile is a client preference, not market data: taken as given (it stays private)
   if (doc.investor_profile) out.investor_profile = doc.investor_profile;
   for (const [i, f] of (doc.findings || []).entries()) {

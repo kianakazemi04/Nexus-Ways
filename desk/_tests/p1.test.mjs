@@ -24,7 +24,7 @@ const base = (o = {}) => ({
     evidence: [], risks: [], conflicts: [], media: [], disclosures: [], ...o
   }
 });
-const ev = (o) => ({ id: 'EVD-T-1', source_id: 'SRC-T3', subject: { type: 'project', id: 'PRJ-T-A' }, field: 'delivery_status', claim: { en: 'c' }, value: 'UNDER_CONSTRUCTION', unit: 'text', currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'DEVELOPER-CLAIM', source_tier: 3, retrieved_at: '2026-10-01', last_verified: null, conflict_ids: [], is_illustrative: false, ...o });
+const ev = (o) => ({ id: 'EVD-T-1', source_id: 'SRC-T3', subject: { type: 'project', id: 'PRJ-T-A' }, field: 'delivery_status', claim: { en: 'c' }, value: 'UNDER_CONSTRUCTION', unit: 'text', currency: null, geography: 'T', period: null, evidence_class: 'FACT', verification_status: 'DEVELOPER-CLAIM', source_tier: 3, retrieved_at: '2026-10-01', last_verified: null, source_locator: 'TEST-ONLY p.1', conflict_ids: [], is_illustrative: false, ...o });
 const run = (ds, mode = 'private', today = TODAY) => validateDataset(ds, { mode, today, methods: { 'M-RISK-SEVERITY': 'INACTIVE', 'M-MARKET-GATE': 'ACTIVE' } });
 const why = (r, id = 'OPP-T-A') => r.eligibility.opportunities[id];
 

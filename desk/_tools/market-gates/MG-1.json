@@ -1,7 +1,8 @@
 {
   "version": "MG-1",
   "engine": "MGE-1",
-  "status": "PROPOSED — owner review; legal topics limited to statutory requirements that genuinely apply to Nexus Ways' activity (owner instruction 28 Oct 2026); not legal advice",
+  "status_authority": "desk/data/methods.json#M-MARKET-GATE",
+  "status": "RULES_APPROVED by the owner (28 Oct 2026, audit K-1). Authoritative status: method registry desk/data/methods.json → M-MARKET-GATE (status / validation_status); this field only mirrors it. Legal topics are limited to statutory requirements that genuinely apply to Nexus Ways' activity; not legal advice.",
   "notes": "One shared engine (desk/_tools/engines/marketgate.mjs) evaluates each market against its own configuration. Thresholds are freshness limits tied to each source's publication rhythm, not performance thresholds; no statistic has a pass value. Legal topics are questions for counsel, not conclusions.",
   "markets": {
     "MKT-IST": {

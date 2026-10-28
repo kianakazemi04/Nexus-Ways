@@ -114,3 +114,23 @@ export function publishedSetup({ mutate, exportIt = true } = {}) {
 }
 export const deskSnap = (repo) => snap(path.join(repo, 'desk'), (f) => f.startsWith('_txn') || f === '_lock.json');
 export const pub = (repo, c) => readJson(path.join(repo, 'desk/data/public', `${c}.json`)).records;
+
+// TEST-ONLY analysis file (ANL-2) for the synthetic opportunity: every number carries its provenance.
+export const analysisDoc = (o = {}) => ({
+  opportunity_id: OPP, as_of: '2026-10-27',
+  fx: [],
+  finance: {
+    currency: 'TRY', horizon_years: { value: 5, ref: 'ASSUMPTION', note: 'TEST-ONLY investor horizon from the brief' }, delivery_year: { value: 2, ref: 'ASSUMPTION', note: 'TEST-ONLY delivery 2028 per developer claim' },
+    acquisition: { price: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY list price line scaled to the whole unit' }, payments: [{ t: 0, amount: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY full price paid at signing' }, label: 'price' }] },
+    rent: { gross_annual: { value: 360000, ref: 'ASSUMPTION', note: 'TEST-ONLY rent quote from two agents' }, occupancy: { value: 0.9, ref: 'ASSUMPTION', note: 'TEST-ONLY ten per cent vacancy allowance' }, growth_rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal TRY rent growth' } },
+    operating: { fixed_annual: { value: 20000, ref: 'ASSUMPTION', note: 'TEST-ONLY building fees quoted by sales office' }, pct_of_collected_rent: { value: 0.1, ref: 'ASSUMPTION', note: 'TEST-ONLY management fee' } },
+    tax: { rental_income_rate: { value: 0.15, ref: 'ASSUMPTION', note: 'TEST-ONLY flat rate; counsel to confirm' }, capital_gains_rate: { value: 0, ref: 'ASSUMPTION', note: 'TEST-ONLY exemption after five years; counsel to confirm' } },
+    exit: { appreciation_rate: { value: 0.25, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal price growth assumption' }, selling_cost_rate: { value: 0.03, ref: 'ASSUMPTION', note: 'TEST-ONLY agency and title costs' } },
+    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'TEST-ONLY investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (TEST-ONLY)' },
+    views: { inflation: { rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY annual inflation assumption' }, basis: 'TEST-ONLY annual CPI assumption' } }
+  },
+  scenarios: { adverse: { rent: { occupancy: { value: 0.7, ref: 'ASSUMPTION', note: 'TEST-ONLY weak letting market' } } } },
+  findings: [{ type: 'STRENGTH', class: 'FACT', text: 'Project identity confirmed in the title registry.', refs: ['EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001'] }],
+  investor_profile: { objectives: ['long_term_hold'], horizon_years: 5 },
+  ...o
+});
