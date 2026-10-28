@@ -91,3 +91,22 @@ test('private path: analysis → decision report with price position and severit
     assert.equal(fs.readdirSync(path.join(s.repo, 'desk/data/public')).map(f => fs.readFileSync(path.join(s.repo, 'desk/data/public', f), 'utf8')).join(), before, 'public tree unchanged');
   } finally { s.cleanup(); }
 });
+
+test('store snapshot (STP-1): pack → unpack round trip outside the repository; refuses the repository, non-empty targets and edited snapshots', async () => {
+  const { pack, unpack } = await import('../_tools/storepack.mjs');
+  const os = await import('node:os');
+  const a = fs.mkdtempSync(path.join(os.tmpdir(), 'stp-a-')); const b = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'stp-b-')), 'store');
+  try {
+    fs.mkdirSync(path.join(a, 'data'), { recursive: true }); fs.mkdirSync(path.join(a, 'private/analysis'), { recursive: true }); fs.mkdirSync(path.join(a, 'media'), { recursive: true });
+    writeJson(path.join(a, 'data/projects.json'), { records: [{ id: 'PRJ-X' }] }); writeJson(path.join(a, 'private/analysis/OPP-X.json'), { as_of: '2026-10-29' });
+    fs.writeFileSync(path.join(a, 'media/x.webp'), 'binary'); fs.writeFileSync(path.join(a, '_lock.json'), '{}');
+    const snap = pack(a); assert.deepEqual(Object.keys(snap.files).sort(), ['data/projects.json', 'private/analysis/OPP-X.json']);
+    assert.equal(unpack(snap, b), 2); assert.deepEqual(readJson(path.join(b, 'data/projects.json')), { records: [{ id: 'PRJ-X' }] });
+    assert.throws(() => unpack(snap, b), /not empty/);
+    assert.throws(() => pack(path.join(ROOT, 'desk')), /inside \(or contains\) the public repository/);
+    const bad = JSON.parse(JSON.stringify(snap)); bad.files['data/projects.json'] = '{}';
+    assert.throws(() => unpack(bad, path.join(b, '..', 'other')), /checksum/);
+    const evil = { ...snap, files: { '../../escape.json': '{}' } }; evil.sha256 = (await import('node:crypto')).createHash('sha256').update(JSON.stringify(evil.files)).digest('hex');
+    assert.throws(() => unpack(evil, path.join(b, '..', 'evil')), /refused path/);
+  } finally { fs.rmSync(a, { recursive: true, force: true }); fs.rmSync(path.dirname(b), { recursive: true, force: true }); }
+});
