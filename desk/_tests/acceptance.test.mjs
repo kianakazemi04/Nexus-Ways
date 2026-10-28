@@ -159,7 +159,10 @@ test('A10 — English, Turkish and Arabic pages: language, direction, alternates
     assert.match(h, new RegExp(`<html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">`), `${f}: lang/dir`);
     for (const l of ['en', 'tr', 'ar']) assert.match(h, new RegExp(`<link rel="alternate" hreflang="${l}" href="https://nexus-ways\\.com/desk/`), `${f}: hreflang ${l}`);
     assert.match(h, /<title>[^<]{5,}<\/title>/, `${f}: title`); assert.match(h, /<meta name="description" content="[^"]{10,}">/, `${f}: description`);
-    if (!published) assert.match(h, /<meta name="robots" content="noindex, follow">/, `${f}: noindex while nothing is published (K-4)`);
+    const evergreen = /^(?:(?:tr|ar)\/)?(?:markets|intelligence)\//.test(f.replace(/\\/g, '/'));
+    if (evergreen) assert.match(h, /<meta name="robots" content="index, follow">/, `${f}: Markets and Intelligence are indexable (K-4b)`);
+    else if (!published) assert.match(h, /<meta name="robots" content="noindex, follow">/, `${f}: noindex while nothing is published (K-4)`);
+    assert.match(h, /<link rel="canonical" href="https:\/\/nexus-ways\.com\/desk\//, `${f}: canonical`);
     for (const [, href] of h.matchAll(/href="(\/desk\/[^"#?]*)/g)) {
       const t = path.join(ROOT, href.endsWith('/') ? href + 'index.html' : href);
       assert.ok(fs.existsSync(t), `${f}: broken link ${href}`);

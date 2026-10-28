@@ -34,16 +34,25 @@ var ql=q.get('lang');if(ql==='en'||ql==='tr'||ql==='ar')s(G,ql);var w=g(G);
 if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(location.pathname.replace(/^\\/desk\\//,'/desk/'+w+'/')+(qs?'?'+qs:'')+location.hash)}})();</script>`;
 const GLOBE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.6 3.9 9.2s-1.3 6.6-3.9 9.2M12 2.8C9.4 5.4 8.1 8.4 8.1 12s1.3 6.6 3.9 9.2"/></svg>`;
 
-// Indexing (owner decision K-4): Desk stays out of search engines until the first opportunity is published; from then
-// on Explore, Markets, Intelligence and published opportunity pages are indexable. Previews, compare, consultation,
-// disclosures and 404 stay noindex.
+// Indexing (owner decisions K-4 and K-4b): Markets and Intelligence are indexable; Explore and published opportunity
+// pages become indexable with the first publication. Previews, compare, consultation, disclosures and 404 stay noindex.
 let PUBLISHED_N = 0;
-export const indexable = (rest) => PUBLISHED_N > 0 && /^(|index\.html|markets\/.*|intelligence\/.*|opportunities\/(?!preview\/)[^/]+\/)$/.test(rest || '');
+// K-4b (owner instruction 28 Oct 2026, SEO): the evergreen Markets and Intelligence pages carry no opportunity, figure or
+// private record (PUB-2) and are indexable now; Explore and opportunity pages follow K-4 (from the first publication).
+export const EVERGREEN = /^(markets\/.*|intelligence\/.*)$/;
+export const indexable = (rest) => EVERGREEN.test(rest || '') || (PUBLISHED_N > 0 && /^(|index\.html|opportunities\/(?!preview\/)[^/]+\/)$/.test(rest || ''));
 function layout({ lang, rest, title, description, current, body, script }) {
   const t = T(lang); const L = LANGS[lang];
   const u = (p) => localize(p, lang);
+  const co = (p) => lang === 'en' ? p : `/${lang}${p}`; // company site pages in the same language (static /tr/, /ar/)
   const nav = (p, key, label) => `<a class="nl" href="${u(p)}"${current === key ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
-  const alt = Object.keys(LANGS).map(l => `<link rel="alternate" hreflang="${l}" href="https://nexus-ways.com${localize('/desk/' + rest, l)}">`).join('\n');
+  const alt = Object.keys(LANGS).map(l => `<link rel="alternate" hreflang="${l}" href="https://nexus-ways.com${localize('/desk/' + rest, l)}">`).join('\n')
+    + `\n<link rel="alternate" hreflang="x-default" href="https://nexus-ways.com${localize('/desk/' + rest, 'en')}">`;
+  const canon = `https://nexus-ways.com${localize('/desk/' + rest, lang)}`;
+  const OGL = { en: 'en_US', tr: 'tr_TR', ar: 'ar_AE' };
+  const og = `<link rel="canonical" href="${canon}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Nexus Ways · Nexus Desk"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${canon}"><meta property="og:locale" content="${OGL[lang]}">${Object.keys(OGL).filter(l => l !== lang).map(l => `<meta property="og:locale:alternate" content="${OGL[l]}">`).join('')}<meta property="og:image" content="https://nexus-ways.com/images/og-image.png">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(description)}">`;
   const langMenu = `<div class="lgw"><button class="lgb" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lgm" aria-label="${esc(t('lang'))}">${GLOBE}<span>${L.code}</span></button>
 <div class="lgm" id="lgm" role="menu">${Object.entries(LANGS).map(([l, x]) => `<a role="menuitem" href="${localize('/desk/' + rest, l)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${esc(x.name)} <small>${x.code}</small></a>`).join('')}</div></div>`;
   return `<!DOCTYPE html>
@@ -59,6 +68,7 @@ ${THEME_BOOT}
 <meta name="theme-color" content="#09090a">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 ${alt}
+${og}
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -76,7 +86,7 @@ ${LOGO}
 <a class="br" href="${u('/desk/')}" aria-label="${esc(t('home'))}"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">${esc(t('by'))}</span></span></a>
 <nav class="nv" id="nv" aria-label="${esc(t('deskNav'))}">
 ${nav('/desk/', 'explore', t('explore'))}${nav('/desk/markets/', 'markets', t('markets'))}${nav('/desk/intelligence/', 'intel', t('intel'))}
-<span class="sep" aria-hidden="true"></span><a class="ext" href="/${lang === 'en' ? '' : '?lang=' + lang}" translate="no">Nexus Ways ↗</a>
+<span class="sep" aria-hidden="true"></span><a class="ext" href="${co('/')}" translate="no">Nexus Ways ↗</a>
 <a class="btn sm" href="${u('/desk/consultation/')}"${current === 'consult' ? ' aria-current="page"' : ''}><span>${esc(t('consult'))}</span> <i aria-hidden="true">→</i></a>
 <div class="lgr" role="group" aria-label="${esc(t('lang'))}">${Object.entries(LANGS).map(([l, x]) => `<a href="${localize('/desk/' + rest, l)}" hreflang="${l}" lang="${l}"${l === lang ? ' aria-current="true"' : ''}>${x.code}</a>`).join('')}</div>
 </nav>
@@ -91,7 +101,7 @@ ${body}
 <div><a class="br" href="${u('/desk/')}" aria-label="${esc(t('home'))}"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">${esc(t('by'))}</span></span></a><p>${esc(t('notAdvice'))}</p></div>
 <div><h4 translate="no">Desk</h4><nav aria-label="Desk"><a href="${u('/desk/')}">${esc(t('explore'))}</a><a href="${u('/desk/markets/')}">${esc(t('markets'))}</a><a href="${u('/desk/intelligence/')}">${esc(t('intel'))}</a><a href="${u('/desk/consultation/')}">${esc(t('consult'))}</a><a href="${u('/desk/disclosures/')}">${esc(t('disclosures'))}</a></nav></div>
 <div><h4>${esc(t('ft.contact'))}</h4><nav aria-label="${esc(t('ft.contact'))}"><a href="mailto:${DESK_CONTACT.email}" dir="ltr" translate="no">${DESK_CONTACT.email}</a><a href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener">${esc(t('ft.call'))} ↗</a><a href="${u('/desk/consultation/')}">${esc(t('ft.form'))}</a></nav></div>
-<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/${lang === 'en' ? '' : '?lang=' + lang}" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/${lang === 'en' ? '' : '?lang=' + lang}">${esc(t('footIA'))}</a><a href="/about/${lang === 'en' ? '' : '?lang=' + lang}">${esc(t('footAbout'))}</a></nav></div>
+<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="${co('/')}" translate="no">nexus-ways.com</a><a href="${co('/solutions/investment-arm/')}">${esc(t('footIA'))}</a><a href="${co('/about/')}">${esc(t('footAbout'))}</a></nav></div>
 </div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>${esc(t('footCp'))}</span></div></div></footer>
 <script type="module" src="/desk/assets/js/${script || 'core'}.js?v=${ASSET_V}"></script>
 <noscript><style>.rv{opacity:1;transform:none}</style></noscript>
@@ -206,6 +216,7 @@ ${cta(K.ctaH, K.ctaP, K.ctaBtn)}` });
 <input type="hidden" name="subject" value="${esc(t('cs.subject'))}">
 <input type="hidden" name="from_name" value="Nexus Desk">
 <input type="hidden" name="page_language" value="${lang}">
+<input type="hidden" name="page" id="cf-page" value="">
 <input type="hidden" name="opportunities" id="cf-ref" value="">
 <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 <div class="frm">

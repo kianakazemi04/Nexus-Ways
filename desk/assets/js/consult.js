@@ -20,6 +20,9 @@ const ctx = document.getElementById('ctx');
 const parts = items.map(o => `<span class="chip on">${tx(o.title)}</span>`);
 const m = market && D.market(market); if (m && !items.length) parts.push(`<span class="chip">${esc(mname(m))}</span>`);
 ctx.innerHTML = parts.length ? `<span class="lab">${esc(t('regarding'))}</span><div class="ctx">${parts.join('')}</div>` : '';
+// lead attribution: the Desk or company page the visitor came from, as a same-site path only (no query, no identifier)
+{ let from = 'direct or external'; try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin) from = r.pathname; } catch (e) { /* no referrer */ }
+  const pg = document.getElementById('cf-page'); if (pg) pg.value = from; }
 document.getElementById('cf-ref').value = items.map(o => `${o.id} — ${(o.title && o.title.en) || ''}`).join('; ');
 const mk = m || (items[0] && D.market(items[0].market_id));
 if (mk) { const opt = [...document.getElementById('cf-mkt').options].find(o => o.dataset.id === mk.id); if (opt) opt.selected = true; }

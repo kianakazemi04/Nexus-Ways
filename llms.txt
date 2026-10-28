@@ -18,6 +18,8 @@ Nexus Ways Group works with a limited number of clients and delivers advisory wo
 - [AI Infrastructure](https://nexus-ways.com/solutions/digital-engine/ai-infrastructure/): CRM implementation, workflow and lead automation, and AI-assisted content and reporting with human review.
 - [Investment Arm](https://nexus-ways.com/solutions/investment-arm/): Investor deal flow, startup and business screening, commercial and strategic due diligence, investor matching and introductions, and deal structuring support for angels, family offices, VC funds and corporate investors.
 - [Nexus Desk](https://nexus-ways.com/#desk): Investment intelligence product from the Investment Arm for discovering, evaluating and comparing opportunities, starting with real estate in Istanbul, Dubai and Abu Dhabi. Research and analysis only, not investment advice.
+- [Nexus Desk — Markets](https://nexus-ways.com/desk/markets/): Market coverage, evidence standards and market-specific gates for Istanbul, Dubai and Abu Dhabi. No market figures, prices or returns are published.
+- [Nexus Desk — How we evaluate](https://nexus-ways.com/desk/intelligence/): The evidence, analytical methods (with their current availability) and controls behind Nexus Desk, and what each output does not claim.
 
 ## Company
 
@@ -25,6 +27,10 @@ Nexus Ways Group works with a limited number of clients and delivers advisory wo
 - [Careers](https://nexus-ways.com/careers/): Talent network for strategy, finance, investment research, digital execution and AI specialists.
 - [Contact](https://nexus-ways.com/contact/): Call booking, enquiry form routed by pillar, email, WhatsApp and office hours in Istanbul and Dubai.
 - [FAQ](https://nexus-ways.com/#faq): Common questions about what Nexus Ways does, who it works with and how engagements are priced.
+
+## Languages
+
+Every page is available in English, Turkish (`/tr/…`) and Arabic (`/ar/…`); Nexus Desk under `/desk/`, `/desk/tr/` and `/desk/ar/`.
 
 ## Focus
 
