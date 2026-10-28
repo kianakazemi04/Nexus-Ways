@@ -8,6 +8,8 @@
   "build": {
     "command": "node desk/_tools/cf-build.mjs"
   },
+  // branch builds (pull requests) run "wrangler preview", which needs this block; same build and checks as main
+  "previews": {},
   "assets": {
     "directory": "./_cfsite",
     "not_found_handling": "404-page",
