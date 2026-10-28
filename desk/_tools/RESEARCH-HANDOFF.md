@@ -26,12 +26,35 @@ private store. The public repository receives only what `export` writes after ow
 - Does not infer distances, legal status, completion, rents or returns from images or marketing language; does not
   circumvent site restrictions; does not publish images without written permission.
 
+## The project workflow, step by step
+1. **Owner → Claude:** catalogue / brochure, price list, payment plan, floor plans, photos and renderings, and the
+   sales office's permission e-mail, sent in the chat.
+2. **Extraction:** every project fact and developer claim with its file and page (`source_locator`); brochure statements
+   are DEVELOPER-CLAIM, never independent verification.
+3. **Public research:** registries and official sources Claude can actually open, with URL, date, period, unit,
+   verification status and limitations; inaccessible sources are named as such.
+4. **Permission record** (`intake.json` → `permissions`, or later `record-permission`): issuing sales office, project,
+   permitted channels and activities, the media it names, scope and validity; the e-mail is kept privately with its
+   SHA-256. It authorizes only what it states: an image or channel it does not name stays unpublished.
+5. **Ingest** (dry run, then `--apply`), **report** with the private analysis file (finance, comparables, fit), and
+   **compare** across the opportunities in the store (research queue, not a ranking).
+6. **Gaps and diligence:** the decision report lists missing data (`DATA NOT AVAILABLE`), conflicts, exit diligence and
+   next steps; the gate lists every reason that blocks publication.
+7. **Owner decisions:** approve-disclosure (after legal review), approve-media per image, approve.
+8. **Export → build → validate → commit on a branch → CI → merge → deploy → live check.** Claude does these steps in
+   the working session (it has push access to the repository); the private store must still be created by the owner.
+
+A full run on clearly labelled demonstration data: `node desk/_tools/demo/run-demo.mjs --out <dir>` (throw-away copies
+only; it also re-computes NPV and ROI by hand and checks that no private figure reached the public tree).
+
 ## Commands
 ```
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store>            # dry run: report only
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store> --apply    # all-or-nothing write
 node desk/_tools/ingest.mjs report --store <store> --id <OPP-…>               # private decision report
 node desk/_tools/ingest.mjs gate   --store <store>                            # publication gate reasons
+node desk/_tools/ingest.mjs compare --store <store> --ids <OPP-…>,<OPP-…>       # side by side + research queue (private)
+node desk/_tools/ingest.mjs record-permission --file <perm.json> --store <store> --by owner   # permission received later
 node desk/_tools/ingest.mjs market-intake --file <MI-….json> --store <store> --by owner   # market statistics, blocks, districts
 node desk/_tools/ingest.mjs record-review --store <store> --market <MKT> --topic <KEY> --status COMPLETE --outcome CLEAR \
      --reviewer "<counsel>" --role <ROLE> --reference "<memo ref>" --reviewed-at <date> --by owner   # counsel's answer only
