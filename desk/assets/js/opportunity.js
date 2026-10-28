@@ -1,5 +1,6 @@
 // Opportunity profile: one data-driven template for every opportunity. Everything is resolved from the opportunity ID only.
 import { ready } from './core.js';
+import { DESK_CONTACT } from './contact.js';
 import { esc, tx, lab, chip, vs, freshness, freshChip, qualifier, fmtDate, gallery, bindGallery, factRows, bindEvidence, researchBlocks, gaps, conflicts, risks, riskEvidence, unavailable, reveal, t, mname, LANG, L } from './ui.js';
 
 const D = await ready;
@@ -73,7 +74,7 @@ ${ctxEv.length ? `<div style="margin-top:22px">${ctxEv.map((e, i) => `<div class
 <section class="sec" aria-labelledby="d-t"><div class="sh"><div><span class="lab">${esc(t('dscLab'))}</span><h2 id="d-t">${esc(t('dscH'))}</h2></div></div>
 ${dsc.length ? dsc.map(d => `<div class="dsc" style="margin-bottom:14px"><span class="lab">${lab('disclosure', d.kind)}${d.legal_review !== 'APPROVED' ? esc(t('pendingLegal')) : ''}</span><p style="margin-top:6px">${tx(d.text)}</p></div>`).join('') : `<p class="mut">${esc(t('noDsc'))}</p>`}
 <p class="gnote" style="margin-top:18px">${esc(t('adviceNote'))} <a href="${D.withFixtureFlag('/desk/disclosures/')}" style="text-decoration:underline">${esc(t('dscLink'))}</a>.</p>
-<div class="op-cta"><a class="btn" href="${esc(consult)}">${esc(t('reqConsultThis'))} <i>→</i></a></div></section>`;
+<div class="op-cta"><a class="btn" href="${esc(consult)}">${esc(t('reqConsultThis'))} <i>→</i></a><a class="btn o" href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener">${esc(t('oppCall'))} <i>↗</i></a></div></section>`;
 
   bindGallery(host.querySelector('#gal'), D, o, p);
   const ctxKeys = Object.fromEntries(ctxEv.map((e, i) => ['c' + i, { title: tx(e.claim), evs: [e] }]));

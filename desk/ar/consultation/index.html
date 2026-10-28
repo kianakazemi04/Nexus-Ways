@@ -25,7 +25,7 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/desk/assets/css/desk.css?v=2">
+<link rel="stylesheet" href="/desk/assets/css/desk.css?v=3">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>
@@ -45,25 +45,47 @@ if(w==='tr'||w==='ar'){q.delete('lang');var qs=q.toString();location.replace(loc
 <button class="bg" type="button" aria-label="القائمة" aria-expanded="false" aria-controls="nv"><span></span><span></span></button>
 </div></header>
 <main id="main">
-<section class="pi"><div class="w"><div class="crumb"><a href="/desk/ar/">Desk</a><span>استشارة</span></div><div class="eb">استشارة</div><h1 style="margin-top:20px">ناقش فرصة <em>معنا.</em></h1><p class="lead">في الاستشارة تُناقش أسعار الوحدات الحالية والتوافر وأهدافك. وعند الحاجة قد تليها زيارة إلى مكتب المبيعات، مع الإفصاح عن أي علاقة تجارية.</p></div></section>
-<section class="sec"><div class="w" style="display:grid;gap:22px;max-width:900px">
-<div class="notice" role="status"><b>طلبات الاستشارة غير متاحة بعد.</b><p>هذا النموذج غير موصول ولا يرسل أي شيء. لا تُجمع أي بيانات شخصية في هذه الصفحة. ستُفتح الطلبات بعد اعتماد إشعار الخصوصية وقناة طلبات Desk.</p></div>
+<section class="pi"><div class="w"><div class="crumb"><a href="/desk/ar/">Desk</a><span>استشارة</span></div><div class="eb">استشارة</div><h1 style="margin-top:20px">ناقش فرصة <em>معنا.</em></h1><p class="lead">أخبرنا بما تدرسه. في الاستشارة تُناقش أسعار الوحدات الحالية والتوافر وأهدافك. وعند الحاجة قد تليها زيارة إلى مكتب المبيعات، مع الإفصاح عن أي علاقة تجارية.</p></div></section>
+<section class="sec"><div class="w">
+<div class="csg"><div class="csf">
 <div id="ctx"></div>
-<form id="cf" novalidate aria-describedby="cf-n"><fieldset disabled><legend class="sr">طلب استشارة (غير متاح بعد)</legend><div class="frm">
-<label class="fld"><span class="lab">الاسم الكامل</span><input type="text" autocomplete="off"></label>
-<label class="fld"><span class="lab">البريد الإلكتروني</span><input type="email" autocomplete="off" dir="ltr"></label>
-<label class="fld"><span class="lab">السوق المعني</span><select><option>إسطنبول</option></select></label>
-<label class="fld"><span class="lab">الهدف</span><select><option>احتفاظ طويل الأجل</option><option>انتقال للإقامة</option><option>تنويع</option></select></label>
-<label class="fld full"><span class="lab">الأسئلة</span><textarea></textarea></label>
-</div><div style="margin-top:18px"><button class="btn" type="submit" aria-disabled="true">الطلبات غير متاحة بعد <i aria-hidden="true">→</i></button></div></fieldset></form>
-<p class="gnote" id="cf-n">لا يطلب Nexus Desk أبداً بيانات الدفع. تُشارك معلومات الأسعار في الاستشارة ولا تُنشر.</p></div></section>
+<form id="cf" novalidate aria-labelledby="cf-h" data-endpoint="https://api.web3forms.com/submit">
+<h2 id="cf-h" class="h3">طلب استشارة</h2>
+<input type="hidden" name="access_key" value="d54b77d8-f373-4b82-aab7-f32ddf5c6a29">
+<input type="hidden" name="subject" value="طلب استشارة من Nexus Desk">
+<input type="hidden" name="from_name" value="Nexus Desk">
+<input type="hidden" name="page_language" value="ar">
+<input type="hidden" name="opportunities" id="cf-ref" value="">
+<input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<div class="frm">
+<label class="fld"><span class="lab">الاسم الكامل <span class="req">· مطلوب</span></span><input type="text" name="name" autocomplete="name" required maxlength="120"></label>
+<label class="fld"><span class="lab">البريد الإلكتروني <span class="req">· مطلوب</span></span><input type="email" name="email" autocomplete="email" required maxlength="160" dir="ltr"></label>
+<label class="fld"><span class="lab">الهاتف أو واتساب (اختياري)</span><input type="tel" name="phone" autocomplete="tel" maxlength="40" dir="ltr"></label>
+<label class="fld"><span class="lab">بلد الإقامة (اختياري)</span><input type="text" name="country" autocomplete="country-name" maxlength="80"></label>
+<label class="fld"><span class="lab">السوق المعني</span><select name="market" id="cf-mkt"><option value="Not decided">لم أحدد بعد</option><option value="Istanbul" data-id="MKT-IST">إسطنبول</option><option value="Dubai" data-id="MKT-DXB">دبي</option><option value="Abu Dhabi" data-id="MKT-AUH">أبوظبي</option></select></label>
+<label class="fld"><span class="lab">الهدف</span><select name="objective"><option value="Long-term hold">احتفاظ طويل الأجل</option><option value="Relocation or residence">انتقال للإقامة</option><option value="Diversification">تنويع</option><option value="Other">أخرى</option></select></label>
+<label class="fld"><span class="lab">الإطار الزمني</span><select name="timeframe"><option value="Within 3 months">خلال 3 أشهر</option><option value="3-12 months">من 3 إلى 12 شهرًا</option><option value="Exploring" selected>أستكشف حاليًا</option></select></label>
+<label class="fld"><span class="lab">وسيلة التواصل المفضلة</span><select name="preferred_contact"><option value="Email">البريد الإلكتروني</option><option value="Phone or WhatsApp">الهاتف أو واتساب</option><option value="Video call">مكالمة فيديو</option></select></label>
+<label class="fld"><span class="lab">اللغة المفضلة</span><select name="preferred_language"><option value="English">English</option><option value="Türkçe">Türkçe</option><option value="العربية" selected>العربية</option></select></label>
+<label class="fld full"><span class="lab">الأسئلة</span><textarea name="message" maxlength="4000" placeholder="ما الذي تودّ معرفته؟"></textarea></label>
+<label class="cns"><input type="checkbox" name="consent" value="yes" required><span>أوافق على أن تستخدم Nexus Ways هذه البيانات للرد على طلبي، كما هو موضح أدناه. <span class="req">· مطلوب</span></span></label>
+</div>
+<div class="cs-act"><button class="btn" type="submit"><span>إرسال الطلب</span> <i aria-hidden="true">→</i></button><p class="cs-st" id="cf-st" role="status" aria-live="polite"></p></div>
+</form>
+<p class="gnote" id="cf-p">تُرسَل بياناتك إلى Nexus Ways عبر Web3Forms، وهي خدمة لإرسال النماذج، وتصل إلى desk@nexus-ways.com. تُستخدم فقط للرد على طلبك ولا تُخزَّن على هذا الموقع. لطلب حذفها، راسلنا على desk@nexus-ways.com.</p>
+<p class="gnote" id="cf-n">لا يطلب Nexus Desk أبداً بيانات الدفع. تُشارك معلومات الأسعار في الاستشارة ولا تُنشر.</p></div>
+<aside class="csa" aria-labelledby="cs-alt"><h2 id="cs-alt" class="h3">تفضّل التحدث مباشرة؟</h2>
+<a class="chl" href="https://calendly.com/nexus-ways/desk" target="_blank" rel="noopener"><b>احجز مكالمة Desk لمدة 30 دقيقة</b><span>اختر موعدًا من تقويم Desk.</span><i aria-hidden="true">↗</i></a>
+<a class="chl" href="mailto:desk@nexus-ways.com"><b>راسل فريق Desk</b><span dir="ltr">desk@nexus-ways.com</span><small>للمستندات أو الموجزات المفصلة أو أسئلة المتابعة.</small><i aria-hidden="true">↗</i></a>
+</aside></div></div></section>
 </main>
 <footer class="ftr"><div class="w"><div class="g">
 <div><a class="br" href="/desk/ar/" aria-label="الصفحة الرئيسية لـ Nexus Desk"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">من Nexus Ways</span></span></a><p>يقدّم Nexus Desk أبحاثاً وتحليلات لدعم قرارات الاستثمار، ولا يُعدّ نصيحة استثمارية. لا تدير Nexus Ways أموالاً ولا تشغّل صندوقاً.</p></div>
 <div><h4 translate="no">Desk</h4><nav aria-label="Desk"><a href="/desk/ar/">استكشاف</a><a href="/desk/ar/markets/">الأسواق</a><a href="/desk/ar/intelligence/">المنهجية</a><a href="/desk/ar/consultation/">استشارة</a><a href="/desk/ar/disclosures/">الإفصاحات</a></nav></div>
-<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/">ذراع الاستثمار</a><a href="/about/">من نحن</a><a href="/contact/">تواصل معنا</a></nav></div>
+<div><h4>تواصل مع Desk</h4><nav aria-label="تواصل مع Desk"><a href="mailto:desk@nexus-ways.com" dir="ltr" translate="no">desk@nexus-ways.com</a><a href="https://calendly.com/nexus-ways/desk" target="_blank" rel="noopener">احجز مكالمة ↗</a><a href="/desk/ar/consultation/">طلب استشارة</a></nav></div>
+<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/?lang=ar" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/?lang=ar">ذراع الاستثمار</a><a href="/about/?lang=ar">من نحن</a></nav></div>
 </div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>لا أسعار منشورة · لا تقييمات · لا توقعات</span></div></div></footer>
-<script type="module" src="/desk/assets/js/consult.js?v=2"></script>
+<script type="module" src="/desk/assets/js/consult.js?v=3"></script>
 <noscript><style>.rv{opacity:1;transform:none}</style></noscript>
 </body>
 </html>

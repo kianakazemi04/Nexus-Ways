@@ -8,12 +8,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { INTEL } from './content.mjs';
 import { LANGS, T, localize } from '../assets/js/i18n.js';
+import { DESK_CONTACT } from '../assets/js/contact.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DESK = path.resolve(HERE, '..');
 const read = (p) => JSON.parse(fs.readFileSync(path.join(DESK, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ASSET_V = '2';
+const ASSET_V = '3';
+
 
 const LOGO = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="lg" viewBox="430 350 1075 1180"><path d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/><path transform="rotate(180 966 942)" d="M438 583 1394 1272H1188L634 868 638 1339 762 1251 965 1254 590 1521 438 1417Z"/></symbol></svg>`;
 // Theme comes from the address (?theme=dark|light) and is applied before first paint; nothing is stored in the browser (D-07).
@@ -80,7 +82,8 @@ ${body}
 <footer class="ftr"><div class="w"><div class="g">
 <div><a class="br" href="${u('/desk/')}" aria-label="${esc(t('home'))}"><svg aria-hidden="true"><use href="#lg"/></svg><span class="wm"><span class="bn" translate="no">NEXUS <i>DESK</i></span><span class="by" translate="no">${esc(t('by'))}</span></span></a><p>${esc(t('notAdvice'))}</p></div>
 <div><h4 translate="no">Desk</h4><nav aria-label="Desk"><a href="${u('/desk/')}">${esc(t('explore'))}</a><a href="${u('/desk/markets/')}">${esc(t('markets'))}</a><a href="${u('/desk/intelligence/')}">${esc(t('intel'))}</a><a href="${u('/desk/consultation/')}">${esc(t('consult'))}</a><a href="${u('/desk/disclosures/')}">${esc(t('disclosures'))}</a></nav></div>
-<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/">${esc(t('footIA'))}</a><a href="/about/">${esc(t('footAbout'))}</a><a href="/contact/">${esc(t('footContact'))}</a></nav></div>
+<div><h4>${esc(t('ft.contact'))}</h4><nav aria-label="${esc(t('ft.contact'))}"><a href="mailto:${DESK_CONTACT.email}" dir="ltr" translate="no">${DESK_CONTACT.email}</a><a href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener">${esc(t('ft.call'))} ↗</a><a href="${u('/desk/consultation/')}">${esc(t('ft.form'))}</a></nav></div>
+<div><h4 translate="no">Nexus Ways</h4><nav aria-label="Nexus Ways"><a href="/${lang === 'en' ? '' : '?lang=' + lang}" translate="no">nexus-ways.com</a><a href="/solutions/investment-arm/${lang === 'en' ? '' : '?lang=' + lang}">${esc(t('footIA'))}</a><a href="/about/${lang === 'en' ? '' : '?lang=' + lang}">${esc(t('footAbout'))}</a></nav></div>
 </div><div class="cp"><span>© <span id="yr">2026</span> <span translate="no">Nexus Ways Group · Nexus Desk</span></span><span>${esc(t('footCp'))}</span></div></div></footer>
 <script type="module" src="/desk/assets/js/${script || 'core'}.js?v=${ASSET_V}"></script>
 <noscript><style>.rv{opacity:1;transform:none}</style></noscript>
@@ -146,17 +149,38 @@ ${nojs}
 
     page('consultation/', { title: t('cs.title'), description: t('cs.desc'), current: 'consult', script: 'consult',
       body: `${pi({ eb: t('consult'), h1: t('cs.h1'), lead: esc(t('cs.lead')), crumbs: [desk, [t('consult')]] })}
-<section class="sec"><div class="w" style="display:grid;gap:22px;max-width:900px">
-<div class="notice" role="status"><b>${esc(t('cs.notOpenH'))}</b><p>${esc(t('cs.notOpenP'))}</p></div>
+<section class="sec"><div class="w">
+<div class="csg"><div class="csf">
 <div id="ctx"></div>
-<form id="cf" novalidate aria-describedby="cf-n"><fieldset disabled><legend class="sr">${esc(t('cs.legend'))}</legend><div class="frm">
-<label class="fld"><span class="lab">${esc(t('cs.name'))}</span><input type="text" autocomplete="off"></label>
-<label class="fld"><span class="lab">${esc(t('cs.email'))}</span><input type="email" autocomplete="off" dir="ltr"></label>
-<label class="fld"><span class="lab">${esc(t('cs.mkt'))}</span><select><option>${esc(t('mkt.istanbul'))}</option></select></label>
-<label class="fld"><span class="lab">${esc(t('cs.obj'))}</span><select><option>${esc(t('cs.hold'))}</option><option>${esc(t('cs.reloc'))}</option><option>${esc(t('cs.div'))}</option></select></label>
-<label class="fld full"><span class="lab">${esc(t('cs.q'))}</span><textarea></textarea></label>
-</div><div style="margin-top:18px"><button class="btn" type="submit" aria-disabled="true">${esc(t('cs.btn'))} <i aria-hidden="true">→</i></button></div></fieldset></form>
-<p class="gnote" id="cf-n">${esc(t('cs.note'))}</p></div></section>` });
+<form id="cf" novalidate aria-labelledby="cf-h" data-endpoint="${DESK_CONTACT.endpoint}">
+<h2 id="cf-h" class="h3">${esc(t('cs.formH'))}</h2>
+<input type="hidden" name="access_key" value="${DESK_CONTACT.formKey}">
+<input type="hidden" name="subject" value="${esc(t('cs.subject'))}">
+<input type="hidden" name="from_name" value="Nexus Desk">
+<input type="hidden" name="page_language" value="${lang}">
+<input type="hidden" name="opportunities" id="cf-ref" value="">
+<input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+<div class="frm">
+<label class="fld"><span class="lab">${esc(t('cs.name'))} <span class="req">· ${esc(t('cs.req'))}</span></span><input type="text" name="name" autocomplete="name" required maxlength="120"></label>
+<label class="fld"><span class="lab">${esc(t('cs.email'))} <span class="req">· ${esc(t('cs.req'))}</span></span><input type="email" name="email" autocomplete="email" required maxlength="160" dir="ltr"></label>
+<label class="fld"><span class="lab">${esc(t('cs.phone'))}</span><input type="tel" name="phone" autocomplete="tel" maxlength="40" dir="ltr"></label>
+<label class="fld"><span class="lab">${esc(t('cs.country'))}</span><input type="text" name="country" autocomplete="country-name" maxlength="80"></label>
+<label class="fld"><span class="lab">${esc(t('cs.mkt'))}</span><select name="market" id="cf-mkt"><option value="Not decided">${esc(t('cs.mktAny'))}</option>${markets.map(m => `<option value="${esc(m.name)}" data-id="${esc(m.id)}">${esc(t('mkt.' + m.slug) === 'mkt.' + m.slug ? m.name : t('mkt.' + m.slug))}</option>`).join('')}</select></label>
+<label class="fld"><span class="lab">${esc(t('cs.obj'))}</span><select name="objective"><option value="Long-term hold">${esc(t('cs.hold'))}</option><option value="Relocation or residence">${esc(t('cs.reloc'))}</option><option value="Diversification">${esc(t('cs.div'))}</option><option value="Other">${esc(t('cs.other'))}</option></select></label>
+<label class="fld"><span class="lab">${esc(t('cs.time'))}</span><select name="timeframe"><option value="Within 3 months">${esc(t('cs.t1'))}</option><option value="3-12 months">${esc(t('cs.t2'))}</option><option value="Exploring" selected>${esc(t('cs.t3'))}</option></select></label>
+<label class="fld"><span class="lab">${esc(t('cs.contact'))}</span><select name="preferred_contact"><option value="Email">${esc(t('cs.byEmail'))}</option><option value="Phone or WhatsApp">${esc(t('cs.byPhone'))}</option><option value="Video call">${esc(t('cs.byVideo'))}</option></select></label>
+<label class="fld"><span class="lab">${esc(t('cs.lang'))}</span><select name="preferred_language">${Object.entries(LANGS).map(([l, x]) => `<option value="${x.name}"${l === lang ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>
+<label class="fld full"><span class="lab">${esc(t('cs.q'))}</span><textarea name="message" maxlength="4000" placeholder="${esc(t('cs.qPh'))}"></textarea></label>
+<label class="cns"><input type="checkbox" name="consent" value="yes" required><span>${esc(t('cs.consent'))} <span class="req">· ${esc(t('cs.req'))}</span></span></label>
+</div>
+<div class="cs-act"><button class="btn" type="submit"><span>${esc(t('cs.btn'))}</span> <i aria-hidden="true">→</i></button><p class="cs-st" id="cf-st" role="status" aria-live="polite"></p></div>
+</form>
+<p class="gnote" id="cf-p">${esc(t('cs.privacy'))}</p>
+<p class="gnote" id="cf-n">${esc(t('cs.note'))}</p></div>
+<aside class="csa" aria-labelledby="cs-alt"><h2 id="cs-alt" class="h3">${esc(t('cs.altH'))}</h2>
+<a class="chl" href="${DESK_CONTACT.calendly}" target="_blank" rel="noopener"><b>${esc(t('cs.callT'))}</b><span>${esc(t('cs.callP'))}</span><i aria-hidden="true">↗</i></a>
+<a class="chl" href="mailto:${DESK_CONTACT.email}"><b>${esc(t('cs.mailT'))}</b><span dir="ltr">${DESK_CONTACT.email}</span><small>${esc(t('cs.mailP'))}</small><i aria-hidden="true">↗</i></a>
+</aside></div></div></section>` });
 
     page('disclosures/', { title: t('ds.title'), description: t('ds.desc'), current: '',
       body: `${pi({ eb: t('ds.eb'), h1: esc(t('ds.h1')), lead: esc(t('ds.lead')), crumbs: [desk, [t('disclosures')]] })}

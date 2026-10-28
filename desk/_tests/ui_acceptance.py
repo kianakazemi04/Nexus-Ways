@@ -104,7 +104,8 @@ async def run():
             await pg.goto(B + f'/desk/?fixtures=1', wait_until='networkidle')
             check('No opportunity has passed publication review yet' in await pg.inner_text('main'), '?fixtures=1 has no effect on the Pages build')
             await pg.goto(B + '/desk/consultation/', wait_until='networkidle')
-            check(await pg.evaluate("document.querySelector('#cf fieldset').disabled"), 'consultation unconfigured in the Pages build')
+            f = await pg.evaluate("(() => { const f = document.querySelector('#cf'); return { key: f.access_key.value, ep: f.dataset.endpoint, action: f.getAttribute('action'), disabled: !!f.querySelector('fieldset[disabled]'), cal: !!document.querySelector('.csa a[href=\"https://calendly.com/nexus-ways/desk\"]'), mail: !!document.querySelector('.csa a[href=\"mailto:desk@nexus-ways.com\"]') }; })()")
+            check(f == {'key': 'd54b77d8-f373-4b82-aab7-f32ddf5c6a29', 'ep': 'https://api.web3forms.com/submit', 'action': None, 'disabled': False, 'cal': True, 'mail': True}, f'Desk consultation form is live on its own key, with the Desk calendar and e-mail ({f})')
             await pg.goto(B + '/', wait_until='networkidle')
             links = await pg.evaluate("[...document.querySelectorAll('a[href=\"/desk/\"]')].map(a => a.textContent.trim().slice(0, 4))")
             check('Desk' in links and any(l.startswith('Expl') for l in links), f'homepage menu "Desk" and section CTA link to /desk/ ({links})')
@@ -142,10 +143,25 @@ async def run():
         check('At most three' in c and 'not published' in c, 'compare limits to three and reports unpublished ids')
         cols = await pg.locator('.cmp thead th').count(); await pg.reload(wait_until='networkidle')
         check(cols == 4 and await pg.locator('.cmp thead th').count() == 4, 'compare reproduces from the URL after reload')
-        # consultation unconfigured
+        # consultation request: validation first, then one POST to Web3Forms with the Desk key (intercepted; nothing is sent)
+        sent = []
+        async def fake(route):
+            sent.append(route.request.post_data_json); await route.fulfill(status=200, content_type='application/json', body='{"success": true}')
+        await pg.route('https://api.web3forms.com/submit', fake)
         await pg.goto(B + f'/desk/consultation/?ref={FIX_C}&fixtures=1', wait_until='networkidle')
-        check(await pg.evaluate("document.querySelector('#cf fieldset').disabled") and 'not yet open' in (await pg.inner_text('main')), 'consultation is unconfigured and says so')
-        check(await pg.evaluate("!document.querySelector('#cf').getAttribute('action')"), 'consultation form has no submission endpoint')
+        await pg.click('#cf button[type=submit]'); await pg.wait_for_timeout(150)
+        err1 = await pg.inner_text('#cf-st')
+        await pg.fill('#cf [name=name]', 'Test Person'); await pg.fill('#cf [name=email]', 'not-an-email'); await pg.click('#cf button[type=submit]'); await pg.wait_for_timeout(150)
+        err2 = await pg.inner_text('#cf-st')
+        await pg.fill('#cf [name=email]', 'test@example.com'); await pg.click('#cf button[type=submit]'); await pg.wait_for_timeout(150)
+        err3 = await pg.inner_text('#cf-st')
+        check('name' in err1.lower() and 'email' in err2.lower() and 'consent' in err3.lower() and not sent, f'consultation form validates name, e-mail and consent before sending ({err1} | {err2} | {err3})')
+        await pg.check('#cf [name=consent]'); await pg.click('#cf button[type=submit]'); await pg.wait_for_timeout(400)
+        ok = await pg.inner_text('#cf-st'); p = sent[0] if sent else {}
+        check(len(sent) == 1 and p.get('access_key') == 'd54b77d8-f373-4b82-aab7-f32ddf5c6a29' and FIX_C in p.get('opportunities', '') and p.get('email') == 'test@example.com' and 'botcheck' not in p and 'Thank you' in ok,
+              f'consultation request is sent once, to Web3Forms with the Desk key and the opportunity reference ({len(sent)} request(s); {ok})')
+        check(await pg.evaluate("[localStorage.getItem('nw-form'), sessionStorage.length]") == [None, 0], 'the request is not stored in the browser')
+        await pg.unroute('https://api.web3forms.com/submit')
         # mobile menu
         m = await b.new_page(viewport={'width': 390, 'height': 844}); await m.goto(B + '/desk/', wait_until='networkidle')
         await m.click('.bg'); await m.wait_for_timeout(450)
