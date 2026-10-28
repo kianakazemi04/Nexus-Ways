@@ -959,15 +959,15 @@ export function decisionReportFor({ storeDir, id, analysisPath = null, fixture =
     const r = decisionReport(store, id, { gateWhy: gate.eligibility.opportunities[id] || [], analysis: checked.analysis, provenance: checked.provenance, today });
     const md = reportMarkdown(r);
     if (write) withTxn(storeDir, 'report', (t) => { t.write(path.join(storeDir, 'reports', `decision-${id}.md`), md); t.write(path.join(storeDir, 'reports', `decision-${id}.json`), JSON.stringify(r, null, 2) + '\n'); });
-    return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null, gateWhy: gate.eligibility.opportunities[id] || [] };
+    return { ok: true, report: r, markdown: md, analysisUsed: fs.existsSync(ap) ? ap : null, gateWhy: gate.eligibility.opportunities[id] || [], gateCodes: (gate.eligibility.reasons || {})[id] || [] };
   };
   return write ? withLock(storeDir, 'report', run) : run();
 }
 
-// ------------------------------------------------------------ comparison of several opportunities (OPC-1, internal)
+// ------------------------------------------------------------ comparison of several opportunities (OPC-2, internal)
 export function compareFor({ storeDir, ids, fixture = false, today, repoRoot, write = true }) {
   const run = () => {
-    const reps = ids.map(id => { const r = decisionReportFor({ storeDir, id, fixture, today, repoRoot, write: false }); if (!r.ok) throw new Error(`${id}: analysis refused — ${r.errors.join('; ')}`); return { id, report: r.report, gate_reasons: (r.gateWhy || []) }; });
+    const reps = ids.map(id => { const r = decisionReportFor({ storeDir, id, fixture, today, repoRoot, write: false }); if (!r.ok) throw new Error(`${id}: analysis refused — ${r.errors.join('; ')}`); return { id, report: r.report, gate_codes: (r.gateCodes || []) }; });
     const c = compareOpportunities(reps); const md = compareMarkdown(c, today);
     if (write && c.status === 'OK') withTxn(storeDir, 'compare', (t) => { t.write(path.join(storeDir, 'reports', `compare-${today}.md`), md); t.write(path.join(storeDir, 'reports', `compare-${today}.json`), JSON.stringify(c, null, 2) + '\n'); });
     return { comparison: c, markdown: md };

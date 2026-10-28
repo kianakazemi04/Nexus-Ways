@@ -403,79 +403,80 @@ export function validateDataset(ds, opts) {
     const dv = pr.developer_id && get(pr.developer_id) ? get(pr.developer_id).r : null; const as = r.asset_id && get(r.asset_id) ? get(r.asset_id).r : null;
     return deriveLastVerified([{ type: 'project', rec: pr }, { type: 'developer', rec: dv }, { type: 'asset', rec: as }], C('evidence'));
   };
-  const opp = {};
+  const opp = {}; const oppCodes = {};
   for (const r of C('opportunities')) {
     const why = []; const fresh = new Set(); // freshness reasons block new publication; for published records see W01
+    const codes = []; const P = (code, msg) => { why.push(msg); codes.push({ code, msg }); return msg; }; // OPC-2: structured reason codes
     const allowFix = mode === 'fixtures';
-    if (r.is_illustrative && !allowFix) why.push('illustrative');
-    if (!REVIEWABLE.has(r.record_status)) why.push(`record_status ${r.record_status}`);
-    if (!r.review || r.review.gate_version !== GATE_VERSION) why.push(`no ${GATE_VERSION} review`);
+    if (r.is_illustrative && !allowFix) P('ILLUSTRATIVE', 'illustrative');
+    if (!REVIEWABLE.has(r.record_status)) P('RECORD_STATUS', `record_status ${r.record_status}`);
+    if (!r.review || r.review.gate_version !== GATE_VERSION) P('NO_OWNER_REVIEW', `no ${GATE_VERSION} review`);
     const m = get(r.market_id); const cat = C('categories').find(c => c.key === r.category);
-    if (!m || m.r.activation !== 'ACTIVE') why.push('market inactive');
-    if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) why.push('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)');
+    if (!m || m.r.activation !== 'ACTIVE') P('MARKET_INACTIVE', 'market inactive');
+    if (m && !String(m.r.id).startsWith('FIX-') && !marketGateOn) P('MARKET_GATE_NOT_APPROVED', 'market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)');
     if (m && !String(m.r.id).startsWith('FIX-') && marketGateOn && MG) {
       const g = gateFor(m.r.id);
-      if (!g) why.push(`market ${m.r.id}: market-gate configuration unavailable`);
+      if (!g) P('MARKET_GATE_CONFIG', `market ${m.r.id}: market-gate configuration unavailable`);
       else if (!g.pass) {
         // public tree: a market whose public evidence has aged out blocks NEW publication; already-published records only
         // warn (W01), as for opportunity evidence (D4). In the private store the full gate decides.
         const w = `market gate ${g.gate_version} ${privateGate ? 'fails' : 'certificate is no longer current'} for ${m.r.id} (${[...new Set(g.reasons.map(x => x.code))].join(', ')})`;
-        why.push(w); if (!privateGate) fresh.add(w);
+        P('MARKET_GATE_FAILS', w); if (!privateGate) fresh.add(w);
       }
-      if (!privateGate && !certOk(m.r)) why.push(`market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp and gate certificate`);
+      if (!privateGate && !certOk(m.r)) P('MARKET_NOT_ACTIVATED', `market ${m.r.id} has no ${MG.config && MG.config.version || 'market-gate'} activation stamp and gate certificate`);
     }
-    if (!cat || cat.activation !== 'ACTIVE') why.push('category inactive');
+    if (!cat || cat.activation !== 'ACTIVE') P('CATEGORY_INACTIVE', 'category inactive');
     const p = r.subject && get(r.subject.id); const pr = p && p.r;
-    if (!pr) why.push('subject missing');
+    if (!pr) P('SUBJECT_MISSING', 'subject missing');
     else {
-      if (!REVIEWABLE.has(pr.record_status) || !pr.review) why.push('subject not reviewed');
+      if (!REVIEWABLE.has(pr.record_status) || !pr.review) P('SUBJECT_NOT_REVIEWED', 'subject not reviewed');
       const strong = (subject, field) => C('evidence').some(e => sameRef(e.subject, subject) && e.field === field && claimPublication(e).status === 'ESTABLISHED');
-      if (!strong({ type: 'project', id: pr.id }, 'name')) why.push('project identity not verified (Tier 1–3)');
+      if (!strong({ type: 'project', id: pr.id }, 'name')) P('IDENTITY_UNVERIFIED', 'project identity not verified (Tier 1–3)');
       const dv = pr.developer_id && get(pr.developer_id);
-      if (!dv || !dv.r.legal_entity_name || !strong({ type: 'developer', id: dv.r.id }, 'legal_entity_name')) why.push('developer legal entity not verified');
+      if (!dv || !dv.r.legal_entity_name || !strong({ type: 'developer', id: dv.r.id }, 'legal_entity_name')) P('DEVELOPER_UNVERIFIED', 'developer legal entity not verified');
       // Spec v1 §8 developer gate: the project–developer relationship itself must be verified, not only the developer
-      if (dv && !strong({ type: 'project', id: pr.id }, 'developer_id')) why.push('project–developer relationship not verified (Tier 1–3)');
+      if (dv && !strong({ type: 'project', id: pr.id }, 'developer_id')) P('RELATIONSHIP_UNVERIFIED', 'project–developer relationship not verified (Tier 1–3)');
       const subjects = [{ type: 'project', id: pr.id }, { type: 'opportunity', id: r.id }].concat(pr.developer_id ? [{ type: 'developer', id: pr.developer_id }] : []).concat(r.asset_id ? [{ type: 'asset', id: r.asset_id }] : []);
-      if (C('conflicts').some(c => c.status === 'OPEN' && subjects.some(s => sameRef(s, c.subject)))) why.push('open conflict');
-      for (const d of ['PROJECT_ASSET', 'DEVELOPER', 'RISK']) if (!C('research_blocks').some(b => sameRef(b.subject, { type: 'project', id: pr.id }) && b.domain === d)) why.push(`no ${d} research block`);
-      if (isEmpty(pr.risk_ids) && isEmpty(r.risk_ids)) why.push('no documented risk');
-      if (PERMS) for (const w of permProblems(pr.id, null, 'PUBLISH_PROJECT_INFORMATION')) why.push(`project permission: ${w}`);
+      if (C('conflicts').some(c => c.status === 'OPEN' && subjects.some(s => sameRef(s, c.subject)))) P('OPEN_CONFLICT', 'open conflict');
+      for (const d of ['PROJECT_ASSET', 'DEVELOPER', 'RISK']) if (!C('research_blocks').some(b => sameRef(b.subject, { type: 'project', id: pr.id }) && b.domain === d)) P('RESEARCH_BLOCK_MISSING', `no ${d} research block`);
+      if (isEmpty(pr.risk_ids) && isEmpty(r.risk_ids)) P('NO_RISK', 'no documented risk');
+      if (PERMS) for (const w of permProblems(pr.id, null, 'PUBLISH_PROJECT_INFORMATION')) P('PROJECT_PERMISSION', `project permission: ${w}`);
       // claim policy CP-1 and review policy RP-1 for every material field that carries a value
       const recs = [{ type: 'project', rec: pr }, { type: 'developer', rec: pr.developer_id && get(pr.developer_id) ? get(pr.developer_id).r : null }, { type: 'asset', rec: r.asset_id && get(r.asset_id) ? get(r.asset_id).r : null }];
       for (const { type, rec } of recs) if (rec) for (const f of MATERIAL_FIELDS[type]) {
         // a rendered field without a value must say why ("No evidence linked" / "Not recorded" is not a control)
-        if (isEmpty(rec[f])) { if (!(rec.field_states || []).some(s => s.field === f)) why.push(`${rec.id}:${f} is empty without an explicit missing-data state`); continue; }
+        if (isEmpty(rec[f])) { if (!(rec.field_states || []).some(s => s.field === f)) P('FIELD_STATE_MISSING', `${rec.id}:${f} is empty without an explicit missing-data state`); continue; }
         const evs = C('evidence').filter(e => sameRef(e.subject, { type, id: rec.id }) && e.field === f);
         const pub = evs.filter(isPublicClaim);
-        if (!(IDENTITY_FIELDS[type] || []).includes(f) && !pub.length) { why.push(`${rec.id}:${f} has no publishable evidence (${evs.length ? 'unverified or Tier 4 only' : 'no evidence'})`); continue; }
+        if (!(IDENTITY_FIELDS[type] || []).includes(f) && !pub.length) { P('EVIDENCE_NOT_PUBLISHABLE', `${rec.id}:${f} has no publishable evidence (${evs.length ? 'unverified or Tier 4 only' : 'no evidence'})`); continue; }
         if (!pub.length) continue; // identity fields are reported above
         const fr = pub.map(e => evidenceFreshness(e, today, get(e.source_id) ? get(e.source_id).r.source_type : null));
-        if (fr.every(x => x.state === 'EXPIRED' || x.state === 'INVALID')) { const w = `${rec.id}:${f} evidence ${fr.some(x => x.state === 'EXPIRED') ? 'expired' : 'has no valid date'} — re-review required`; why.push(w); fresh.add(w); }
+        if (fr.every(x => x.state === 'EXPIRED' || x.state === 'INVALID')) { const w = `${rec.id}:${f} evidence ${fr.some(x => x.state === 'EXPIRED') ? 'expired' : 'has no valid date'} — re-review required`; P('EVIDENCE_EXPIRED', w); fresh.add(w); }
         else if (fr.every(x => x.state !== 'CURRENT')) W('W02', r.id, `${rec.id}:${f} evidence review due`);
       }
       const mine = C('media').filter(x => subjects.slice(0, 2).some(s => sameRef(s, x.subject)));
       const ok = mine.filter(x => media[x.id].length === 0 || (allowFix && media[x.id].every(w => w === 'illustrative')));
       const covers = ok.filter(x => x.role === 'cover').length;
-      if (covers !== 1) why.push(covers ? 'more than one cover' : 'no publishable cover');
-      if (!ok.some(x => x.role === 'gallery')) why.push('no publishable gallery image');
-      if ([pr.id, r.id, r.asset_id, pr.developer_id].some(i => i && errIds.has(i))) why.push('validation errors');
+      if (covers !== 1) P('MEDIA_COVER', covers ? 'more than one cover' : 'no publishable cover');
+      if (!ok.some(x => x.role === 'gallery')) P('MEDIA_GALLERY', 'no publishable gallery image');
+      if ([pr.id, r.id, r.asset_id, pr.developer_id].some(i => i && errIds.has(i))) P('VALIDATION_ERRORS', 'validation errors');
       // free-text pricing anywhere in what this opportunity would publish (audit B2)
       const closure = new Set([r.id, pr.id, pr.developer_id, pr.district_id, pr.area_id, r.asset_id].filter(Boolean));
       for (const c of ['evidence', 'risks', 'conflicts', 'research_blocks', 'media', 'disclosures']) for (const x of C(c)) if (x.subject && subjects.some(s => sameRef(s, x.subject))) closure.add(x.id);
       for (const i of r.disclosure_ids || []) closure.add(i);
-      for (const i of closure) if (commercialHits.has(i)) why.push(`${i} has a price or commercial term in free text`);
+      for (const i of closure) if (commercialHits.has(i)) P('COMMERCIAL_TERM', `${i} has a price or commercial term in free text`);
       // market-specific per-opportunity requirements (MG-1 publication rules: registration, permits, title status)
-      if (m && !String(m.r.id).startsWith('FIX-') && MG && marketGateOn) for (const w of opportunityRequirementReasons(MG.config, m.r.id, pr, ds.collections, { today, reviews: Array.isArray(MG.reviews) ? MG.reviews : null, certificate: m.r.gate_certificate || null })) why.push(w);
+      if (m && !String(m.r.id).startsWith('FIX-') && MG && marketGateOn) for (const w of opportunityRequirementReasons(MG.config, m.r.id, pr, ds.collections, { today, reviews: Array.isArray(MG.reviews) ? MG.reviews : null, certificate: m.r.gate_certificate || null })) P('MARKET_REQUIREMENT', w);
     }
     // every applicable disclosure must be legally approved — one approved notice never covers a pending one (audit B1)
     for (const d of applicableDisclosures(C('disclosures'), r)) {
-      if (d.legal_review !== 'APPROVED') why.push(`disclosure ${d.id} (${d.kind}) legal review pending`);
-      else if (!d.approved_at) why.push(`disclosure ${d.id} approved without a date`);
-      if (!(r.disclosure_ids || []).includes(d.id)) why.push(`disclosure ${d.id} applies to this opportunity but is not linked to it`);
+      if (d.legal_review !== 'APPROVED') P('DISCLOSURE_PENDING', `disclosure ${d.id} (${d.kind}) legal review pending`);
+      else if (!d.approved_at) P('DISCLOSURE_UNDATED', `disclosure ${d.id} approved without a date`);
+      if (!(r.disclosure_ids || []).includes(d.id)) P('DISCLOSURE_UNLINKED', `disclosure ${d.id} applies to this opportunity but is not linked to it`);
     }
-    for (const i of r.disclosure_ids || []) if (!get(i) || get(i).coll !== 'disclosures') why.push(`linked disclosure ${i} is missing`);
-    if (!(r.disclosure_ids || []).length) why.push('no disclosure recorded');
-    opp[r.id] = why;
+    for (const i of r.disclosure_ids || []) if (!get(i) || get(i).coll !== 'disclosures') P('DISCLOSURE_MISSING', `linked disclosure ${i} is missing`);
+    if (!(r.disclosure_ids || []).length) P('NO_DISCLOSURE', 'no disclosure recorded');
+    opp[r.id] = why; oppCodes[r.id] = codes;
     const hard = why.filter(w => !fresh.has(w));
     if (r.record_status === 'PUBLISHED' && hard.length) E('V12', r.id, `PUBLISHED but not eligible: ${hard.join('; ')}`);
     // owner decision D4 is open: ageing evidence does not withdraw a published opportunity automatically
@@ -505,7 +506,7 @@ export function validateDataset(ds, opts) {
     const m = get(r.market_id);
     if (m && m.r.activation === 'INACTIVE' && r.record_status === 'PUBLISHED') E('V13', r.id, 'opportunity published in an inactive market');
   }
-  return { errors, warnings, eligibility: { opportunities: opp, media } };
+  return { errors, warnings, eligibility: { opportunities: opp, reasons: oppCodes, media } };
 }
 
 // Written project permission check (sales-office e-mail records, private store): honoured only within its own
