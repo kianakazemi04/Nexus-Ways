@@ -278,7 +278,7 @@ test('decision report (end to end): private, traceable, runs only supported meth
     assert.equal(js.finance.scenarios.base.views.real.status, 'OK');
     assert.match(md, /M-COMPARABLES:\*\* NOT RUN — UNAVAILABLE: analysis\.comparables/);
     assert.match(md, /M-FAIR-VALUE, M-AREA-RANKING, M-ASSET-QUALITY, M-LIQUIDITY:\*\* INACTIVE/);
-    assert.match(md, /M-RISK-SEVERITY:\*\* INACTIVE — methodology awaiting approval/); assert.match(md, /M-PRICE-POSITION:\*\* INACTIVE — methodology awaiting approval/);
+    assert.match(md, /M-RISK-SEVERITY:\*\* RUN \(/); assert.match(md, /M-PRICE-POSITION:\*\* (RUN|NOT RUN — )/);
     assert.equal(js.fit.outcome, 'CRITERIA_MET'); assert.equal(js.fit.criteria.length, 2);
     assert.doesNotMatch(md, /\bscore\b(?! or ranking)|\brank(ed|ing)? \d/i);
     for (const f of js.facts) for (const e of f.evidence) assert.ok(e.id && e.label, 'every fact cites its evidence');
@@ -291,10 +291,12 @@ test('decision report (end to end): private, traceable, runs only supported meth
 });
 
 // ================================================================== PUB-2: public pages are decision-first and minimal
-test('PUB-2: internal financial, pricing and fit methods are implemented and never public', () => {
+test('PUB-2: internal financial, pricing and fit methods are approved, run privately and are never public', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
+  for (const id of ['M-YIELD-RETURNS', 'M-FAIR-VALUE', 'M-AREA-RANKING', 'M-LIQUIDITY', 'M-ASSET-QUALITY']) assert.equal(reg.find(x => x.id === id).status, 'INACTIVE', `${id} stays off`);
   for (const id of ['M-CASHFLOW', 'M-ROI', 'M-NPV', 'M-SCENARIOS', 'M-COMPARABLES', 'M-INVESTMENT-FIT']) {
-    const m = reg.find(x => x.id === id); assert.equal(m.status, 'INACTIVE', id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'PROHIBITED_IN_MVP', id);
+    // owner approval 29 Oct 2026: they run on every project, results private (INTERNAL); public figures stay off (M-YIELD-RETURNS)
+    const m = reg.find(x => x.id === id); assert.equal(m.status, 'ACTIVE', id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'INTERNAL', id); assert.match(m.approved || '', /Owner approval 29 Oct 2026/, id);
   }
 });
 test('PUB-2: no generated page shows market figures, gate details, legal-review topics or internal identifiers', () => {
@@ -340,7 +342,8 @@ test('Markets & Intelligence (brief 28 Oct): statuses come from the market recor
     const ip = fs.readFileSync(path.join(ROOT, `desk/${lang}intelligence/index.html`), 'utf8');
     const got = Object.fromEntries([...ip.matchAll(/<details class="mth" data-method="([^"]+)" data-state="([^"]+)">/g)].map(m => [m[1], m[2]]));
     assert.deepEqual(got, Object.fromEntries(reg.map(m => [m.id, methodState(m)])), `${lang}intelligence: one card per registry method, with its registry state`);
-    for (const m of reg.filter(x => ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-RISK-SEVERITY', 'M-LIQUIDITY', 'M-ASSET-QUALITY', 'M-YIELD-RETURNS'].includes(x.id))) assert.equal(got[m.id], 'inactive', `${m.id} never shown as active`);
+    for (const m of reg.filter(x => ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-LIQUIDITY', 'M-ASSET-QUALITY', 'M-YIELD-RETURNS'].includes(x.id))) assert.equal(got[m.id], 'inactive', `${m.id} never shown as active`);
+    assert.equal(got['M-RISK-SEVERITY'], 'internal', 'risk severity runs privately, never as a public label');
     assert.match(ip, /<div class="mfilt" role="group"[^>]*hidden>/, 'the filter is hidden until its script runs (no inert controls)');
     assert.match(ip, /src="\/desk\/assets\/js\/intel\.js/);
     assert.doesNotMatch(ip, /Run analysis|Get (an )?investment recommendation/i);

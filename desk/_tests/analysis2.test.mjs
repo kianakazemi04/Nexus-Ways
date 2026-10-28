@@ -13,6 +13,7 @@ import { ROOT, TODAY, OPP, readJson, writeJson, publishedSetup, analysisDoc } fr
 
 const REG = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
 const ON = REG.map(m => ['M-PRICE-POSITION', 'M-RISK-SEVERITY', 'M-CLIENT-BRIEF'].includes(m.id) ? { ...m, internal: 'ACTIVE' } : m);
+const OFF = REG.map(m => ['M-PRICE-POSITION', 'M-RISK-SEVERITY', 'M-CLIENT-BRIEF'].includes(m.id) ? { ...m, internal: 'INACTIVE' } : m);
 const cmp = (vals) => selectComparables({ currency: 'TRY', area_basis: 'GROSS', district_id: 'D1', as_of: '2026-10-01' },
   vals.map((v, i) => ({ id: `C${i}`, evidence_id: `E${i}`, price_type: 'TRANSACTION', price: v * 100, currency: 'TRY', area: 100, area_basis: 'GROSS', district_id: 'D1', observed_at: '2026-09-01' })),
   { price_type: 'TRANSACTION', max_age_days: 365, min_sample: 3 });
@@ -38,11 +39,11 @@ test('RSV-1: label needs a rationale; unassessed stays NOT_ASSESSED; a risk with
   assert.equal(assessSeverity(risks, {}).labels.R2.label, 'NOT_ASSESSED');
 });
 
-test('registry: the three methods are documented, tested and awaiting approval (internal INACTIVE until the owner approves)', () => {
+test('registry: the three methods are documented, tested and approved by the owner (29 Oct 2026); results stay private', () => {
   for (const id of ['M-PRICE-POSITION', 'M-RISK-SEVERITY', 'M-CLIENT-BRIEF']) {
     const m = REG.find(x => x.id === id); assert.ok(m, id);
-    assert.equal(m.status, 'INACTIVE', `${id} never runs in the public pipeline`); assert.ok(m.implemented && m.documented && m.contract && m.tests, id);
-    assert.ok(['ACTIVE', 'INACTIVE'].includes(m.internal), id);
+    assert.ok(m.implemented && m.documented && m.contract && m.tests, id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'INTERNAL', `${id} results never public`);
+    assert.match(m.approved || '', /Owner approval 29 Oct 2026/, id);
   }
   assert.equal(REG.find(x => x.id === 'M-FAIR-VALUE').internal, undefined, 'fair value stays unimplemented');
 });
@@ -52,10 +53,10 @@ test('private path: analysis → decision report with price position and severit
   try {
     const before = fs.readdirSync(path.join(s.repo, 'desk/data/public')).map(f => fs.readFileSync(path.join(s.repo, 'desk/data/public', f), 'utf8')).join();
     const O = { storeDir: s.store, id: OPP, today: TODAY, repoRoot: s.repo };
-    // inactive by default: no position, no brief
-    const off = decisionReportFor({ ...O, write: false });
+    // switched off in the registry: no position, no brief (D-20 control still works)
+    const off = decisionReportFor({ ...O, write: false, registry: OFF });
     assert.equal(off.report.position.status, 'INACTIVE'); assert.match(off.report.methods['M-PRICE-POSITION'], /awaiting approval/);
-    assert.equal(clientBriefFor({ ...O, write: false }).ok, false, 'brief refused while M-CLIENT-BRIEF is inactive');
+    assert.equal(clientBriefFor({ ...O, write: false, registry: OFF }).ok, false, 'brief refused while M-CLIENT-BRIEF is inactive');
     const risks = off.report.risks.map(r => r.id); assert.ok(risks.length >= 1);
     const vals = [62000, 66000, 70000, 72000, 76000];
     const doc = analysisDoc({
@@ -109,4 +110,37 @@ test('store snapshot (STP-1): pack → unpack round trip outside the repository;
     const evil = { ...snap, files: { '../../escape.json': '{}' } }; evil.sha256 = (await import('node:crypto')).createHash('sha256').update(JSON.stringify(evil.files)).digest('hex');
     assert.throws(() => unpack(evil, path.join(b, '..', 'evil')), /refused path/);
   } finally { fs.rmSync(a, { recursive: true, force: true }); fs.rmSync(path.dirname(b), { recursive: true, force: true }); }
+});
+
+test('findings (V23): ingested from the package with their evidence; refused without publishable evidence; page has the five sections', async () => {
+  const { validateDataset } = await import('../_tools/validate.mjs');
+  const { realSetup, cli } = await import('./helpers.mjs');
+  const s = realSetup();
+  try {
+    assert.equal(cli(s.repo, ['ingest', '--package', s.base, ...s.S, '--apply']).code, 0);
+    const o = readJson(path.join(s.store, 'data/opportunities.json')).records[0];
+    assert.equal(o.findings.length, 2); assert.deepEqual(o.findings.map(f => f.type), ['STRENGTH', 'WEAKNESS']);
+    const ev = readJson(path.join(s.store, 'data/evidence.json')).records;
+    for (const f of o.findings) for (const id of f.evidence_ids) assert.ok(ev.some(e => e.id === id), id);
+  } finally { s.cleanup(); }
+  // the illustrative public data: valid as published; an unverified or foreign piece of evidence is refused
+  const load = (c) => readJson(path.join(ROOT, 'desk/_fixtures/data', `${c}.json`));
+  const cols = Object.fromEntries(['categories', 'markets', 'districts', 'areas', 'developers', 'projects', 'assets', 'opportunities', 'sources', 'evidence', 'conflicts', 'risks', 'research_blocks', 'media', 'disclosures'].map(c => [c, load(c).records]));
+  const opp = cols.opportunities.find(r => r.id === 'FIX-OPP-ILL-ILLUSTRATIVE-RESIDENCE-A');
+  assert.equal(opp.findings.length, 2);
+  const unverified = cols.evidence.find(e => e.id === 'FIX-EVD-ILL-ILLUSTRATIVE-RESIDENCE-A-0009'); assert.equal(unverified.verification_status, 'UNVERIFIED');
+  const bad = JSON.parse(JSON.stringify(cols)); bad.opportunities.find(r => r.id === opp.id).findings[0].evidence_ids = [unverified.id];
+  const r = validateDataset({ collections: bad }, { mode: 'public', fixture: true, today: TODAY, methods: Object.fromEntries(REG.map(m => [m.id, m.status])) });
+  assert.ok(r.errors.some(e => e.code === 'V23' && /not publishable/.test(e.msg)), JSON.stringify(r.errors.filter(e => e.code === 'V23')));
+  const js = fs.readFileSync(path.join(ROOT, 'desk/assets/js/opportunity.js'), 'utf8');
+  for (const n of [1, 2, 3, 4, 5]) assert.match(js, new RegExp(`data-sec="${n}"`), `section ${n}`);
+  for (const a of ['data-findings', 'data-evidence-summary', 'data-private-report', 'data-not-offered', 'data-sources-used', 'data-compare-link', 'data-profile-line']) assert.ok(js.includes(a), a);
+  assert.doesNotMatch(js, /price_list|asking_price|\.roi\b|\.npv\b|\.irr\b/, 'no private figure is read by the public page');
+});
+
+test('the private-report block on the project page names analyses only: no values, numbers or currency', () => {
+  const js = fs.readFileSync(path.join(ROOT, 'desk/assets/js/opportunity.js'), 'utf8');
+  const block = js.slice(js.indexOf('data-analysis-availability'), js.indexOf('</div></section>', js.indexOf('data-analysis-availability')));
+  assert.match(block, /t\('pv\.' \+ k\)/); assert.match(block, /t\('no\.' \+ k\)/);
+  assert.doesNotMatch(block, /\$\{[^}]*\b(value|price|amount|roi|irr|npv)\b[^}]*\}/i, 'only translated labels are interpolated');
 });
