@@ -57,6 +57,21 @@ async def run():
         check('not published' in (await pg.inner_text('main')).lower(), 'fixture id without fixture mode renders "not published"')
         await pg.goto(B + '/desk/', wait_until='networkidle')
         check('No opportunity has passed publication review yet' in await pg.inner_text('main'), 'production Explore shows the honest empty state')
+        # Markets and Intelligence pages (brief 28 Oct 2026), in every language
+        for lp in ['', 'tr/', 'ar/']:
+            await pg.goto(B + f'/desk/{lp}markets/', wait_until='networkidle')
+            cards = await pg.evaluate("[...document.querySelectorAll('[data-market-card]')].map(c => [c.dataset.marketStatus, c.querySelector('img').complete && c.querySelector('img').naturalWidth > 0])")
+            check(len(cards) == 3 and all(ok for _, ok in cards), f'/desk/{lp}markets/ three market cards with their illustration loaded {cards}')
+            check(await pg.evaluate("document.querySelectorAll('[data-gate-market]').length") == 3, f'/desk/{lp}markets/ gate table lists the three markets')
+            await pg.goto(B + f'/desk/{lp}intelligence/', wait_until='networkidle')
+            check(await pg.evaluate("!document.querySelector('.mfilt').hidden"), f'/desk/{lp}intelligence/ method filter shown once its script runs')
+            await pg.focus('#mths .mth summary'); await pg.keyboard.press('Enter')
+            check(await pg.evaluate("document.querySelector('#mths .mth').open"), f'/desk/{lp}intelligence/ a method opens from the keyboard')
+            await pg.click('button[data-filter="inactive"]')
+            vis = await pg.evaluate("[...document.querySelectorAll('#mths .mth')].filter(d => !d.hidden).map(d => d.dataset.state)")
+            check(len(vis) > 0 and set(vis) == {'inactive'}, f'/desk/{lp}intelligence/ filter shows only inactive methods ({len(vis)})')
+            check(await pg.evaluate("document.querySelector('button[data-filter=inactive]').getAttribute('aria-pressed')") == 'true', f'/desk/{lp}intelligence/ filter state exposed with aria-pressed')
+        await pg.goto(B + '/desk/?lang=en', wait_until='networkidle')  # visiting /desk/ar/ remembers Arabic; restore English for the checks below
         # theme (D-24): dark by default even on a light-preference device; a choice stays across Desk navigation
         tctx = await b.new_context(viewport={'width': 1440, 'height': 900}, color_scheme='light')
         tp = await tctx.new_page()

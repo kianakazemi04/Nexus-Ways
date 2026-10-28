@@ -1,4 +1,5 @@
-// Markets and "How we evaluate" copy (EN/TR/AR), built by build.mjs. PUB-2 (owner instruction 28 Oct 2026): public
+// Market detail pages copy (EN/TR/AR) and the per-market source list, built by build.mjs. The Markets index and the
+// Intelligence page copy are in pages-content.mjs. PUB-2 (owner instruction 28 Oct 2026): public
 // pages are decision-first and carry no market figures, gate counts, research notes, legal-review topics or internal
 // method names. Market research, statistics and the gate result are used in the private store and in consultation only;
 // the pages name the sources the research relies on. Market status comes from the public market record alone.
@@ -98,61 +99,6 @@ export const MKC = {
       'DXB-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى دائرة الأراضي والأملاك', 'DXB-ESCROW-ACCOUNT': 'حساب الضمان، للمشاريع على الخارطة', 'DXB-ADVERTISING-PERMIT': 'تصريح الإعلان لصفحة المشروع',
       'AUH-PROJECT-REGISTRATION': 'تسجيل المشروع وحالته لدى مركز أبوظبي العقاري', 'AUH-ESCROW-ACCOUNT': 'ترتيبات الضمان، للمشاريع على الخارطة', 'AUH-LISTING-PERMIT': 'تصريح الإعلان لصفحة المشروع'
     }
-  }
-};
-
-// "How we evaluate" (/desk/intelligence/): one plain-language page.
-export const HOW = {
-  en: {
-    stLab: 'Process', stH: 'Four steps behind every opportunity',
-    steps: [
-      ['Verify', 'Project identity, developer and registration are checked against official records. What a developer or agent states is labelled as their statement.'],
-      ['Research the market and location', 'Official statistics, registries and market data are compared across sources and kept current for each market and area.'],
-      ['State the risks', 'Every opportunity shows its material risks and what is still being confirmed, in plain language.'],
-      ['Prepare your private analysis', 'Pricing, payment plans, comparable projects and financial scenarios are prepared for your objectives and discussed with you one to one.']
-    ],
-    splitLab: 'Public and private', splitH: 'What you see here, and what we prepare for you',
-    pubH: 'On Desk', pub: ['Verified project and developer facts', 'Location and delivery status', 'Material risks and open points', 'The sources behind the facts'],
-    privH: 'In your consultation', priv: ['Current pricing and payment plans', 'Comparable projects in the area', 'Financial scenarios with stated assumptions', 'Fit with your objectives, budget and timeframe'],
-    privP: 'Pricing changes often and depends on the unit and the terms, so it is shared directly, with its date and source.',
-    lblLab: 'Labels', lblH: 'How facts are labelled',
-    lbls: { VERIFIED: 'Confirmed against an official or primary record.', CORROBORATED: 'Consistent across independent sources.', 'SOURCE-REPORTED': 'Reported by one credible source; not yet independently confirmed.', 'DEVELOPER-CLAIM': 'Stated by the developer or its agents.' },
-    srcLab: 'Sources', srcH: 'Sources we use', srcP: 'Official publishers and registries in each market. Their figures support our analysis and are discussed in consultation; Desk does not republish them.',
-    ctaH: 'Discuss an opportunity with us', ctaP: 'Share your objectives, budget range and timeframe. We will come back with a short list and the analysis behind it.', ctaBtn: 'Request a consultation'
-  },
-  tr: {
-    stLab: 'Süreç', stH: 'Her fırsatın arkasındaki dört adım',
-    steps: [
-      ['Doğrulama', 'Proje kimliği, geliştirici ve kayıt bilgileri resmî kayıtlarla kontrol edilir. Geliştiricinin veya aracının söyledikleri, onların beyanı olarak etiketlenir.'],
-      ['Pazar ve konum araştırması', 'Resmî istatistikler, kayıtlar ve pazar verileri her pazar ve bölge için kaynaklar arasında karşılaştırılır ve güncel tutulur.'],
-      ['Risklerin açıkça belirtilmesi', 'Her fırsat, önemli risklerini ve hâlâ teyit edilmekte olan noktaları sade bir dille gösterir.'],
-      ['Size özel analiz', 'Fiyatlar, ödeme planları, emsal projeler ve finansal senaryolar hedeflerinize göre hazırlanır ve sizinle birebir görüşülür.']
-    ],
-    splitLab: 'Açık ve özel', splitH: 'Burada gördükleriniz ve sizin için hazırladıklarımız',
-    pubH: 'Desk’te', pub: ['Doğrulanmış proje ve geliştirici bilgileri', 'Konum ve teslim durumu', 'Önemli riskler ve açık noktalar', 'Bilgilerin dayandığı kaynaklar'],
-    privH: 'Görüşmenizde', priv: ['Güncel fiyatlar ve ödeme planları', 'Bölgedeki emsal projeler', 'Varsayımları belirtilmiş finansal senaryolar', 'Hedeflerinize, bütçenize ve zaman planınıza uygunluk'],
-    privP: 'Fiyatlar sık değişir ve birime ve koşullara bağlıdır; bu nedenle tarihi ve kaynağıyla doğrudan paylaşılır.',
-    lblLab: 'Etiketler', lblH: 'Bilgiler nasıl etiketlenir',
-    lbls: { VERIFIED: 'Resmî veya birincil bir kayda göre teyit edildi.', CORROBORATED: 'Bağımsız kaynaklar arasında tutarlı.', 'SOURCE-REPORTED': 'Güvenilir tek bir kaynak tarafından aktarıldı; henüz bağımsız olarak teyit edilmedi.', 'DEVELOPER-CLAIM': 'Geliştirici veya aracıları tarafından beyan edildi.' },
-    srcLab: 'Kaynaklar', srcH: 'Kullandığımız kaynaklar', srcP: 'Her pazardaki resmî yayıncılar ve kayıtlar. Rakamları analizimizi destekler ve görüşmede paylaşılır; Desk bunları yeniden yayımlamaz.',
-    ctaH: 'Bir fırsatı bizimle görüşün', ctaP: 'Hedeflerinizi, bütçe aralığınızı ve zaman planınızı paylaşın. Kısa bir liste ve arkasındaki analizle size dönelim.', ctaBtn: 'Görüşme talep edin'
-  },
-  ar: {
-    stLab: 'المنهجية', stH: 'أربع خطوات وراء كل فرصة',
-    steps: [
-      ['التحقق', 'تُراجع هوية المشروع والمطوّر والتسجيل مقابل السجلات الرسمية. وما يذكره المطوّر أو الوسيط يُوسَم على أنه تصريح منه.'],
-      ['بحث السوق والموقع', 'تُقارن الإحصاءات والسجلات الرسمية وبيانات السوق بين المصادر وتُحدَّث لكل سوق ومنطقة.'],
-      ['توضيح المخاطر', 'تعرض كل فرصة مخاطرها الجوهرية وما زال قيد التأكيد، بلغة واضحة.'],
-      ['إعداد تحليلك الخاص', 'تُعدّ الأسعار وخطط الدفع والمشاريع المماثلة والسيناريوهات المالية وفق أهدافك، ونناقشها معك مباشرة.']
-    ],
-    splitLab: 'العام والخاص', splitH: 'ما تراه هنا، وما نُعدّه لك',
-    pubH: 'على Desk', pub: ['معلومات موثّقة عن المشروع والمطوّر', 'الموقع وحالة التسليم', 'المخاطر الجوهرية والنقاط المفتوحة', 'المصادر التي تستند إليها المعلومات'],
-    privH: 'في استشارتك', priv: ['الأسعار الحالية وخطط الدفع', 'المشاريع المماثلة في المنطقة', 'سيناريوهات مالية بافتراضات معلنة', 'مدى الملاءمة لأهدافك وميزانيتك وإطارك الزمني'],
-    privP: 'تتغير الأسعار باستمرار وتعتمد على الوحدة والشروط، لذلك نشاركها مباشرةً مع تاريخها ومصدرها.',
-    lblLab: 'التصنيفات', lblH: 'كيف تُصنَّف المعلومات',
-    lbls: { VERIFIED: 'مؤكَّد مقابل سجل رسمي أو أولي.', CORROBORATED: 'متّسق بين مصادر مستقلة.', 'SOURCE-REPORTED': 'نقله مصدر موثوق واحد؛ لم يُؤكَّد بشكل مستقل بعد.', 'DEVELOPER-CLAIM': 'صرّح به المطوّر أو وكلاؤه.' },
-    srcLab: 'المصادر', srcH: 'المصادر التي نعتمد عليها', srcP: 'الجهات الرسمية والسجلات في كل سوق. تدعم أرقامها تحليلنا وتُناقش في الاستشارة؛ ولا يعيد Desk نشرها.',
-    ctaH: 'ناقش فرصة معنا', ctaP: 'شاركنا أهدافك ونطاق ميزانيتك وإطارك الزمني، وسنعود إليك بقائمة مختصرة والتحليل الذي يدعمها.', ctaBtn: 'اطلب استشارة'
   }
 };
 

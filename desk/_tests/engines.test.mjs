@@ -10,6 +10,8 @@ import { convertArea, convertMoney, fxRate, M2_PER_SQFT } from '../_tools/engine
 import { selectComparables, quantile } from '../_tools/engines/comparables.mjs';
 import { investmentFit, rank } from '../_tools/engines/fit.mjs';
 import { checkAnalysis } from '../_tools/engines/analysis.mjs';
+import { METHOD_TEXT } from '../_tools/method-texts.mjs';
+import { methodState } from '../_tools/pages-content.mjs';
 import { readJson, writeJson, cli, OPP, PRJ, publishedSetup, deskSnap, pub, ROOT, analysisDoc } from './helpers.mjs';
 
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps * Math.max(1, Math.abs(b)), `${a} ≠ ${b}`);
@@ -294,23 +296,54 @@ test('PUB-2: internal financial, pricing and fit methods are implemented and nev
     const m = reg.find(x => x.id === id); assert.equal(m.status, 'INACTIVE', id); assert.equal(m.internal, 'ACTIVE', id); assert.equal(m.publication, 'PROHIBITED_IN_MVP', id);
   }
 });
-test('PUB-2: no generated page shows market figures, gate details, legal-review topics or internal method names', () => {
+test('PUB-2: no generated page shows market figures, gate details, legal-review topics or internal identifiers', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
   const pages = fs.readdirSync(path.join(ROOT, 'desk'), { recursive: true }).map(String).filter(f => f.endsWith('.html') && !f.split(path.sep).some(x => x.startsWith('_')));
-  const banned = [/\bMG-1\b/, /\bMGE-1\b/, /\b(?:FIN|CMP|CNV|FIT|RPT|OPC|ANL)-\d\b/, /\bNPV\b/, /\bIRR\b/, /data-gate=/, /data-stat=/, /data-topic=/, /Trakheesi|Madhmoun|yetki belgesi|brokerage authority/i, /\b(?:IST|DXB|AUH)-(?:AGENT|ONLINE|OFFPLAN)/];
+  // visible text only: method ids may appear in data attributes (they come from the public registry), never as copy
+  const visible = (h) => h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
+  const banned = [/\bMG-1\b/, /\bMGE-1\b/, /\b(?:FIN|CMP|CNV|FIT|RPT|OPC|ANL)-\d\b/, /Trakheesi|Madhmoun|yetki belgesi|brokerage authority/i, /\b(?:IST|DXB|AUH)-(?:AGENT|ONLINE|OFFPLAN)/, /\d[\d,.]*\s?%/];
   for (const f of pages) {
-    const h = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '');
+    const raw = fs.readFileSync(path.join(ROOT, 'desk', f), 'utf8'); const h = visible(raw);
     for (const re of banned) assert.doesNotMatch(h, re, `${f}: ${re}`);
-    for (const m of reg) assert.ok(!h.includes(m.id), `${f}: method id ${m.id}`);
+    for (const m of reg) assert.ok(!h.includes(m.id), `${f}: method id ${m.id} in visible text`);
+    assert.doesNotMatch(raw, /data-gate=|data-stat=|data-topic=/, `${f}: internal gate attributes`);
   }
   // no market or district research in the public tree (V22); sources named on the pages are names only
   for (const c of ['evidence', 'research_blocks', 'conflicts']) assert.ok(!readJson(path.join(ROOT, `desk/data/public/${c}.json`)).records.some(r => r.subject && ['market', 'district'].includes(r.subject.type)), c);
   for (const lang of ['', 'tr/', 'ar/']) {
     const ev = fs.readFileSync(path.join(ROOT, `desk/${lang}intelligence/index.html`), 'utf8');
     assert.match(ev, /data-split="public"/); assert.match(ev, /data-split="private"/);
-    for (const id of ['MKT-IST', 'MKT-DXB', 'MKT-AUH']) assert.match(ev, new RegExp(`data-sources="${id}"`), `${lang}: sources of ${id}`);
+    const mi = fs.readFileSync(path.join(ROOT, `desk/${lang}markets/index.html`), 'utf8');
+    for (const id of ['MKT-IST', 'MKT-DXB', 'MKT-AUH']) assert.match(mi, new RegExp(`data-sources="${id}"`), `${lang}: sources of ${id}`);
     const mk = fs.readFileSync(path.join(ROOT, `desk/${lang}markets/dubai/index.html`), 'utf8');
     assert.match(mk, /data-market-status="preparing"/); assert.match(mk, /data-req="DXB-PROJECT-REGISTRATION"/);
-    assert.doesNotMatch(mk, /<a [^>]*href="https:\/\/(?!nexus-ways\.com|calendly)/, `${lang}: no outbound source links on the market page`);
+    for (const page of [mk, mi, ev]) assert.doesNotMatch(page, /<a [^>]*href="https:\/\/(?!nexus-ways\.com|calendly)/, `${lang}: no outbound source links`);
+  }
+});
+
+test('Markets & Intelligence (brief 28 Oct): statuses come from the market records and the method registry, in EN/TR/AR', () => {
+  const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods;
+  const markets = readJson(path.join(ROOT, 'desk/data/public/markets.json')).records;
+  for (const lang of ['', 'tr/', 'ar/']) {
+    const mi = fs.readFileSync(path.join(ROOT, `desk/${lang}markets/index.html`), 'utf8');
+    for (const m of markets) {
+      const want = m.activation === 'ACTIVE' && m.gate_certificate && m.review ? 'open' : 'preparing';
+      assert.match(mi, new RegExp(`data-market-card="${m.id}" data-market-status="${want}"`), `${lang}${m.id} card`);
+      assert.match(mi, new RegExp(`data-gate-market="${m.id}" data-market-status="${want}"`), `${lang}${m.id} gate row`);
+      assert.match(mi, new RegExp(`src="/desk/assets/img/markets/${m.slug}\\.svg" alt="[^"]{40,}"`), `${lang}${m.id} illustration with alt text`);
+    }
+    for (const n of [1, 2, 3]) assert.match(mi, new RegExp(`data-evidence-state="${n}"`));
+    const ip = fs.readFileSync(path.join(ROOT, `desk/${lang}intelligence/index.html`), 'utf8');
+    const got = Object.fromEntries([...ip.matchAll(/<details class="mth" data-method="([^"]+)" data-state="([^"]+)">/g)].map(m => [m[1], m[2]]));
+    assert.deepEqual(got, Object.fromEntries(reg.map(m => [m.id, methodState(m)])), `${lang}intelligence: one card per registry method, with its registry state`);
+    for (const m of reg.filter(x => ['M-FAIR-VALUE', 'M-AREA-RANKING', 'M-RISK-SEVERITY', 'M-LIQUIDITY', 'M-ASSET-QUALITY', 'M-YIELD-RETURNS'].includes(x.id))) assert.equal(got[m.id], 'inactive', `${m.id} never shown as active`);
+    assert.match(ip, /<div class="mfilt" role="group"[^>]*hidden>/, 'the filter is hidden until its script runs (no inert controls)');
+    assert.match(ip, /src="\/desk\/assets\/js\/intel\.js/);
+    assert.doesNotMatch(ip, /Run analysis|Get (an )?investment recommendation/i);
+  }
+  // every registry method has its public text in all three languages, and nothing else is described
+  for (const lang of ['en', 'tr', 'ar']) {
+    assert.deepEqual(Object.keys(METHOD_TEXT[lang]).sort(), reg.map(m => m.id).sort(), `${lang}: method texts match the registry`);
+    for (const [id, t] of Object.entries(METHOD_TEXT[lang])) { assert.equal(t.length, 4, id); assert.ok(t.every(x => typeof x === 'string' && x.length), id); }
   }
 });
