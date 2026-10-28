@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { validateRepo } from '../_tools/validate.mjs';
 import { validatePackage } from '../_tools/ingest.mjs';
 import { Txn, withTxn, recover } from '../_tools/txn.mjs';
-import { enableTestMarketGate } from './helpers.mjs';
+import { enableTestMarketGate, seedTestMarketGate } from './helpers.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TODAY = '2026-10-27';
@@ -41,8 +41,8 @@ const snap = (d) => !fs.existsSync(d) ? {} : Object.fromEntries(fs.readdirSync(d
 function realSetup() {
   const repo = tmpRepo(); const store = tmp('desk-p2-store-');
   const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
-  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'G3-v1' }, summary: { en: 'TEST-ONLY' } };
-  mk.records.push(tst); writeJson(mp, mk); enableTestMarketGate(repo);
+  const tst = { ...mk.records[0], id: 'MKT-TST', slug: 'test-market', name: 'TEST-ONLY market', activation: 'ACTIVE', record_status: 'PUBLISHED', review: { approved_by: 'owner', approved_at: TODAY, gate_version: 'MG-1' }, summary: { en: 'TEST-ONLY' } };
+  enableTestMarketGate(repo); seedTestMarketGate(repo, store, tst); mk.records.push(tst); writeJson(mp, mk);
   validateRepo(repo, { today: TODAY, writeIndex: true }); // baseline: a valid public tree with the TEST-ONLY market
   fs.mkdirSync(path.join(store, 'data'), { recursive: true });
   writeJson(path.join(store, 'data/markets.json'), { schema_version: '1.1', collection: 'markets', records: [tst] });
@@ -268,8 +268,10 @@ test('end-to-end: fixtures and a TEST-ONLY store through ingest → gate → app
 
     // ---- TEST-ONLY real store: failure cases first
     assert.notEqual(cli(s.repo, ['export', ...s.S, '--id', OPP]).code, 0, 'export of an unknown / unapproved opportunity fails');
+    const seeded = snap(path.join(s.store, 'data'));
     assert.equal(cli(s.repo, ['ingest', '--package', s.mkPkg('E2E-BAD', (i) => { i.facts[0].verification_status = 'MAYBE'; }), ...s.S, '--apply']).code, 1);
-    assert.equal(Object.keys(snap(path.join(s.store, 'data'))).length, 1, 'invalid package wrote nothing (only the seeded markets file)');
+    assert.deepEqual(snap(path.join(s.store, 'data')), seeded, 'invalid package wrote nothing (only the seeded market and market-gate files exist)');
+    assert.equal(Object.keys(seeded).length, 5);
     // ingest → validate → gate
     let r = cli(s.repo, ['ingest', '--package', s.base, ...s.S, '--apply']); assert.equal(r.code, 0, r.out);
     r = cli(s.repo, ['gate', ...s.S]); assert.match(r.out, new RegExp(`${OPP}: BLOCKED[^\\n]*${DSC1} \\(COMMISSION\\) legal review pending`)); assert.doesNotMatch(r.out, /✗/);

@@ -122,10 +122,10 @@ test('T1 (end to end): a package without location or relationship evidence canno
   } finally { p.cleanup(); }
 });
 
-// ================================================================== Task 2 — market gate reconciled (framework only, fail closed)
-test('T2: the registry no longer claims the market gate is operational; no market is active or published', () => {
+// ================================================================== Task 2 — market gate (MG-1 implemented, INACTIVE pending owner approval; fail closed)
+test('T2: the registry records the gate as implemented but not approved; no market is active or published', () => {
   const reg = readJson(path.join(ROOT, 'desk/data/methods.json')).methods.find(m => m.id === 'M-MARKET-GATE');
-  assert.equal(reg.status, 'INACTIVE'); assert.equal(reg.validation_status, 'FRAMEWORK_ONLY'); assert.equal(reg.implemented, false); assert.equal(reg.documented, false);
+  assert.equal(reg.status, 'INACTIVE'); assert.equal(reg.validation_status, 'IMPLEMENTED_PENDING_OWNER_APPROVAL'); assert.equal(reg.implemented, true); assert.equal(reg.contract, 'MG-1'); assert.equal(reg.internal, undefined);
   const mk = readJson(path.join(ROOT, 'desk/data/public/markets.json')).records;
   assert.deepEqual(mk.map(m => [m.id, m.activation]), [['MKT-IST', 'INACTIVE'], ['MKT-DXB', 'INACTIVE'], ['MKT-AUH', 'INACTIVE']]);
   const r = validateRepo(ROOT, { today: TODAY });
@@ -135,25 +135,30 @@ test('T2: the registry no longer claims the market gate is operational; no marke
   for (const slug of ['istanbul', 'dubai', 'abu-dhabi']) assert.doesNotMatch(fs.readFileSync(path.join(ROOT, 'desk/markets', slug, 'index.html'), 'utf8'), /Market · Active/);
 });
 
-test('T2: fail closed — activating a real market without an operational gate is a validation error (V21)', () => {
+test('T2: fail closed — activating a real market by hand is a validation error (V21), with or without registry approval', () => {
   const repo = tmpRepo();
   try {
     const mp = path.join(repo, 'desk/data/public/markets.json'); const mk = readJson(mp);
     mk.records[0].activation = 'ACTIVE'; writeJson(mp, mk);
     const e = validateRepo(repo, { today: TODAY }).errors;
     assert.ok(e.some(x => x.code === 'V21' && x.id === 'MKT-IST'), JSON.stringify(e.map(x => x.code)));
-    // switching the registry entry on is refused while it has no implementation (M01)
+    // switching the registry entry to ACTIVE without owner approval of the rules is refused (M01)
     const rp = path.join(repo, 'desk/data/methods.json');
-    fs.writeFileSync(rp, fs.readFileSync(rp, 'utf8').replace('"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "INACTIVE", "documented": false, "validation_status": "FRAMEWORK_ONLY"', '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "ACTIVE", "documented": true, "validation_status": "RULES_APPROVED"'));
-    assert.ok(validateRepo(repo, { today: TODAY }).errors.some(x => x.code === 'M01' && x.id === 'M-MARKET-GATE' && /no implementation/.test(x.msg)));
+    fs.writeFileSync(rp, fs.readFileSync(rp, 'utf8').replace('"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "INACTIVE"', '"id": "M-MARKET-GATE", "name": "Market publication gate", "status": "ACTIVE"'));
+    assert.ok(validateRepo(repo, { today: TODAY }).errors.some(x => x.code === 'M01' && x.id === 'M-MARKET-GATE' && /approved/.test(x.msg)));
+    // even with simulated approval, a hand-set ACTIVE market has no MG-1 activation stamp → V21
+    fs.writeFileSync(rp, fs.readFileSync(rp, 'utf8').replace('"validation_status": "IMPLEMENTED_PENDING_OWNER_APPROVAL"', '"validation_status": "RULES_APPROVED"'));
+    const e2 = validateRepo(repo, { today: TODAY }).errors;
+    assert.ok(!e2.some(x => x.code === 'M01'), JSON.stringify(e2));
+    assert.ok(e2.some(x => x.code === 'V21' && x.id === 'MKT-IST' && /activation stamp/.test(x.msg)), JSON.stringify(e2.map(x => x.msg)));
   } finally { fs.rmSync(repo, { recursive: true, force: true }); }
 });
 
 test('T2: an opportunity in a real market is never eligible while the gate is inactive or the registry is missing', () => {
-  assert.ok(why(run(base(), 'private', GATE_OFF)).includes('market gate not operational (M-MARKET-GATE is framework only)'));
-  assert.ok(why(validateDataset(base(), { mode: 'private', today: TODAY })).includes('market gate not operational (M-MARKET-GATE is framework only)'), 'no registry passed → fail closed');
+  assert.ok(why(run(base(), 'private', GATE_OFF)).includes('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)'));
+  assert.ok(why(validateDataset(base(), { mode: 'private', today: TODAY })).includes('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)'), 'no registry passed → fail closed');
   assert.ok(codes(run(base(), 'private', GATE_OFF)).includes('V21'));
-  assert.ok(!why(run(base())).includes('market gate not operational (M-MARKET-GATE is framework only)'));
+  assert.ok(!why(run(base())).includes('market gate not approved (M-MARKET-GATE is INACTIVE pending owner approval)'));
 });
 
 test('T2 (end to end): with the real registry a complete package can be ingested but never approved or exported', () => {
@@ -163,7 +168,7 @@ test('T2 (end to end): with the real registry a complete package can be ingested
     cli(s.repo, ['approve-disclosure', ...s.S, '--id', 'DSC-TST-ILLUSTRATIVE-RESIDENCE-A-01', '--by', 'owner']); approveImages(s);
     const before = snap(path.join(s.repo, 'desk'));
     const r = cli(s.repo, ['approve', ...s.S, '--id', OPP, '--by', 'owner']);
-    assert.notEqual(r.code, 0); assert.match(r.out, /market gate not operational/);
+    assert.notEqual(r.code, 0); assert.match(r.out, /market gate not approved/);
     assert.notEqual(cli(s.repo, ['export', ...s.S, '--id', OPP]).code, 0);
     assert.deepEqual(snap(path.join(s.repo, 'desk')), before, 'nothing written to the public tree');
   } finally { s.cleanup(); }

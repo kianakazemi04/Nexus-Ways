@@ -1,0 +1,1029 @@
+{
+  "version": "MG-1",
+  "engine": "MGE-1",
+  "status": "PROPOSED — pending owner approval (D3); not legal advice",
+  "notes": "One shared engine (desk/_tools/engines/marketgate.mjs) evaluates each market against its own configuration. Thresholds are freshness limits tied to each source's publication rhythm, not performance thresholds; no statistic has a pass value. Legal topics are questions for counsel, not conclusions.",
+  "markets": {
+    "MKT-IST": {
+      "name": "Istanbul",
+      "country": "TR",
+      "currency": "TRY",
+      "scope": {
+        "categories": [
+          "real_estate"
+        ],
+        "asset_class": "Residential units in identified projects in Istanbul province",
+        "excluded": "Land, commercial units, short-term rental operations, citizenship-by-investment packaging"
+      },
+      "research_blocks": [
+        {
+          "subject": "market",
+          "domain": "MARKET",
+          "why": "Istanbul housing market structure, demand and supply evidence, scope and limits of available data.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "MACRO_FX",
+          "why": "Inflation, policy rate and currency convention relevant to Istanbul residential pricing.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "DEVELOPER",
+          "why": "How developers are registered and verified in Istanbul; which registry is authoritative.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "PROJECT_ASSET",
+          "why": "How projects, off-plan sales and permits are registered in Istanbul; what a valid project record looks like.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "RISK",
+          "why": "Market-wide risks for Istanbul: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative).",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        }
+      ],
+      "districts": {
+        "min_closed": 1,
+        "domain": "DISTRICT",
+        "closure": [
+          "YES"
+        ],
+        "completeness_min": "PARTIAL",
+        "max_age_days": 365
+      },
+      "statistics": [
+        {
+          "key": "IST-HOUSING-SALES",
+          "name": "Residential sales, Istanbul province (monthly)",
+          "why": "Activity level and direction; required before any statement about market activity.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TÜİK",
+              "TurkStat",
+              "Turkish Statistical Institute"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "count",
+          "period_format": "YYYY-MM",
+          "geography": "Istanbul",
+          "max_age_days": 75,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails; no activity statements until published data are recorded."
+        },
+        {
+          "key": "IST-FOREIGN-SALES",
+          "name": "Residential sales to foreign nationals, Istanbul province (monthly)",
+          "why": "Foreign-buyer demand is directly relevant to Desk's audience and to resale liquidity.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TÜİK",
+              "TurkStat",
+              "Turkish Statistical Institute"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "count",
+          "period_format": "YYYY-MM",
+          "geography": "Istanbul",
+          "max_age_days": 75,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "IST-RPPI",
+          "name": "Residential Property Price Index, Istanbul (monthly)",
+          "why": "Price direction from an official index (valuation-based; an index, not a price level).",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TCMB",
+              "CBRT",
+              "Central Bank of the Republic of Türkiye"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "index",
+          "period_format": "YYYY-MM",
+          "geography": "Istanbul",
+          "max_age_days": 90,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails; never replaced by listing prices."
+        },
+        {
+          "key": "TR-CPI",
+          "name": "Consumer price inflation, annual (monthly)",
+          "why": "Nominal TRY figures are not comparable over time without inflation context.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TÜİK",
+              "TurkStat",
+              "Turkish Statistical Institute"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM",
+          "geography": "Türkiye",
+          "max_age_days": 60,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "TR-POLICY-RATE",
+          "name": "CBRT one-week repo (policy) rate",
+          "why": "Financing conditions and the opportunity cost of capital in TRY.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TCMB",
+              "CBRT",
+              "Central Bank of the Republic of Türkiye"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM-DD",
+          "geography": "Türkiye",
+          "max_age_days": 60,
+          "freshness_basis": "observation date",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "TR-FX-USDTRY",
+          "name": "CBRT indicative USD/TRY rate",
+          "why": "FX convention: TRY figures are converted only at a dated CBRT indicative rate.",
+          "kind": "fx",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "TCMB",
+              "CBRT",
+              "Central Bank of the Republic of Türkiye"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "ratio",
+          "period_format": "YYYY-MM-DD",
+          "geography": "Türkiye",
+          "max_age_days": 7,
+          "freshness_basis": "observation date",
+          "fallback": "Gate fails; no conversion is shown."
+        }
+      ],
+      "fx": {
+        "currency": "TRY",
+        "reference": "TR-FX-USDTRY",
+        "convention": "CBRT indicative buying rate on the observation date of the converted figure; maximum age 7 days (CNV-1); no cross rates; conflicting rates open a conflict and block the gate."
+      },
+      "regulatory_review": {
+        "reviewer_roles": [
+          "LICENSED_COUNSEL_TR"
+        ],
+        "max_age_days": 365,
+        "topics": [
+          {
+            "key": "IST-FOREIGN-OWNERSHIP",
+            "question": "Eligibility of foreign buyers, restricted or military zones, and title verification through TKGM: what must be checked per project before it is shown?"
+          },
+          {
+            "key": "IST-BROKERAGE-AUTH",
+            "question": "Does presenting opportunities and receiving a commission require a real-estate brokerage authority certificate (Taşınmaz Ticareti Hakkında Yönetmelik) for Nexus Ways?"
+          },
+          {
+            "key": "IST-LISTING-VERIFICATION",
+            "question": "Are Desk opportunity pages 'listings' subject to the Ministry of Trade verified-listing system (EİDS)? If so, what is required?"
+          },
+          {
+            "key": "IST-ADVERTISING-CONSUMER",
+            "question": "Advertising and consumer-protection rules for property marketing, including pre-paid (off-plan) housing sales under Law No. 6502."
+          },
+          {
+            "key": "IST-DATA-PROTECTION",
+            "question": "KVKK: consultation form, privacy notice, and transfer of form data abroad through Web3Forms."
+          },
+          {
+            "key": "IST-NOT-ADVICE",
+            "question": "Boundary with regulated investment advice: is the Desk wording and consultation model outside capital-markets licensing?"
+          }
+        ]
+      },
+      "publication": {
+        "categories": [
+          "real_estate"
+        ],
+        "financial_figures": "PRIVATE (D10)",
+        "opportunity_requirements": [
+          {
+            "key": "IST-TITLE-STATUS",
+            "name": "Title status of the project (kat irtifakı / kat mülkiyeti) from TKGM or a registry document",
+            "why": "Identity and legal status of what is offered.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1
+            },
+            "mode": "REQUIRED",
+            "basis_review": null
+          },
+          {
+            "key": "IST-BUILDING-PERMIT",
+            "name": "Building permit (yapı ruhsatı) for projects not yet completed",
+            "why": "An unbuilt project must be permitted before it is presented.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1
+            },
+            "mode": "REQUIRED",
+            "basis_review": null,
+            "when": {
+              "delivery_status": [
+                "OFF_PLAN",
+                "UNDER_CONSTRUCTION"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "MKT-DXB": {
+      "name": "Dubai",
+      "country": "AE",
+      "currency": "AED",
+      "scope": {
+        "categories": [
+          "real_estate"
+        ],
+        "asset_class": "Residential units in DLD-registered projects in the Emirate of Dubai",
+        "excluded": "Land, commercial units, holiday-home operations, projects not registered with DLD"
+      },
+      "research_blocks": [
+        {
+          "subject": "market",
+          "domain": "MARKET",
+          "why": "Dubai housing market structure, demand and supply evidence, scope and limits of available data.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "MACRO_FX",
+          "why": "Inflation, policy rate and currency convention relevant to Dubai residential pricing.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "DEVELOPER",
+          "why": "How developers are registered and verified in Dubai; which registry is authoritative.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "PROJECT_ASSET",
+          "why": "How projects, off-plan sales and permits are registered in Dubai; what a valid project record looks like.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "RISK",
+          "why": "Market-wide risks for Dubai: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative).",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        }
+      ],
+      "districts": {
+        "min_closed": 1,
+        "domain": "DISTRICT",
+        "closure": [
+          "YES"
+        ],
+        "completeness_min": "PARTIAL",
+        "max_age_days": 365
+      },
+      "statistics": [
+        {
+          "key": "DXB-SALES-TX",
+          "name": "Residential sales transactions registered with DLD (monthly)",
+          "why": "Activity level from the official registry, not from portals.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Dubai Land Department",
+              "DLD",
+              "Dubai Pulse"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS",
+              "REGISTRY"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "count",
+          "period_format": "YYYY-MM",
+          "geography": "Dubai",
+          "max_age_days": 60,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "DXB-OFFPLAN-SHARE",
+          "name": "Off-plan share of residential sales (DLD, monthly)",
+          "why": "Off-plan exposure changes delivery and resale risk.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Dubai Land Department",
+              "DLD",
+              "Dubai Pulse"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS",
+              "REGISTRY"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM",
+          "geography": "Dubai",
+          "max_age_days": 60,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "DXB-CPI",
+          "name": "Consumer price inflation, Dubai",
+          "why": "Inflation context for AED figures.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Dubai Statistics Center",
+              "DSC"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM",
+          "geography": "Dubai",
+          "max_age_days": 120,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "AE-BASE-RATE",
+          "name": "CBUAE base rate",
+          "why": "Financing conditions in AED.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Central Bank of the UAE",
+              "CBUAE"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM-DD",
+          "geography": "United Arab Emirates",
+          "max_age_days": 60,
+          "freshness_basis": "observation date",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "AE-FX-PEG",
+          "name": "AED/USD reference rate (peg)",
+          "why": "FX convention for AED; the peg is confirmed from the central bank, not assumed.",
+          "kind": "fx",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Central Bank of the UAE",
+              "CBUAE"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "ratio",
+          "period_format": "YYYY-MM-DD",
+          "geography": "United Arab Emirates",
+          "max_age_days": 400,
+          "freshness_basis": "date the reference rate was confirmed",
+          "fallback": "Gate fails."
+        }
+      ],
+      "fx": {
+        "currency": "AED",
+        "reference": "AE-FX-PEG",
+        "convention": "AED/USD at the CBUAE reference rate confirmed within 400 days; other pairs need a dated CBUAE rate (CNV-1); conflicts block the gate."
+      },
+      "regulatory_review": {
+        "reviewer_roles": [
+          "LICENSED_COUNSEL_UAE"
+        ],
+        "max_age_days": 365,
+        "topics": [
+          {
+            "key": "DXB-BROKER-LICENSING",
+            "question": "Does marketing Dubai projects and receiving a commission require a RERA/DLD broker licence or a licensed partner?"
+          },
+          {
+            "key": "DXB-ADVERTISING-PERMIT",
+            "question": "Does each Desk opportunity page require a Trakheesi advertising permit (including a website hosted outside the UAE)?"
+          },
+          {
+            "key": "DXB-OFFPLAN-ESCROW",
+            "question": "Off-plan rules: DLD project registration, escrow under Law No. 8 of 2007, Oqood — what must be verified per project?"
+          },
+          {
+            "key": "DXB-DATA-PROTECTION",
+            "question": "UAE data-protection law for the consultation form and the transfer through Web3Forms."
+          },
+          {
+            "key": "DXB-NOT-ADVICE",
+            "question": "Boundary with regulated financial promotion and investment advice in the UAE."
+          }
+        ]
+      },
+      "publication": {
+        "categories": [
+          "real_estate"
+        ],
+        "financial_figures": "PRIVATE (D10)",
+        "opportunity_requirements": [
+          {
+            "key": "DXB-PROJECT-REGISTRATION",
+            "name": "DLD project registration and status (project number, status, completion)",
+            "why": "Only DLD-registered projects are in scope.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Dubai Land Department",
+                "DLD",
+                "RERA"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": null
+          },
+          {
+            "key": "DXB-ESCROW-ACCOUNT",
+            "name": "Escrow account registered for the project",
+            "why": "Off-plan buyer protection must be confirmed, not assumed.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Dubai Land Department",
+                "DLD",
+                "RERA"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": null,
+            "when": {
+              "delivery_status": [
+                "OFF_PLAN",
+                "UNDER_CONSTRUCTION"
+              ]
+            }
+          },
+          {
+            "key": "DXB-ADVERTISING-PERMIT",
+            "name": "Advertising permit for the opportunity page, if counsel confirms it is required",
+            "why": "Kept REQUIRED (fail closed) until the DXB-ADVERTISING-PERMIT review records otherwise.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Dubai Land Department",
+                "DLD",
+                "RERA",
+                "Trakheesi"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": "DXB-ADVERTISING-PERMIT"
+          }
+        ]
+      }
+    },
+    "MKT-AUH": {
+      "name": "Abu Dhabi",
+      "country": "AE",
+      "currency": "AED",
+      "scope": {
+        "categories": [
+          "real_estate"
+        ],
+        "asset_class": "Residential units in ADREC-registered projects in the Emirate of Abu Dhabi (ADGM areas assessed separately)",
+        "excluded": "Land, commercial units, holiday-home operations, projects not registered with ADREC"
+      },
+      "research_blocks": [
+        {
+          "subject": "market",
+          "domain": "MARKET",
+          "why": "Abu Dhabi housing market structure, demand and supply evidence, scope and limits of available data.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "MACRO_FX",
+          "why": "Inflation, policy rate and currency convention relevant to Abu Dhabi residential pricing.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "DEVELOPER",
+          "why": "How developers are registered and verified in Abu Dhabi; which registry is authoritative.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "PROJECT_ASSET",
+          "why": "How projects, off-plan sales and permits are registered in Abu Dhabi; what a valid project record looks like.",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        },
+        {
+          "subject": "market",
+          "domain": "RISK",
+          "why": "Market-wide risks for Abu Dhabi: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative).",
+          "closure": [
+            "YES"
+          ],
+          "completeness_min": "PARTIAL",
+          "max_age_days": 365
+        }
+      ],
+      "districts": {
+        "min_closed": 1,
+        "domain": "DISTRICT",
+        "closure": [
+          "YES"
+        ],
+        "completeness_min": "PARTIAL",
+        "max_age_days": 365
+      },
+      "statistics": [
+        {
+          "key": "AUH-SALES-TX",
+          "name": "Real estate sales transactions, Abu Dhabi (ADREC)",
+          "why": "Activity level from the official registry; Dubai sources are not accepted for Abu Dhabi.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Abu Dhabi Real Estate Centre",
+              "ADREC",
+              "Department of Municipalities and Transport",
+              "DMT"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS",
+              "REGISTRY"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "count",
+          "period_format": "YYYY-MM|YYYY-Q[1-4]",
+          "geography": "Abu Dhabi",
+          "max_age_days": 120,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "AUH-PRICE-INDEX",
+          "name": "ADREC sales price index",
+          "why": "Official price direction where published; optional because coverage and method must first be documented.",
+          "kind": "statistic",
+          "required": false,
+          "accepted_sources": {
+            "publishers": [
+              "Abu Dhabi Real Estate Centre",
+              "ADREC"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS",
+              "REGISTRY"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "index",
+          "period_format": "YYYY-MM|YYYY-Q[1-4]",
+          "geography": "Abu Dhabi",
+          "max_age_days": 150,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Not required: if absent, no price-trend statement is made."
+        },
+        {
+          "key": "AUH-CPI",
+          "name": "Consumer price inflation, Abu Dhabi",
+          "why": "Inflation context for AED figures.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Statistics Centre Abu Dhabi",
+              "SCAD"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM|YYYY-Q[1-4]",
+          "geography": "Abu Dhabi",
+          "max_age_days": 150,
+          "freshness_basis": "end of the observation period",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "AE-BASE-RATE",
+          "name": "CBUAE base rate",
+          "why": "Financing conditions in AED.",
+          "kind": "statistic",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Central Bank of the UAE",
+              "CBUAE"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "percent",
+          "period_format": "YYYY-MM-DD",
+          "geography": "United Arab Emirates",
+          "max_age_days": 60,
+          "freshness_basis": "observation date",
+          "fallback": "Gate fails."
+        },
+        {
+          "key": "AE-FX-PEG",
+          "name": "AED/USD reference rate (peg)",
+          "why": "FX convention for AED; confirmed from the central bank, not assumed.",
+          "kind": "fx",
+          "required": true,
+          "accepted_sources": {
+            "publishers": [
+              "Central Bank of the UAE",
+              "CBUAE"
+            ],
+            "source_types": [
+              "OFFICIAL_STATISTICS"
+            ],
+            "max_tier": 1
+          },
+          "accepted_verification": [
+            "VERIFIED",
+            "CORROBORATED"
+          ],
+          "evidence_class": "FACT",
+          "unit": "ratio",
+          "period_format": "YYYY-MM-DD",
+          "geography": "United Arab Emirates",
+          "max_age_days": 400,
+          "freshness_basis": "date the reference rate was confirmed",
+          "fallback": "Gate fails."
+        }
+      ],
+      "fx": {
+        "currency": "AED",
+        "reference": "AE-FX-PEG",
+        "convention": "As for Dubai (same federal currency); recorded separately for Abu Dhabi so neither market depends on the other's evidence."
+      },
+      "regulatory_review": {
+        "reviewer_roles": [
+          "LICENSED_COUNSEL_UAE"
+        ],
+        "max_age_days": 365,
+        "topics": [
+          {
+            "key": "AUH-BROKER-LICENSING",
+            "question": "Does marketing Abu Dhabi projects and receiving a commission require an ADREC/DMT broker licence or a licensed partner?"
+          },
+          {
+            "key": "AUH-LISTING-PERMIT",
+            "question": "Does each Desk opportunity page require a Madhmoun listing permit (ADREC/DARI), including a website hosted outside the UAE?"
+          },
+          {
+            "key": "AUH-ADGM-JURISDICTION",
+            "question": "For projects in ADGM areas (e.g. Al Reem, Al Maryah): which ADGM advertising permit and rules apply instead of, or in addition to, ADREC's?"
+          },
+          {
+            "key": "AUH-OFFPLAN-REGISTRATION",
+            "question": "Off-plan rules under Law No. 3 of 2015 as amended: project registration, initial register, escrow — what must be verified per project?"
+          },
+          {
+            "key": "AUH-FOREIGN-OWNERSHIP-ZONES",
+            "question": "Where can foreign buyers acquire freehold or other rights in Abu Dhabi, and how is that verified per project?"
+          },
+          {
+            "key": "AUH-DATA-PROTECTION",
+            "question": "Data-protection law applicable to the consultation form for Abu Dhabi enquiries (UAE / ADGM)."
+          },
+          {
+            "key": "AUH-NOT-ADVICE",
+            "question": "Boundary with regulated financial promotion and investment advice."
+          }
+        ]
+      },
+      "publication": {
+        "categories": [
+          "real_estate"
+        ],
+        "financial_figures": "PRIVATE (D10)",
+        "opportunity_requirements": [
+          {
+            "key": "AUH-PROJECT-REGISTRATION",
+            "name": "ADREC project registration and status",
+            "why": "Only ADREC-registered projects are in scope.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Abu Dhabi Real Estate Centre",
+                "ADREC",
+                "Department of Municipalities and Transport",
+                "DMT"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": null
+          },
+          {
+            "key": "AUH-ESCROW-ACCOUNT",
+            "name": "Escrow details for off-plan projects",
+            "why": "Off-plan buyer protection must be confirmed, not assumed.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Abu Dhabi Real Estate Centre",
+                "ADREC",
+                "Department of Municipalities and Transport",
+                "DMT"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": null,
+            "when": {
+              "delivery_status": [
+                "OFF_PLAN",
+                "UNDER_CONSTRUCTION"
+              ]
+            }
+          },
+          {
+            "key": "AUH-LISTING-PERMIT",
+            "name": "Madhmoun listing permit for the opportunity page, if counsel confirms it is required",
+            "why": "Kept REQUIRED (fail closed) until the AUH-LISTING-PERMIT review records otherwise.",
+            "subject": "project",
+            "claim_status": "ESTABLISHED",
+            "accepted_sources": {
+              "source_types": [
+                "REGISTRY",
+                "REGULATOR"
+              ],
+              "max_tier": 1,
+              "publishers": [
+                "Abu Dhabi Real Estate Centre",
+                "ADREC"
+              ]
+            },
+            "mode": "REQUIRED",
+            "basis_review": "AUH-LISTING-PERMIT"
+          }
+        ]
+      }
+    }
+  },
+  "activation_rule": "A market may become ACTIVE only through `ingest.mjs activate-market --by owner`, which re-computes this gate and refuses unless (a) the computed gate passes for that market and (b) the registry entry M-MARKET-GATE is ACTIVE with RULES_APPROVED (owner approval of these rules). Each market is evaluated independently; one market's result never holds another.",
+  "review_record": {
+    "store_file": "private/regulatory_reviews.json",
+    "fields": [
+      "id",
+      "seq",
+      "market_id",
+      "topic",
+      "status (PENDING|IN_REVIEW|COMPLETE|WITHDRAWN)",
+      "outcome (CLEAR|CONDITIONS|NOT_APPLICABLE|BLOCKING; COMPLETE only)",
+      "conditions[]",
+      "reviewer",
+      "reviewer_role",
+      "reference",
+      "reviewed_at",
+      "valid_until",
+      "recorded_by (owner)",
+      "recorded_at"
+    ],
+    "rule": "Only these records count as legal review. Evidence, research blocks or LEGAL FACT evidence are never treated as legal approval."
+  }
+}
