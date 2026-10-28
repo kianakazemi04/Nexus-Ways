@@ -1,9 +1,9 @@
 # Market gates — MG-1 (Istanbul · Dubai · Abu Dhabi)
 
-Status: **implemented on branch `desk/market-gates`, INACTIVE pending owner approval.** No market is active, no
-opportunity is published, nothing is merged or deployed. Owner decisions D1 (superseded: three-market programme) and
+Status (28 Oct 2026): **implemented, merged and live on `main`; the gate is INACTIVE pending owner approval of the rules.**
+No market is active and no opportunity is published. Every market currently fails its gate (see the Markets pages). Owner decisions D1 (superseded: three-market programme) and
 D3 (shared engine, market-specific rules), 28 Oct 2026. This document is a research and control specification, not
-legal advice; every legal item below is a question for counsel, not a conclusion.
+legal advice; every statutory item below is an open check, not a conclusion.
 
 ## 1. Design
 
@@ -79,7 +79,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 | RISK | Market-wide risks for Istanbul: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative). | YES | PARTIAL | 365 d |
 | DISTRICT × 1+ | At least one district of the market with closed, current location research | YES | PARTIAL | 365 d |
 
-**Named statistics** (official sources only; Tier 1; VERIFIED/CORROBORATED FACT; no currency amounts; freshness measured from the end of the observation period):
+**Named statistics** (official sources; VERIFIED/CORROBORATED FACT; no currency amounts; freshness from the end of the observation period):
 
 | Key | Statistic | Why it is required | Accepted publisher(s) / type | Unit | Period | Geography | Max age | Required | Fallback if unavailable |
 |---|---|---|---|---|---|---|---|---|---|
@@ -92,18 +92,15 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 
 **FX convention.** CBRT indicative buying rate on the observation date of the converted figure; maximum age 7 days (CNV-1); no cross rates; conflicting rates open a conflict and block the gate.
 
-**Legal / regulatory review** — reviewer role: LICENSED_COUNSEL_TR; a COMPLETE review is valid for 365 days (or its own valid_until if earlier).
+**Statutory checks on Nexus Ways’ own activity** — recorded with record-review --by owner; valid 365 days:
 
-| Topic | Question for counsel |
-|---|---|
-| IST-FOREIGN-OWNERSHIP | Eligibility of foreign buyers, restricted or military zones, and title verification through TKGM: what must be checked per project before it is shown? |
-| IST-BROKERAGE-AUTH | Does presenting opportunities and receiving a commission require a real-estate brokerage authority certificate (Taşınmaz Ticareti Hakkında Yönetmelik) for Nexus Ways? |
-| IST-LISTING-VERIFICATION | Are Desk opportunity pages 'listings' subject to the Ministry of Trade verified-listing system (EİDS)? If so, what is required? |
-| IST-ADVERTISING-CONSUMER | Advertising and consumer-protection rules for property marketing, including pre-paid (off-plan) housing sales under Law No. 6502. |
-| IST-DATA-PROTECTION | KVKK: consultation form, privacy notice, and transfer of form data abroad through Web3Forms. |
-| IST-NOT-ADVICE | Boundary with regulated investment advice: is the Desk wording and consultation model outside capital-markets licensing? |
+| Topic | Question | Restriction until recorded | What the owner records | Accepted basis |
+|---|---|---|---|---|
+| IST-AGENT-AUTHORIZATION | Real-estate brokerage authorization: the Regulation on Real Estate Trade requires a brokerage authority certificate (taşınmaz ticareti yetki belgesi) for those who broker sales for a fee. Under which certificate (the owner's own, or a licensed firm's) does Nexus Ways present Istanbul projects and receive a commission? | Until recorded, no Istanbul opportunity is published; research pages are unaffected. | Certificate number and holder, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_TR |
+| IST-ONLINE-LISTING-RULES | Ministry of Trade rules for online real-estate advertisements (verified-listing system, EİDS): do Desk opportunity pages fall within them, and if so what authorization reference must each page carry? | Until recorded, no Istanbul opportunity is published. | Official guidance or authorization reference, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_TR |
+| IST-OFFPLAN-ADVERTISING | Advertising of off-plan (pre-paid) housing under the consumer-protection law and its pre-paid housing sales regulation: which statements must an advertisement for an unfinished project include or avoid? | Until recorded, no off-plan or under-construction Istanbul opportunity is published. | Counsel's memo reference, or the official regulation reference with the owner's checklist. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_TR |
 
-**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired):
+**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired; plus the sales office’s written permission for the page and each image):
 
 | Key | Requirement | Applies | Waiver |
 |---|---|---|---|
@@ -127,7 +124,7 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 | RISK | Market-wide risks for Dubai: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative). | YES | PARTIAL | 365 d |
 | DISTRICT × 1+ | At least one district of the market with closed, current location research | YES | PARTIAL | 365 d |
 
-**Named statistics** (official sources only; Tier 1; VERIFIED/CORROBORATED FACT; no currency amounts; freshness measured from the end of the observation period):
+**Named statistics** (official sources; VERIFIED/CORROBORATED FACT; no currency amounts; freshness from the end of the observation period):
 
 | Key | Statistic | Why it is required | Accepted publisher(s) / type | Unit | Period | Geography | Max age | Required | Fallback if unavailable |
 |---|---|---|---|---|---|---|---|---|---|
@@ -139,23 +136,20 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 
 **FX convention.** AED/USD at the CBUAE reference rate confirmed within 400 days; other pairs need a dated CBUAE rate (CNV-1); conflicts block the gate.
 
-**Legal / regulatory review** — reviewer role: LICENSED_COUNSEL_UAE; a COMPLETE review is valid for 365 days (or its own valid_until if earlier).
+**Statutory checks on Nexus Ways’ own activity** — recorded with record-review --by owner; valid 365 days:
 
-| Topic | Question for counsel |
-|---|---|
-| DXB-BROKER-LICENSING | Does marketing Dubai projects and receiving a commission require a RERA/DLD broker licence or a licensed partner? |
-| DXB-ADVERTISING-PERMIT | Does each Desk opportunity page require a Trakheesi advertising permit (including a website hosted outside the UAE)? |
-| DXB-OFFPLAN-ESCROW | Off-plan rules: DLD project registration, escrow under Law No. 8 of 2007, Oqood — what must be verified per project? |
-| DXB-DATA-PROTECTION | UAE data-protection law for the consultation form and the transfer through Web3Forms. |
-| DXB-NOT-ADVICE | Boundary with regulated financial promotion and investment advice in the UAE. |
+| Topic | Question | Restriction until recorded | What the owner records | Accepted basis |
+|---|---|---|---|---|
+| DXB-AGENT-AUTHORIZATION | Broker authorization in Dubai: under which RERA/DLD broker registration (the owner's own broker card or freelance permit, or a licensed brokerage) does Nexus Ways market Dubai projects and receive a commission? | Until recorded, no Dubai opportunity is published. | Broker card / permit number and the licensed office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
+| DXB-ADVERTISING-PERMIT | Real-estate advertising in Dubai requires a DLD advertising permit (Trakheesi). How is the permit obtained for Desk opportunity pages (per listing, by the owner's licensed office), or does counsel conclude it does not apply? | Each Dubai opportunity needs its advertising-permit number recorded (DXB-ADVERTISING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official DLD guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
 
-**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired):
+**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired; plus the sales office’s written permission for the page and each image):
 
 | Key | Requirement | Applies | Waiver |
 |---|---|---|---|
 | DXB-PROJECT-REGISTRATION | DLD project registration and status (project number, status, completion) | always | none |
 | DXB-ESCROW-ACCOUNT | Escrow account registered for the project | OFF_PLAN, UNDER_CONSTRUCTION (or unknown status) | none |
-| DXB-ADVERTISING-PERMIT | Advertising permit for the opportunity page, if counsel confirms it is required | always | only a COMPLETE, valid DXB-ADVERTISING-PERMIT review with outcome NOT_APPLICABLE |
+| DXB-ADVERTISING-PERMIT | Advertising permit for the opportunity page, if counsel confirms it is required | always | only a valid DXB-ADVERTISING-PERMIT record with outcome NOT_APPLICABLE |
 
 **Publication restrictions.** Financial figures: PRIVATE (D10). Categories: real_estate.
 
@@ -174,37 +168,32 @@ Generated from `MG-1.json` (the configuration is the source of truth).
 | RISK | Market-wide risks for Abu Dhabi: regulatory, currency, delivery, liquidity and exit uncertainty (qualitative). | YES | PARTIAL | 365 d |
 | DISTRICT × 1+ | At least one district of the market with closed, current location research | YES | PARTIAL | 365 d |
 
-**Named statistics** (official sources only; Tier 1; VERIFIED/CORROBORATED FACT; no currency amounts; freshness measured from the end of the observation period):
+**Named statistics** (official sources; VERIFIED/CORROBORATED FACT; no currency amounts; freshness from the end of the observation period):
 
 | Key | Statistic | Why it is required | Accepted publisher(s) / type | Unit | Period | Geography | Max age | Required | Fallback if unavailable |
 |---|---|---|---|---|---|---|---|---|---|
-| AUH-SALES-TX | Real estate sales transactions, Abu Dhabi (ADREC) | Activity level from the official registry; Dubai sources are not accepted for Abu Dhabi. | Abu Dhabi Real Estate Centre / ADREC / Department of Municipalities and Transport / DMT · OFFICIAL_STATISTICS, REGISTRY | count | YYYY-MM|YYYY-Q[1-4] | Abu Dhabi | 120 d | yes | Gate fails. |
-| AUH-PRICE-INDEX | ADREC sales price index | Official price direction where published; optional because coverage and method must first be documented. | Abu Dhabi Real Estate Centre / ADREC · OFFICIAL_STATISTICS, REGISTRY | index | YYYY-MM|YYYY-Q[1-4] | Abu Dhabi | 150 d | no (optional) | Not required: if absent, no price-trend statement is made. |
-| AUH-CPI | Consumer price inflation, Abu Dhabi | Inflation context for AED figures. | Statistics Centre Abu Dhabi / SCAD · OFFICIAL_STATISTICS | percent | YYYY-MM|YYYY-Q[1-4] | Abu Dhabi | 150 d | yes | Gate fails. |
+| AUH-SALES-TX | Real estate sales transactions, Abu Dhabi (ADREC) | Activity level from the official registry; Dubai sources are not accepted for Abu Dhabi. | Abu Dhabi Real Estate Centre / ADREC / Department of Municipalities and Transport / DMT · OFFICIAL_STATISTICS, REGISTRY | count | YYYY-MM|YYYY-Q[1-4]|YYYY-H[1-2] | Abu Dhabi | 150 d | yes | Gate fails. |
+| AUH-PRICE-INDEX | ADREC sales price index | Official price direction where published; optional because coverage and method must first be documented. | Abu Dhabi Real Estate Centre / ADREC · OFFICIAL_STATISTICS, REGISTRY | index | YYYY-MM|YYYY-Q[1-4]|YYYY-H[1-2] | Abu Dhabi | 150 d | no (optional) | Not required: if absent, no price-trend statement is made. |
+| AUH-CPI | Consumer price inflation, Abu Dhabi | Inflation context for AED figures. | Statistics Centre Abu Dhabi / SCAD · OFFICIAL_STATISTICS | percent | YYYY-MM|YYYY-Q[1-4]|YYYY-H[1-2] | Abu Dhabi | 150 d | yes | Gate fails. |
 | AE-BASE-RATE | CBUAE base rate | Financing conditions in AED. | Central Bank of the UAE / CBUAE · OFFICIAL_STATISTICS | percent | YYYY-MM-DD | United Arab Emirates | 60 d | yes | Gate fails. |
 | AE-FX-PEG | AED/USD reference rate (peg) | FX convention for AED; confirmed from the central bank, not assumed. | Central Bank of the UAE / CBUAE · OFFICIAL_STATISTICS | ratio | YYYY-MM-DD | United Arab Emirates | 400 d | yes | Gate fails. |
 
 **FX convention.** As for Dubai (same federal currency); recorded separately for Abu Dhabi so neither market depends on the other's evidence.
 
-**Legal / regulatory review** — reviewer role: LICENSED_COUNSEL_UAE; a COMPLETE review is valid for 365 days (or its own valid_until if earlier).
+**Statutory checks on Nexus Ways’ own activity** — recorded with record-review --by owner; valid 365 days:
 
-| Topic | Question for counsel |
-|---|---|
-| AUH-BROKER-LICENSING | Does marketing Abu Dhabi projects and receiving a commission require an ADREC/DMT broker licence or a licensed partner? |
-| AUH-LISTING-PERMIT | Does each Desk opportunity page require a Madhmoun listing permit (ADREC/DARI), including a website hosted outside the UAE? |
-| AUH-ADGM-JURISDICTION | For projects in ADGM areas (e.g. Al Reem, Al Maryah): which ADGM advertising permit and rules apply instead of, or in addition to, ADREC's? |
-| AUH-OFFPLAN-REGISTRATION | Off-plan rules under Law No. 3 of 2015 as amended: project registration, initial register, escrow — what must be verified per project? |
-| AUH-FOREIGN-OWNERSHIP-ZONES | Where can foreign buyers acquire freehold or other rights in Abu Dhabi, and how is that verified per project? |
-| AUH-DATA-PROTECTION | Data-protection law applicable to the consultation form for Abu Dhabi enquiries (UAE / ADGM). |
-| AUH-NOT-ADVICE | Boundary with regulated financial promotion and investment advice. |
+| Topic | Question | Restriction until recorded | What the owner records | Accepted basis |
+|---|---|---|---|---|
+| AUH-AGENT-AUTHORIZATION | Broker authorization in Abu Dhabi: under which ADREC/DMT broker licence or registration does Nexus Ways market Abu Dhabi projects and receive a commission? (Dubai registration does not apply in Abu Dhabi.) | Until recorded, no Abu Dhabi opportunity is published. | Licence / registration number and the licensed office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
+| AUH-LISTING-PERMIT | Real-estate advertisements in Abu Dhabi require a Madhmoun listing permit (ADREC, via DARI). How is it obtained for Desk opportunity pages, or does counsel conclude it does not apply? Projects in ADGM areas follow ADGM's own advertising rules and are flagged per project. | Each Abu Dhabi opportunity needs its Madhmoun permit number recorded (AUH-LISTING-PERMIT requirement) unless this review records NOT_APPLICABLE. | Official ADREC guidance reference and the issuing office, or counsel's memo reference. | OWNER_OFFICIAL_REFERENCE, LICENSED_COUNSEL_UAE |
 
-**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired):
+**Per-opportunity requirements** (ESTABLISHED evidence from an accepted registry/regulator, not expired; plus the sales office’s written permission for the page and each image):
 
 | Key | Requirement | Applies | Waiver |
 |---|---|---|---|
 | AUH-PROJECT-REGISTRATION | ADREC project registration and status | always | none |
 | AUH-ESCROW-ACCOUNT | Escrow details for off-plan projects | OFF_PLAN, UNDER_CONSTRUCTION (or unknown status) | none |
-| AUH-LISTING-PERMIT | Madhmoun listing permit for the opportunity page, if counsel confirms it is required | always | only a COMPLETE, valid AUH-LISTING-PERMIT review with outcome NOT_APPLICABLE |
+| AUH-LISTING-PERMIT | Madhmoun listing permit for the opportunity page, if counsel confirms it is required | always | only a valid AUH-LISTING-PERMIT record with outcome NOT_APPLICABLE |
 
 **Publication restrictions.** Financial figures: PRIVATE (D10). Categories: real_estate.
 
@@ -240,20 +229,31 @@ series codes and publication calendars are recorded at intake; nothing below is 
 - Limit: index coverage and method to be documented before AUH-PRICE-INDEX is relied on (it is optional for that
   reason).
 
-## 5. Unresolved legal questions (counsel required before any activation)
+## 5. Unresolved statutory checks (28 Oct 2026)
 
-All topics listed in the matrix are open: no review record exists for any market. In addition, two cross-market
-questions apply to every market: (1) whether Nexus Ways' commission arrangement must be disclosed in a prescribed form
-in each jurisdiction (linked to disclosure kind COMMISSION, legal review pending), and (2) whether the Desk consultation
-form's transfer through Web3Forms requires a data-processing agreement or transfer mechanism (TR KVKK, UAE PDPL; ADGM
-data protection where relevant).
+Owner instruction (28 Oct 2026): project-level advertising and media authorization comes from each sales office's
+written permission, recorded privately per project (channels, activities, media, validity) and checked per page and per
+image. No separate legal opinion is required per project. Market-level topics are limited to statutory requirements that
+apply to Nexus Ways' own activity; each can be recorded by the owner with an official reference (licence or permit
+number, official guidance) or by counsel's memo. None is recorded yet:
+
+- **Istanbul:** brokerage authority certificate (IST-AGENT-AUTHORIZATION); applicability of the Ministry of Trade
+  online-listing rules (IST-ONLINE-LISTING-RULES); statements required for off-plan housing advertising
+  (IST-OFFPLAN-ADVERTISING).
+- **Dubai:** RERA/DLD broker registration (DXB-AGENT-AUTHORIZATION); Trakheesi advertising permit per page
+  (DXB-ADVERTISING-PERMIT).
+- **Abu Dhabi:** ADREC/DMT broker licence (AUH-AGENT-AUTHORIZATION); Madhmoun listing permit per page, ADGM rules for
+  ADGM-area projects (AUH-LISTING-PERMIT).
+
+A sales-office e-mail never substitutes for these: it authorizes the use of that project's information and images, not
+a broker licence or a regulator's advertising permit.
 
 ## 6. Prerequisites that need the owner's manual action
 
 1. **Private research store** — create the private repository or drive folder outside the public repository (the
    tools refuse any store inside it) and give the session access. Not created by Claude (standing rule).
-2. **Legal counsel** — instruct licensed counsel in Türkiye and in the UAE (Dubai and Abu Dhabi separately, plus ADGM
-   where relevant) on the topics above; record each answer with `record-review --by owner`, with the memo reference.
+2. **Statutory checks** — record your broker/licence status and the permit route per market (section 5) with
+   `record-review --by owner` and the official reference; counsel only where you choose or the rule is unclear.
 3. **Approve or amend the MG-1 rules** — especially freshness limits, reviewer roles and per-opportunity requirements.
    On approval, the registry entry `M-MARKET-GATE` is set to ACTIVE / RULES_APPROVED in a reviewed commit.
 4. **Market research intake** — supply or approve the official statistics and research blocks per market
@@ -267,56 +267,7 @@ data protection where relevant).
 
 ## 7. Test evidence
 
-`node --test desk/_tests/marketgate.test.mjs` — 48 tests, all passing; the full suite (147 tests) passes. Every
+`node --test desk/_tests/marketgate.test.mjs` — 49 tests, all passing; the full suite (158 tests) passes. Every
 negative test spoils exactly one element of an otherwise passing synthetic (TEST-ONLY) dataset, for each of the three
 configurations. Mutation checks (removing the review check, the geography check or the district check from the
 engine) make 15, 3 and 9 tests fail respectively.
-
-- 1. configuration: one shared version, three separate market configurations, every rule documented
-- 2. configuration: an emptied market configuration can never pass by being empty
-- 3. period conventions: monthly, quarterly, daily and annual observation periods end where expected
-- 4. MKT-IST: a complete, current, verified, reviewed dataset passes, with a machine-readable report
-- 5. MKT-DXB: a complete, current, verified, reviewed dataset passes, with a machine-readable report
-- 6. MKT-AUH: a complete, current, verified, reviewed dataset passes, with a machine-readable report
-- 7. MKT-IST: fails closed when evidence is absent (market record only)
-- 8. MKT-IST: every required research block, statistic and review topic is individually mandatory
-- 9. MKT-IST: Research Closure and Data Completeness are independent states
-- 10. MKT-IST: stale evidence fails (blocks, statistics, FX)
-- 11. MKT-IST: only accepted official sources, verified facts, the right unit and geography count
-- 12. MKT-IST: evidence ownership and traceability are required
-- 13. MKT-IST: unresolved material conflicts and recorded gaps block the gate
-- 14. MKT-IST: legal review must be COMPLETE, current, by an accepted reviewer and recorded by the owner — evidence never substitutes
-- 15. MKT-IST: scope — category, country and currency must match the market configuration
-- 16. MKT-DXB: fails closed when evidence is absent (market record only)
-- 17. MKT-DXB: every required research block, statistic and review topic is individually mandatory
-- 18. MKT-DXB: Research Closure and Data Completeness are independent states
-- 19. MKT-DXB: stale evidence fails (blocks, statistics, FX)
-- 20. MKT-DXB: only accepted official sources, verified facts, the right unit and geography count
-- 21. MKT-DXB: evidence ownership and traceability are required
-- 22. MKT-DXB: unresolved material conflicts and recorded gaps block the gate
-- 23. MKT-DXB: legal review must be COMPLETE, current, by an accepted reviewer and recorded by the owner — evidence never substitutes
-- 24. MKT-DXB: scope — category, country and currency must match the market configuration
-- 25. MKT-AUH: fails closed when evidence is absent (market record only)
-- 26. MKT-AUH: every required research block, statistic and review topic is individually mandatory
-- 27. MKT-AUH: Research Closure and Data Completeness are independent states
-- 28. MKT-AUH: stale evidence fails (blocks, statistics, FX)
-- 29. MKT-AUH: only accepted official sources, verified facts, the right unit and geography count
-- 30. MKT-AUH: evidence ownership and traceability are required
-- 31. MKT-AUH: unresolved material conflicts and recorded gaps block the gate
-- 32. MKT-AUH: legal review must be COMPLETE, current, by an accepted reviewer and recorded by the owner — evidence never substitutes
-- 33. MKT-AUH: scope — category, country and currency must match the market configuration
-- 34. Dubai and Abu Dhabi are separate: Dubai sources and Dubai reviews do not satisfy Abu Dhabi
-- 35. markets are evaluated independently: one passing market is not held by another failing market
-- 36. Abu Dhabi: the optional ADREC price index may be absent, but a recorded one must still be valid
-- 37. MKT-IST: per-opportunity registration / permit / title evidence is required and must be ESTABLISHED
-- 38. MKT-DXB: per-opportunity registration / permit / title evidence is required and must be ESTABLISHED
-- 39. MKT-AUH: per-opportunity registration / permit / title evidence is required and must be ESTABLISHED
-- 40. requirements: off-plan conditions apply by delivery status; unknown status fails closed
-- 41. requirements: an advertising / listing permit is waived only by a COMPLETE NOT_APPLICABLE review — never in public validation
-- 42. MKT-IST: validator — a hand-activated market is V21 while its computed gate fails; the stamp alone is not enough
-- 43. MKT-DXB: validator — a hand-activated market is V21 while its computed gate fails; the stamp alone is not enough
-- 44. MKT-AUH: validator — a hand-activated market is V21 while its computed gate fails; the stamp alone is not enough
-- 45. real repository: all three markets INACTIVE, gate INACTIVE pending owner approval; each market fails closed on the public data
-- 46. commands: market-intake + record-review + market-gate; activate-market is refused while the owner has not approved the gate rules
-- 47. commands (simulated owner approval of the rules): each market is activated only if its own gate passes
-- 48. market intake refuses records outside the market, currency amounts and unowned overwrites — nothing written
