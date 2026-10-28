@@ -1,0 +1,9 @@
+{
+  "name": "nexus-ways-site",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling only (Cloudflare deploy). The site itself is static and has no runtime dependencies.",
+  "devDependencies": {
+    "wrangler": "4.148.0"
+  }
+}

@@ -278,7 +278,7 @@ test('B4: every workflow action is pinned to an approved full commit SHA with a 
       const why = pinProblem(m[1], m[2]); assert.equal(why, null, `${f}: ${why}`);
     }
   }
-  assert.equal(seen, 17, 'expected the 17 known third-party action references (13 + 4 in cloudflare-deploy.yml, all approved pins)');
+  assert.equal(seen, 13, 'expected the 13 known third-party action references');
   // the policy check rejects what it should
   const sha = APPROVED_ACTION_PINS['actions/checkout'][0];
   for (const [ref, rest] of [['actions/checkout@v4', ''], ['actions/checkout@main', ''], ['actions/checkout@11d5960', ' # v4.4.0'], [`evil/checkout@${sha}`, ' # v4.4.0'],

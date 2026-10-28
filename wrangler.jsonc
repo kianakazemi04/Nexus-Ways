@@ -1,0 +1,16 @@
+// Cloudflare Workers static site for nexus-ways.com (owner set up Workers Builds from this repository, 29 Oct 2026).
+// `wrangler deploy` first runs the build command: validation, a clean public copy in _cfsite/ (no "_" or "." paths,
+// same as GitHub Pages) and the security headers. If any check fails, nothing is deployed. Details:
+// desk/_tools/CLOUDFLARE-MIGRATION.md.
+{
+  "name": "nexus-ways",
+  "compatibility_date": "2026-10-01",
+  "build": {
+    "command": "node desk/_tools/cf-build.mjs"
+  },
+  "assets": {
+    "directory": "./_cfsite",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash"
+  }
+}

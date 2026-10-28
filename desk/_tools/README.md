@@ -172,8 +172,8 @@ Both commands refuse any path inside the public repository.
 
 ## Hosting
 
-Prepared move to Cloudflare Pages: `desk/_tools/CLOUDFLARE-MIGRATION.md` and `.github/workflows/cloudflare-deploy.yml`
-(inert until the owner sets `CF_PAGES_PROJECT` and the two secrets).
+Cloudflare Workers static assets, built by Workers Builds from this repository: `wrangler.jsonc` →
+`desk/_tools/cf-build.mjs` (validation, clean public copy, security headers). Steps and DNS: `desk/_tools/CLOUDFLARE-MIGRATION.md`.
 
 ## All approved engines run on every project (owner approval 29 Oct 2026)
 
