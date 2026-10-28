@@ -1,4 +1,6 @@
 // Nexus Desk UI components. Data-driven: every component receives records for ONE subject only.
+import { evidenceFreshness, claimPublication } from './policy.js';
+const TODAY = new Date().toISOString().slice(0, 10); // UTC calendar date, as in the validator
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LANG = (document.documentElement.lang || 'en').slice(0, 2).toLowerCase(); // language comes from the URL path (/desk/, later /desk/tr/, /desk/ar/)
 export const tx = (t) => t ? esc(t[LANG] || t.en || '') : '';
@@ -27,6 +29,12 @@ export const lab = (map, v) => esc((L[map] && L[map][v]) || v || '');
 const VORDER = ['VERIFIED', 'CORROBORATED', 'SOURCE-REPORTED', 'DEVELOPER-CLAIM', 'UNVERIFIED'];
 export const strongest = (evs) => evs.length ? VORDER[Math.min(...evs.map(e => VORDER.indexOf(e.verification_status)))] : null;
 export const vs = (v) => v ? `<span class="vs" data-v="${esc(v)}">${lab('verification', v)}</span>` : '';
+// review policy RP-1 state of one evidence record, as a short label (expiry means re-review is required, not that the claim is false)
+export const freshness = (e, D) => { try { return evidenceFreshness(e, TODAY, D && D.source(e.source_id) ? D.source(e.source_id).source_type : null); } catch { return { state: 'INVALID' }; } };
+const FRESH_LABEL = { CURRENT: 'Current', REVIEW_DUE: 'Review due', EXPIRED: 'Expired — re-review required', INVALID: 'Date not valid' };
+export const freshChip = (f) => f && f.state !== 'CURRENT' ? `<span class="chip${f.state === 'EXPIRED' || f.state === 'INVALID' ? ' red' : ''}">${FRESH_LABEL[f.state]}</span>` : '';
+// claim policy CP-1: a QUALIFIED claim is always shown with who says it, never as an established fact
+export const qualifier = (e, D) => { const c = claimPublication(e); if (c.status !== 'QUALIFIED') return ''; const s = D && D.source(e.source_id); return `<span class="lab">As reported${s && s.name ? ' by ' + esc(s.name) : ''} · not independently verified</span>`; };
 export const fstate = (s) => `<span class="fs">${lab('missing', s)}</span>`;
 export const chip = (t, cls = '') => `<span class="chip ${cls}">${t}</span>`;
 export const fmtDate = (d) => {
@@ -117,7 +125,7 @@ export function openDrawer(D, title, evs, opener) {
   pn.innerHTML = `<div class="hdr"><div><div class="lab">Evidence</div><h2 id="dr-t">${esc(title)}</h2></div><button type="button" class="x" aria-label="Close evidence">×</button></div>
 ${evs.map(e => { const s = D.source(e.source_id) || {}; const cf = (e.conflict_ids || []).map(id => D.byId(id)).filter(Boolean); return `<section class="ev">
   <div class="row" style="display:flex;flex-wrap:wrap;gap:6px">${vs(e.verification_status)}${chip(esc(e.evidence_class))}${chip(esc((L.tier[e.source_tier] || '').split(' · ')[0]))}</div>
-  <p>${tx(e.claim)}</p>
+  <p>${tx(e.claim)}</p>${qualifier(e, D)}
   <dl>
     ${e.value !== null ? `<dt>Value</dt><dd>${esc(fmtValue(e))}</dd>` : ''}
     <dt>Source</dt><dd>${esc(s.name || e.source_id)}${s.publisher ? ' · ' + esc(s.publisher) : ''}${s.url ? ` · <a href="${esc(s.url)}" rel="noopener" target="_blank" style="text-decoration:underline">link</a>` : ''}</dd>
@@ -127,7 +135,8 @@ ${evs.map(e => { const s = D.source(e.source_id) || {}; const cf = (e.conflict_i
     <dt>Period</dt><dd>${e.period ? esc(e.period) : '<span class="mut">Not stated</span>'}</dd>
     ${e.published_at ? `<dt>Published</dt><dd>${fmtDate(e.published_at)}</dd>` : ''}
     <dt>Retrieved</dt><dd>${fmtDate(e.retrieved_at)}</dd>
-    <dt>Last verified</dt><dd>${e.last_verified ? fmtDate(e.last_verified) : '<span class="mut">Not re-verified</span>'}</dd>
+    <dt>Last verified</dt><dd>${e.last_verified ? fmtDate(e.last_verified) : '<span class="mut">No verification date recorded</span>'}</dd>
+    <dt>Review status</dt><dd>${(() => { const f = freshness(e, D); return f.state === 'INVALID' ? 'Date not valid' : `${FRESH_LABEL[f.state]} · based on ${f.basis_kind === 'verified' ? 'verification' : 'retrieval'} date · review due ${fmtDate(f.review_due_on)}`; })()}</dd>
     ${e.area_basis ? `<dt>Area basis</dt><dd>${esc(e.area_basis === 'GROSS' ? 'Gross area' : 'Net area')}</dd>` : ''}
     ${e.series_id ? `<dt>Series</dt><dd>${esc(e.series_id)}${e.base_period ? ' · base ' + esc(e.base_period) : ''}</dd>` : ''}
     ${e.limitations ? `<dt>Limitations</dt><dd>${tx(e.limitations)}</dd>` : ''}
@@ -161,7 +170,8 @@ export function factRows(D, specs) {
     const st = (rec.field_states || []).find(s => s.field === field);
     const cf = D.conflictsFor([{ type, id: rec.id }]).filter(c => c.field === field && c.status === 'OPEN');
     const shown = (val === null || val === undefined || val === '' || (Array.isArray(val) && !val.length)) ? (st ? fstate(st.state) : `<span class="fs">Not recorded</span>`) : esc(fmt ? fmt(val) : val);
-    return `<div class="fact"><div class="k lab">${esc(label)}</div><div class="v">${shown}${cf.length ? ` <span class="chip red">Sources disagree</span>` : ''}</div><div>${evidenceButton(evs, key)}</div></div>`;
+    const fr = evs.map(e => freshness(e, D)); const worst = fr.some(f => f.state === 'CURRENT') ? null : fr.find(f => f.state === 'EXPIRED' || f.state === 'INVALID') || fr[0];
+    return `<div class="fact"><div class="k lab">${esc(label)}</div><div class="v">${shown}${cf.length ? ` <span class="chip red">Sources disagree</span>` : ''}${worst ? ' ' + freshChip(worst) : ''}</div><div>${evidenceButton(evs, key)}</div></div>`;
   }).join('');
   return { html, keys };
 }

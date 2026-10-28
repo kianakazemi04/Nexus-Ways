@@ -42,7 +42,7 @@
     "conflict_status": { "enum": ["OPEN", "EXPLAINED", "RESOLVED"] },
     "media_type": { "enum": ["PHOTO", "RENDERING", "FLOOR_PLAN", "SITE_PLAN", "CONSTRUCTION_PROGRESS", "ILLUSTRATIVE", "MAP"] },
     "content_category": { "enum": ["exterior", "interior", "amenity", "plan", "progress", "location", "other"] },
-    "permission_status": { "enum": ["NOT_REQUESTED", "REQUESTED", "GRANTED_WRITTEN", "GRANTED_VERBAL", "RESTRICTED", "DENIED", "EXPIRED"] },
+    "permission_status": { "enum": ["NOT_REQUESTED", "REQUESTED", "GRANTED_WRITTEN", "GRANTED_VERBAL", "RESTRICTED", "DENIED", "EXPIRED", "REVOKED"] },
     "permission_scope": { "enum": ["desk_web", "corporate_web", "social"] },
     "media_role": { "enum": ["cover", "gallery"] },
     "disclosure_kind": { "enum": ["COMMERCIAL_RELATIONSHIP", "COMMISSION", "CONFLICT_OF_INTEREST", "LEGAL_NOTICE"] },
@@ -259,7 +259,8 @@
             "status": { "$ref": "#/$defs/permission_status" },
             "scope": { "type": "array", "items": { "$ref": "#/$defs/permission_scope" } },
             "evidence_ref": { "type": ["string", "null"], "description": "Pointer to the private store (e.g. PRIV-PERM-…); never the document itself." },
-            "granted_at": { "$ref": "#/$defs/date_or_null" }, "expires_at": { "$ref": "#/$defs/date_or_null" }
+            "granted_at": { "$ref": "#/$defs/date_or_null" }, "expires_at": { "$ref": "#/$defs/date_or_null" },
+            "revoked_at": { "$ref": "#/$defs/date_or_null", "description": "S-14: date the permission was revoked (status REVOKED). Optional." }
           }
         },
         "attribution": {

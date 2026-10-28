@@ -1,3 +1,4 @@
-# interrupted-write journals and temporary files from desk/_tools (never commit these)
+# interrupted-write journals, locks and temporary files from desk/_tools (never commit these)
 _txn/
+_lock.json
 *.desk-tmp

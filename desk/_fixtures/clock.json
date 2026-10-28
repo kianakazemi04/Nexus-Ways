@@ -1,0 +1,4 @@
+{
+  "note": "Fixed evaluation date for the illustrative fixtures, so their gate report does not change with the calendar. Production data is always evaluated against the real date (UTC).",
+  "today": "2026-10-27"
+}

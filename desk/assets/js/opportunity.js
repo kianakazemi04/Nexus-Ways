@@ -1,6 +1,6 @@
 // Opportunity profile: one data-driven template for every opportunity. Everything is resolved from the opportunity ID only.
 import { ready } from './core.js';
-import { esc, tx, lab, chip, vs, fmtDate, gallery, bindGallery, factRows, bindEvidence, researchBlocks, gaps, conflicts, risks, unavailable, reveal, openDrawer } from './ui.js';
+import { esc, tx, lab, chip, vs, freshness, freshChip, qualifier, fmtDate, gallery, bindGallery, factRows, bindEvidence, researchBlocks, gaps, conflicts, risks, unavailable, reveal, openDrawer } from './ui.js';
 
 const D = await ready;
 const host = document.getElementById('opp');
@@ -50,7 +50,7 @@ if (!o) {
   <div class="kv"><span class="lab">Market</span><b>${esc(m ? m.name : '—')}</b></div>
   <div class="kv"><span class="lab">Category</span><b>${o.category === 'real_estate' ? 'Real estate' : esc(o.category)}</b></div>
   <div class="kv"><span class="lab">Record</span><b class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(o.id)}</b></div>
-  <div class="kv"><span class="lab">Last verified</span><b>${o.last_verified ? fmtDate(o.last_verified) : 'Not yet verified'}</b></div>
+  <div class="kv"><span class="lab">Last verified</span><b>${o.last_verified ? fmtDate(o.last_verified) : 'No verification date recorded'}</b></div>
   <div class="kv" style="grid-column:1/-1"><span class="lab">Price</span><b>Not published. Current unit pricing is discussed in consultation.</b></div>
 </div></div></section>
 
@@ -59,7 +59,7 @@ if (!o) {
 <section class="sec" id="evidence" aria-labelledby="f-t"><div class="sh"><div><span class="lab">Structured information</span><h2 id="f-t">Facts and their evidence</h2></div><p>Each value links to its evidence: source, tier, period and verification status. Missing values are labelled, never filled.</p></div>
 ${cfs.length ? `<div style="display:grid;gap:10px;margin-bottom:20px">${conflicts(cfs)}</div>` : ''}
 <div class="facts" id="facts">${facts.html}</div>
-${ctxEv.length ? `<div style="margin-top:22px">${ctxEv.map((e, i) => `<div class="gap"><span class="f">${tx(e.claim)}</span>${vs(e.verification_status)}${chip(esc(e.evidence_class))}<button type="button" class="evb" data-ev="c${i}">Source</button></div>`).join('')}</div>` : ''}
+${ctxEv.length ? `<div style="margin-top:22px">${ctxEv.map((e, i) => `<div class="gap"><span class="f">${tx(e.claim)}</span>${vs(e.verification_status)}${chip(esc(e.evidence_class))}${freshChip(freshness(e, D))}${qualifier(e, D)}<button type="button" class="evb" data-ev="c${i}">Source</button></div>`).join('')}</div>` : ''}
 </section>
 
 <section class="sec" aria-labelledby="r-t"><div class="sh"><div><span class="lab">Research status</span><h2 id="r-t">Closure and completeness</h2></div></div>${researchBlocks(p ? D.researchBlocks('project', p.id) : [])}</section>

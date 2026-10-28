@@ -16,6 +16,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const TODAY = '2026-10-27';
 const codes = (r) => r.errors.map(e => e.code);
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
+// B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)
+const approveImages = (run, repo, storeArgs, storeDir) => { const f = path.join(storeDir, 'data/media.json'); if (!fs.existsSync(f)) return []; return JSON.parse(fs.readFileSync(f, 'utf8')).records.map(m => [m.id, run(repo, ['approve-media', ...storeArgs, '--id', m.id, '--by', 'owner']).code]); };
+
 const writeJson = (p, j) => fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
 function tmpRepo() {
@@ -99,6 +102,7 @@ test('B1 regression (end to end): approve and export are refused while a COMMISS
     const pubDir = path.join(s.repo, 'desk/data/public'); const before = snapshotDir(pubDir);
     // original defect: only the generic notice approved → approve + export used to succeed and drop the commission disclosure
     assert.equal(cli(s.repo, ['approve-disclosure', ...S, '--id', DSC(2), '--by', 'owner']).code, 0);
+    approveImages(cli, s.repo, S, s.store);
     let r = cli(s.repo, ['approve', ...S, '--id', OPP, '--by', 'owner']);
     assert.equal(r.code, 1, r.out); assert.match(r.out, new RegExp(`disclosure ${DSC(1)} \\(COMMISSION\\) legal review pending`));
     // even with the status forced by hand in the store, export refuses and writes nothing
@@ -155,6 +159,7 @@ test('B2 regression (end to end): a price inside a claim blocks owner approval o
     const S = ['--store', s.store];
     assert.equal(cli(s.repo, ['ingest', '--package', s.pkg, ...S, '--apply']).code, 0);
     assert.equal(cli(s.repo, ['approve-disclosure', ...S, '--id', DSC(1), '--by', 'owner']).code, 0);
+    approveImages(cli, s.repo, S, s.store);
     const r = cli(s.repo, ['approve', ...S, '--id', OPP, '--by', 'owner']);
     assert.equal(r.code, 1, r.out); assert.match(r.out, /has a price or commercial term in free text/);
     assert.notEqual(cli(s.repo, ['export', ...S, '--id', OPP]).code, 0);
@@ -250,7 +255,7 @@ test('B4: every workflow action is pinned to an approved full commit SHA with a 
       const why = pinProblem(m[1], m[2]); assert.equal(why, null, `${f}: ${why}`);
     }
   }
-  assert.equal(seen, 11, 'expected the 11 known third-party action references');
+  assert.equal(seen, 13, 'expected the 13 known third-party action references');
   // the policy check rejects what it should
   const sha = APPROVED_ACTION_PINS['actions/checkout'][0];
   for (const [ref, rest] of [['actions/checkout@v4', ''], ['actions/checkout@main', ''], ['actions/checkout@11d5960', ' # v4.4.0'], [`evil/checkout@${sha}`, ' # v4.4.0'],

@@ -68,3 +68,39 @@ Field rules: `evidence_class` ∈ FACT, LEGAL FACT, ESTIMATE, PROJECTION, INTERP
   `desk/` is a validation error (F07), so it can never pass CI; `desk/.gitignore` keeps them out of commits.
 - **Fault injection (tests only).** `DESK_FAULT=<label>:write:<n>|<named point>|crash:<…>` makes a command fail or exit
   at that point; `desk/_tests/phase2.test.mjs` exercises every write stage. Nothing in normal use sets it.
+
+## Publication and data-integrity controls (P0/P1 closure)
+
+Policies live in `desk/assets/js/policy.js`, shared by the validator, the ingestion tool and the Desk pages.
+
+- **Evidence freshness (review policy RP-1).** Each evidence record is CURRENT, REVIEW_DUE, EXPIRED or INVALID,
+  computed from its verification date (or, if none, its retrieval date) against a review interval per field, source
+  type or evidence class. Expired means "re-review required", not "false". For material fields (project name,
+  delivery status, expected delivery, developer legal entity, unit facts) EXPIRED/INVALID blocks new publication;
+  REVIEW_DUE is published with a "Review due" label (warning W02). An already-published opportunity whose evidence
+  ages is reported (W01), not withdrawn automatically — that policy is an open owner decision (D4). Dates in the
+  future or impossible dates are errors (V18). The validator uses the UTC date; fixtures use `desk/_fixtures/clock.json`.
+- **Last verified (V19).** Derived from evidence verification dates (the oldest across material fields); null when a
+  material field has no verification date. Never the approval date.
+- **Claim publication (claim policy CP-1).** ESTABLISHED (verified/corroborated fact, Tier 1–3) is shown as a fact;
+  QUALIFIED (developer claim, source-reported, estimate, projection, interpretation, opinion) is shown with
+  "As reported by <source> · not independently verified"; NOT_PUBLIC (unverified, hypothesis, any Tier 4 source) is
+  never exported or rendered, stays in the private store and is listed as "held back" in the export output (V20).
+  A material field with a value needs at least one publishable evidence record; identity fields need an ESTABLISHED one.
+- **Images, one by one.** `approve` no longer approves images. `approve-media --id MED-… --by owner` checks that
+  image's own permission (written, evidence reference, desk_web scope, not expired, not revoked, attribution, bound
+  to its project). `revoke-media --id MED-… --by owner --reason "…"` marks the permission REVOKED (schema S-14:
+  status REVOKED, `revoked_at`) and the next export removes that image and its file; other images stay.
+- **Withdrawal.** `withdraw --id OPP-… --by owner --reason "…"`: the store record becomes WITHHELD (review cleared,
+  evidence kept), then the opportunity, its project, assets, evidence, media files, disclosures and page leave the
+  public tree in one validated transaction. Idempotent; a re-export needs a new `approve`.
+- **Conflicts.** `resolve-conflict --id CNF-… --by owner --status EXPLAINED|RESOLVED --note "…" [--accept EVD-…]`.
+  Both sides and their links are kept; RESOLVED applies the accepted value and records the previous value.
+- **Audit log.** Every owner action appends to `private/audit_log.json` in the store (never published). `--by owner`
+  is a recorded statement, not authentication.
+- **Locks and recovery.** Every command that writes holds `_lock.json` in the store (and in `desk/` for export and
+  withdrawal). A second command fails clearly; a lock left by a dead process on the same machine is cleared; any
+  other lock needs `unlock --store <dir> --force` after checking. Recovery refuses to overwrite a file that changed
+  after a crash, and never runs underneath a live operation. Symbolic links inside a transaction root are refused.
+- **CI.** `fixture-browser-check` runs the browser checks in fixture mode from the source tree, separately from
+  `pages-build-check` (production build, fixtures absent).

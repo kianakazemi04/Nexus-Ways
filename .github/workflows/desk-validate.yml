@@ -26,7 +26,7 @@ jobs:
       - name: Check generated Desk pages are up to date
         run: node desk/_tools/build.mjs --check
       - name: Run Desk test suites (unit rules, ingestion lifecycle, P0 regressions, Phase 2 integrity)
-        run: node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs desk/_tests/phase2.test.mjs
+        run: node --test desk/_tests/desk.test.mjs desk/_tests/p0.test.mjs desk/_tests/phase2.test.mjs desk/_tests/p1.test.mjs
   pages-build-check:
     # Reproduces the real GitHub Pages build (same builder as pages-build-deployment) WITHOUT deploying,
     # then tests the built site served at the domain root, as nexus-ways.com serves it.
@@ -50,4 +50,18 @@ jobs:
         env:
           SITE_DIR: _site
           PAGES_MODE: '1'
+        run: python3 desk/_tests/ui_acceptance.py
+  fixture-browser-check:
+    # Illustrative fixtures in a browser, from the SOURCE tree on a local server: never the published build, never
+    # deployed. Kept separate from pages-build-check, which tests the production build with fixtures absent.
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install Playwright (Chromium)
+        run: pip install playwright==1.48.0 && python -m playwright install --with-deps chromium
+      - name: Browser checks in production and fixture mode (local server, source tree)
         run: python3 desk/_tests/ui_acceptance.py

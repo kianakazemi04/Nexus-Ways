@@ -7,6 +7,12 @@
 //   node desk/_tools/ingest.mjs approve-disclosure --store <dir> --id <DSC-…> --by owner  (after counsel approves the text)
 //   node desk/_tools/ingest.mjs approve --store <dir> --id <OPP-…> --by owner      (only on the owner's explicit instruction)
 //   node desk/_tools/ingest.mjs export  --store <dir> --id <OPP-…> --repo <root>   (only after approval; writes public projection)
+//   node desk/_tools/ingest.mjs approve-media --store <dir> --id <MED-…> --by owner  (each image, after checking its permission)
+//   node desk/_tools/ingest.mjs revoke-media  --store <dir> --id <MED-…> --by owner --reason "…"
+//   node desk/_tools/ingest.mjs resolve-conflict --store <dir> --id <CNF-…> --by owner --status EXPLAINED|RESOLVED --note "…" [--accept <EVD-…>]
+//   node desk/_tools/ingest.mjs withdraw --store <dir> --id <OPP-…> --by owner --reason "…"
+//   node desk/_tools/ingest.mjs recover  --store <dir>            (roll back an interrupted write in the store and desk/)
+//   node desk/_tools/ingest.mjs unlock   --store <dir> --force [--public]   (only after checking no command is running)
 //
 // The store is the PRIVATE research store (private repo / drive), or desk/_fixtures for illustrative fixtures.
 // Store layout: data/<collection>.json · private/*.json · media/<subject>/<MED>.<ext> · reports/<package>.md
@@ -18,7 +24,8 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { COLLECTIONS, SCHEMA, GATE_VERSION, REQUIRED_AT_REVIEW, validateDataset, validateRepo, imageSize, applicableDisclosures } from './validate.mjs';
-import { withTxn, recover, fault } from './txn.mjs';
+import { withTxn, recover, fault, withLock, forceUnlock } from './txn.mjs';
+import { claimPublication, isPublicClaim, deriveLastVerified } from '../assets/js/policy.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFS = SCHEMA.$defs;
@@ -80,7 +87,7 @@ export function loadStore(dir) {
     const f = path.join(dir, 'data', `${c}.json`);
     collections[c] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')).records : [];
   }
-  for (const n of ['private_facts', 'documents', 'media_index']) {
+  for (const n of ['private_facts', 'documents', 'media_index', 'audit_log']) {
     const f = path.join(dir, 'private', `${n}.json`);
     files[n] = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : (n === 'media_index' ? {} : []);
   }
@@ -199,8 +206,11 @@ export function runGate(store, { fixture, today, repoRoot, staged = null }) {
 }
 
 // ------------------------------------------------------------ ingest
-export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today, repoRoot }) {
-  storeDir = assertStorePath(storeDir, repoRoot, { fixture });
+export function ingest(args) {
+  const storeDir = assertStorePath(args.storeDir, args.repoRoot, { fixture: !!args.fixture });
+  return args.apply ? withLock(storeDir, 'ingest', () => ingestUnlocked({ ...args, storeDir })) : ingestUnlocked({ ...args, storeDir });
+}
+function ingestUnlocked({ pkgDir, storeDir, fixture = false, apply = false, today, repoRoot }) {
   const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'intake.json'), 'utf8'));
   const pkgErrors = validatePackage(pkg, pkgDir);
   if (pkgErrors.length) {
@@ -510,137 +520,322 @@ export function ingest({ pkgDir, storeDir, fixture = false, apply = false, today
   } finally { fs.rmSync(staging, { recursive: true, force: true }); }
 }
 
-// ------------------------------------------------------------ approve (owner action only)
-export function approve({ storeDir, id, by, fixture, today, repoRoot }) {
-  if (by !== 'owner') throw new Error('approval must be recorded --by owner');
+// ------------------------------------------------------------ owner actions: common rules
+// "--by owner" records who acted; it is NOT authentication (anyone who can run this tool can type it). Every owner
+// action holds the store lock for its whole run, writes the store in one transaction, and appends to the private
+// audit log (private/audit_log.json): action, subject, actor, date, details. The audit log is never published.
+const ACTOR = 'owner (recorded by --by flag; not authenticated)';
+const requireOwner = (by, what) => { if (by !== 'owner') throw new Error(`${what} must be recorded --by owner`); };
+const audit = (store, action, id, today, details = {}) => store.private.audit_log.push({ seq: store.private.audit_log.length + 1, action, id, at: today, actor: ACTOR, ...details });
+function ownerAction({ storeDir, repoRoot, fixture, label }, fn) {
   storeDir = assertStorePath(storeDir, repoRoot, { fixture });
-  const store = loadStore(storeDir);
-  const opp = store.collections.opportunities.find(o => o.id === id); if (!opp) throw new Error(`${id} not found`);
-  const project = store.collections.projects.find(p => p.id === opp.subject.id);
-  const dev = project && store.collections.developers.find(d => d.id === project.developer_id);
-  const review = { approved_by: 'owner', approved_at: today, gate_version: GATE_VERSION };
-  const snapshot = JSON.stringify(store.collections);
-  for (const r of [opp, project, dev].filter(Boolean)) { r.review = review; r.record_status = 'PUBLISHED'; }
-  for (const m of store.collections.media.filter(m => [project.id, opp.id].includes(m.subject.id))) {
-    const p = m.permission;
-    if (p.status === 'GRANTED_WRITTEN' && p.scope.includes('desk_web') && (!p.expires_at || p.expires_at >= today)) m.review = review;
-  }
-  opp.last_verified = today;
-  const gate = runGate(store, { fixture, today, repoRoot });
-  const why = gate.eligibility.opportunities[id];
-  if (why.length) { store.collections = JSON.parse(snapshot); return { approved: false, why }; }
-  saveStore(store);
-  return { approved: true, why: [] };
+  return withLock(storeDir, label, () => fn(storeDir));
+}
+const subjectRecs = (store, opp) => {
+  const project = store.collections.projects.find(p => p.id === opp.subject.id) || null;
+  const developer = project && store.collections.developers.find(d => d.id === project.developer_id) || null;
+  const asset = opp.asset_id ? store.collections.assets.find(a => a.id === opp.asset_id) || null : null;
+  return { project, developer, asset, list: [{ type: 'project', rec: project }, { type: 'developer', rec: developer }, { type: 'asset', rec: asset }] };
+};
+
+// ------------------------------------------------------------ approve (owner action only)
+// Approves the opportunity, its project and developer. Images are NOT approved here: every image needs its own
+// approve-media decision (B3). "Last verified" is derived from evidence verification dates, never the approval date.
+export function approve({ storeDir, id, by, fixture, today, repoRoot }) {
+  requireOwner(by, 'approval');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'approve' }, (dir) => {
+    const store = loadStore(dir);
+    const opp = store.collections.opportunities.find(o => o.id === id); if (!opp) throw new Error(`${id} not found`);
+    const { project, developer, list } = subjectRecs(store, opp);
+    const review = { approved_by: 'owner', approved_at: today, gate_version: GATE_VERSION };
+    const snapshot = JSON.stringify(store.collections);
+    for (const r of [opp, project, developer].filter(Boolean)) { r.review = review; r.record_status = 'PUBLISHED'; }
+    opp.last_verified = deriveLastVerified(list, store.collections.evidence);
+    const gate = runGate(store, { fixture, today, repoRoot });
+    const why = gate.eligibility.opportunities[id];
+    if (why.length) { store.collections = JSON.parse(snapshot); return { approved: false, why }; }
+    audit(store, 'approve', id, today, { gate_version: GATE_VERSION, last_verified: opp.last_verified });
+    saveStore(store);
+    return { approved: true, why: [], last_verified: opp.last_verified };
+  });
 }
 
 // ------------------------------------------------------------ record the owner's legal sign-off of a disclosure text
 export function approveDisclosure({ storeDir, id, by, today, fixture = false, repoRoot = path.resolve(HERE, '../..') }) {
-  if (by !== 'owner') throw new Error('legal approval must be recorded --by owner after counsel review');
-  storeDir = assertStorePath(storeDir, repoRoot, { fixture });
-  const store = loadStore(storeDir);
-  const d = store.collections.disclosures.find(x => x.id === id); if (!d) throw new Error(`${id} not found`);
-  d.legal_review = 'APPROVED'; d.approved_at = today; saveStore(store);
+  requireOwner(by, 'legal approval (after counsel review)');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'approve-disclosure' }, (dir) => {
+    const store = loadStore(dir);
+    const d = store.collections.disclosures.find(x => x.id === id); if (!d) throw new Error(`${id} not found`);
+    d.legal_review = 'APPROVED'; d.approved_at = today;
+    audit(store, 'approve-disclosure', id, today, { kind: d.kind });
+    saveStore(store);
+  });
+}
+
+// ------------------------------------------------------------ per-image approval and revocation (B3)
+// The permission of each image is checked on its own: written permission, a reference to the permission record,
+// the desk_web scope (channel), not expired, not revoked, attribution present when required, processed file bound
+// to this project. (The schema has no territory field; channel scope is the only use restriction represented.)
+export function mediaPermissionProblems(m, today) {
+  const p = m.permission || null; const why = [];
+  if (!p) return ['no permission recorded'];
+  if (p.status === 'REVOKED') why.push(`permission revoked${p.revoked_at ? ' on ' + p.revoked_at : ''}`);
+  else if (p.status !== 'GRANTED_WRITTEN') why.push(`permission is ${p.status}, not written (possession of a file or an informal message is not permission)`);
+  if (!p.evidence_ref) why.push('no reference to the private permission record');
+  if (!(p.scope || []).includes('desk_web')) why.push('scope does not include desk_web');
+  if (p.expires_at && p.expires_at < today) why.push(`permission expired on ${p.expires_at}`);
+  if (m.attribution && m.attribution.required && !m.attribution.text) why.push('attribution required but missing');
+  if (!m.file || /^0+$/.test(m.file.sha256 || '0')) why.push('file not processed');
+  return why;
+}
+export function approveMedia({ storeDir, id, by, fixture = false, today, repoRoot }) {
+  requireOwner(by, 'image approval');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'approve-media' }, (dir) => {
+    const store = loadStore(dir);
+    const m = store.collections.media.find(x => x.id === id); if (!m) throw new Error(`${id} not found`);
+    const subj = m.subject && (store.collections.projects.find(p => p.id === m.subject.id) || store.collections.opportunities.find(o => o.id === m.subject.id));
+    const why = mediaPermissionProblems(m, today);
+    if (!subj) why.push(`subject ${m.subject && m.subject.id} not found in this store`);
+    else if (m.file && !m.file.public_path.includes(`/${m.subject.id}/`)) why.push('file path is not bound to its own project');
+    if (why.length) return { approved: false, why };
+    m.review = { approved_by: 'owner', approved_at: today, gate_version: GATE_VERSION };
+    audit(store, 'approve-media', id, today, { subject: m.subject.id, permission_ref: m.permission.evidence_ref, scope: m.permission.scope, expires_at: m.permission.expires_at });
+    saveStore(store);
+    return { approved: true, why: [] };
+  });
+}
+export function revokeMedia({ storeDir, id, by, reason, fixture = false, today, repoRoot }) {
+  requireOwner(by, 'permission revocation');
+  if (!reason || reason === true) throw new Error('--reason is required');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'revoke-media' }, (dir) => {
+    const store = loadStore(dir);
+    const m = store.collections.media.find(x => x.id === id); if (!m) throw new Error(`${id} not found`);
+    if (m.permission && m.permission.status === 'REVOKED') return { changed: false, publicPath: m.file.public_path };
+    const previous = m.permission ? m.permission.status : null;
+    m.permission = { ...(m.permission || { scope: [], evidence_ref: null, granted_at: null, expires_at: null }), status: 'REVOKED', revoked_at: today };
+    m.review = null;
+    audit(store, 'revoke-media', id, today, { subject: m.subject.id, previous_status: previous, reason });
+    saveStore(store);
+    const pub = path.join(repoRoot, 'desk/data/public/media.json');
+    const isPublic = fs.existsSync(pub) && JSON.parse(fs.readFileSync(pub, 'utf8')).records.some(x => x.id === id);
+    return { changed: true, isPublic, publicPath: m.file.public_path };
+  });
+}
+
+// ------------------------------------------------------------ conflict resolution (B5)
+// RESOLVED: the owner accepts one evidence record; its value becomes the record's value (the previous value is kept in
+// the audit log). EXPLAINED: both sides stay, with a written explanation. Either way every conflicting evidence record
+// and its conflict link are kept; nothing is deleted. If a published opportunity's value changes, it is set to
+// WITHHELD and needs a new owner approval before the next export.
+export function resolveConflict({ storeDir, id, by, status, note, accept = null, fixture = false, today, repoRoot }) {
+  requireOwner(by, 'conflict resolution');
+  if (!['RESOLVED', 'EXPLAINED'].includes(status)) throw new Error('--status must be RESOLVED or EXPLAINED');
+  if (!note || note === true) throw new Error('--note (the written resolution or explanation) is required');
+  return ownerAction({ storeDir, repoRoot, fixture, label: 'resolve-conflict' }, (dir) => {
+    const store = loadStore(dir);
+    const c = store.collections.conflicts.find(x => x.id === id); if (!c) throw new Error(`${id} not found`);
+    if (c.status !== 'OPEN') throw new Error(`${id} is already ${c.status}`);
+    const coll = TYPE_TO_COLL[c.subject.type]; const sub = store.collections[coll].find(r => r.id === c.subject.id);
+    const details = { status, note, field: c.field, evidence_ids: [...c.evidence_ids] };
+    if (status === 'RESOLVED') {
+      if (!accept || !c.evidence_ids.includes(accept)) throw new Error(`--accept must name one of ${c.evidence_ids.join(', ')}`);
+      const e = store.collections.evidence.find(x => x.id === accept);
+      if (!isPublicClaim(e)) throw new Error(`${accept} is not publishable evidence (${claimPublication(e).reason}); it cannot settle a conflict`);
+      details.accepted = accept; details.previous_value = sub ? sub[c.field] ?? null : null; details.new_value = e.value;
+      if (sub && c.field && !eq(sub[c.field], e.value)) {
+        sub[c.field] = e.value;
+        const touches = (o) => [o.subject.id, o.asset_id, o.id].includes(sub.id) || store.collections.projects.some(p => p.id === o.subject.id && p.developer_id === sub.id);
+        for (const o of store.collections.opportunities.filter(o => o.record_status === 'PUBLISHED' && touches(o))) {
+          o.record_status = 'WITHHELD'; o.review = null; details.withheld = (details.withheld || []).concat(o.id);
+        }
+      }
+    }
+    c.status = status; c.note = { en: note };
+    audit(store, 'resolve-conflict', id, today, details);
+    saveStore(store);
+    return details;
+  });
+}
+
+// ------------------------------------------------------------ public projection: one staged, validated, atomic change
+// mutate(pub, stage) edits the public collections (and copies media into the staged tree). Afterwards: media files no
+// longer referenced are removed, unreferenced sources are dropped, published.json and pages are regenerated, the
+// staged copy must validate with zero errors, and only then is the difference applied to desk/ in one transaction
+// (re-validated before commit). Holds the lock on desk/ for the whole run.
+function publicChange({ repoRoot, today, label }, mutate) {
+  const rDesk = path.join(repoRoot, 'desk');
+  return withLock(rDesk, label, () => {
+    recover(rDesk); // a crashed earlier change is rolled back before anything is compared
+    const stage = fs.mkdtempSync(path.join(os.tmpdir(), `desk-${label}-stage-`));
+    try {
+      fs.cpSync(repoRoot, stage, { recursive: true, filter: (src) => { const r = path.relative(repoRoot, src).split(path.sep); return !['.git', 'node_modules'].includes(r[0]) && !(r[0] === 'desk' && (r[1] === '_txn' || r[1] === '_lock.json')) && !src.endsWith('.desk-tmp'); } });
+      fault(`${label}:stage`);
+      const pubDir = path.join(stage, 'desk/data/public');
+      const pub = {}; for (const c of Object.keys(COLLECTIONS)) pub[c] = JSON.parse(fs.readFileSync(path.join(pubDir, `${c}.json`), 'utf8')).records;
+      const info = mutate(pub, stage) || {};
+      // sources are kept only while something public references them
+      const usedSrc = new Set([...pub.evidence.map(e => e.source_id), ...pub.media.map(m => m.provenance && m.provenance.source_id)]);
+      pub.sources = pub.sources.filter(s => usedSrc.has(s.id));
+      for (const [c, recs] of Object.entries(pub)) { recs.sort((a, b) => a.id.localeCompare(b.id)); fs.writeFileSync(path.join(pubDir, `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: recs }, null, 2) + '\n'); }
+      // no orphan media: every file under desk/media must belong to a public media record
+      const keep = new Set(pub.media.map(m => m.file.public_path));
+      const mediaRoot = path.join(stage, 'desk/media');
+      if (fs.existsSync(mediaRoot)) for (const f of fs.readdirSync(mediaRoot, { recursive: true }).map(String)) {
+        const abs = path.join(mediaRoot, f); const rel = `desk/media/${f.split(path.sep).join('/')}`;
+        if (fs.statSync(abs).isFile() && !rel.endsWith('.gitkeep') && !keep.has(rel)) fs.rmSync(abs);
+      }
+      validateRepo(stage, { today, writeIndex: true });
+      execFileSync('node', [path.join(stage, 'desk/_tools/build.mjs')], { stdio: ['ignore', 'pipe', 'pipe'] });
+      fault(`${label}:staged-build`);
+      const staged = validateRepo(stage, { today });
+      if (staged.errors.length) throw new Error(`${label} refused — the staged result does not validate; nothing was changed: ${staged.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
+      const list = (root) => { const outF = new Set(); const walk = (d) => { if (!fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); const rel = path.relative(root, p); const top = rel.split(path.sep)[0]; if (top === '_txn' || top === '_lock.json' || e.name.endsWith('.desk-tmp')) continue; if (e.isDirectory()) walk(p); else outF.add(rel); } }; walk(root); return outF; };
+      const sDesk = path.join(stage, 'desk');
+      const sFiles = list(sDesk); const rFiles = list(rDesk);
+      const writes = [...sFiles].filter(f => !rFiles.has(f) || !fs.readFileSync(path.join(sDesk, f)).equals(fs.readFileSync(path.join(rDesk, f)))).sort();
+      const removes = [...rFiles].filter(f => !sFiles.has(f)).sort();
+      withTxn(rDesk, label, (t) => {
+        for (const f of writes) t.copy(path.join(sDesk, f), path.join(rDesk, f));
+        for (const f of removes) t.remove(path.join(rDesk, f));
+        fault(`${label}:applied`);
+        const post = validateRepo(repoRoot, { today, inTransaction: true });
+        if (post.errors.length) throw new Error(`${label} rolled back — the public tree did not validate after applying: ${post.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
+      });
+      // empty folders left by removed media or pages
+      for (const d of [...new Set(removes.map(f => path.dirname(path.join(rDesk, f))))].sort((a, b) => b.length - a.length)) { try { if (fs.existsSync(d) && !fs.readdirSync(d).length) fs.rmdirSync(d); } catch { /* keep */ } }
+      return { ...info, changed: writes.map(f => `desk/${f}`), removed: removes.map(f => `desk/${f}`) };
+    } finally { fs.rmSync(stage, { recursive: true, force: true }); }
+  });
+}
+// records in the public projection that belong to a set of subjects
+const SUBJECT_BOUND = ['evidence', 'conflicts', 'research_blocks', 'risks', 'media', 'disclosures'];
+function dropSubjects(pub, ids) {
+  for (const c of SUBJECT_BOUND) pub[c] = pub[c].filter(r => !(r.subject && ids.has(r.subject.id)));
+  for (const c of ['opportunities', 'projects', 'assets', 'developers', 'districts', 'areas']) pub[c] = pub[c].filter(r => !ids.has(r.id));
 }
 
 // ------------------------------------------------------------ export public projection (approved, real records only)
 export function exportPublic({ storeDir, id, repoRoot, today }) {
   if (id.startsWith('FIX-')) throw new Error('illustrative fixtures can never be exported');
   storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
-  recover(path.join(repoRoot, 'desk')); // a crashed earlier export is rolled back before anything is compared
-  const store = loadStore(storeDir);
-  const gate = runGate(store, { fixture: false, today, repoRoot });
-  const opp = store.collections.opportunities.find(o => o.id === id);
-  if (!opp || opp.record_status !== 'PUBLISHED' || !opp.review) throw new Error(`${id} is not approved`);
-  if (gate.eligibility.opportunities[id].length) throw new Error(`${id} fails the gate: ${gate.eligibility.opportunities[id].join('; ')}`);
-  // defence in depth (audit B1): every applicable disclosure must be approved and is exported in full — never skipped
-  const disclosures = applicableDisclosures(store.collections.disclosures, opp);
-  const pending = disclosures.filter(d => d.legal_review !== 'APPROVED' || !d.approved_at);
-  if (!disclosures.length || pending.length) throw new Error(`${id} cannot be exported: ${disclosures.length ? 'disclosure approval pending for ' + pending.map(d => `${d.id} (${d.kind})`).join(', ') : 'no disclosure recorded'}`);
-  const disclosureIds = new Set(disclosures.map(d => d.id));
-  const pubDir = path.join(repoRoot, 'desk/data/public');
-  const pub = {}; for (const c of Object.keys(COLLECTIONS)) pub[c] = JSON.parse(fs.readFileSync(path.join(pubDir, `${c}.json`), 'utf8')).records;
-  const market = pub.markets.find(m => m.id === opp.market_id);
-  if (!market || market.activation !== 'ACTIVE') throw new Error(`market ${opp.market_id} is not active in the public data (market gate G4)`);
-  const project = store.collections.projects.find(p => p.id === opp.subject.id);
-  const ids = new Set([opp.id, project.id, project.developer_id, project.district_id, project.area_id, opp.asset_id].filter(Boolean));
-  const subj = new Set(ids);
-  const skipped = [];
-  const sevActive = methods()['M-RISK-SEVERITY'].status === 'ACTIVE';
-  const out = { opportunities: [opp], projects: [project] };
-  const take = (c, pred) => (out[c] = (out[c] || []).concat(store.collections[c].filter(pred)));
-  take('developers', r => ids.has(r.id)); take('districts', r => ids.has(r.id)); take('areas', r => ids.has(r.id)); take('assets', r => ids.has(r.id));
-  take('evidence', r => subj.has(r.subject.id) && (r.currency === null || (skipped.push(`${r.id} (currency)`), false)));
-  take('conflicts', r => subj.has(r.subject.id));
-  take('research_blocks', r => subj.has(r.subject.id));
-  take('risks', r => subj.has(r.subject.id));
-  take('disclosures', r => disclosureIds.has(r.id));
-  take('media', r => subj.has(r.subject.id) && (gate.eligibility.media[r.id].length === 0 || (skipped.push(`${r.id} (${gate.eligibility.media[r.id].join(', ')})`), false)));
-  const srcs = new Set([...out.evidence.map(e => e.source_id), ...out.media.map(m => m.provenance.source_id)]);
-  take('sources', r => srcs.has(r.id));
-  out.risks = out.risks.map(r => sevActive ? r : { ...r, severity: null, probability: null });
-  // keep only references that are exported
-  const exported = new Set(Object.values(out).flat().map(r => r.id));
-  for (const r of Object.values(out).flat()) for (const k of ['evidence_ids', 'risk_ids', 'research_block_ids', 'disclosure_ids', 'conflict_ids']) if (Array.isArray(r[k])) r[k] = r[k].filter(i => exported.has(i));
-  for (const [c, recs] of Object.entries(out)) {
-    for (const r of recs) { const i = pub[c].findIndex(x => x.id === r.id); if (i >= 0) pub[c][i] = r; else pub[c].push(r); }
-    pub[c].sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  // Phase 2: build and validate the complete result in a throw-away copy of the repository first. The real tree is
-  // changed only if the staged result validates with zero errors, and then through one transaction that is rolled
-  // back if any write or the final validation fails. A crash mid-commit is rolled back by the next command.
-  const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'desk-export-stage-'));
-  try {
-    fs.cpSync(repoRoot, stage, { recursive: true, filter: (src) => { const r = path.relative(repoRoot, src).split(path.sep); return !['.git', 'node_modules'].includes(r[0]) && !(r[0] === 'desk' && r[1] === '_txn') && !src.endsWith('.desk-tmp'); } });
-    fault('export:stage');
-    for (const [c, recs] of Object.entries(pub)) fs.writeFileSync(path.join(stage, 'desk/data/public', `${c}.json`), JSON.stringify({ schema_version: '1.1', collection: c, records: recs }, null, 2) + '\n');
-    for (const m of out.media) {
-      const src = path.join(storeDir, 'media', m.subject.id, path.basename(m.file.public_path));
-      const dst = path.join(stage, m.file.public_path); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst);
-    }
-    validateRepo(stage, { today, writeIndex: true });
-    execFileSync('node', [path.join(stage, 'desk/_tools/build.mjs')], { stdio: ['ignore', 'pipe', 'pipe'] }); // the opportunity page from the shared template
-    fault('export:staged-build');
-    const staged = validateRepo(stage, { today });
-    if (staged.errors.length) throw new Error(`export refused — the staged result does not validate; nothing was changed: ${staged.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
-    // the change set: every file under desk/ that differs between the staged copy and the real tree
-    const list = (root) => { const outF = new Set(); const walk = (d) => { if (!fs.existsSync(d)) return; for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); const rel = path.relative(root, p); if (rel.split(path.sep)[0] === '_txn' || e.name.endsWith('.desk-tmp')) continue; if (e.isDirectory()) walk(p); else outF.add(rel); } }; walk(root); return outF; };
-    const sDesk = path.join(stage, 'desk'); const rDesk = path.join(repoRoot, 'desk');
-    const sFiles = list(sDesk); const rFiles = list(rDesk);
-    const writes = [...sFiles].filter(f => !rFiles.has(f) || !fs.readFileSync(path.join(sDesk, f)).equals(fs.readFileSync(path.join(rDesk, f)))).sort();
-    const removes = [...rFiles].filter(f => !sFiles.has(f)).sort();
-    withTxn(rDesk, 'export', (t) => {
-      for (const f of writes) t.copy(path.join(sDesk, f), path.join(rDesk, f));
-      for (const f of removes) t.remove(path.join(rDesk, f));
-      fault('export:applied');
-      const post = validateRepo(repoRoot, { today, inTransaction: true });
-      if (post.errors.length) throw new Error(`export rolled back — the public tree did not validate after applying: ${post.errors.slice(0, 8).map(e => `[${e.code}] ${e.id}: ${e.msg}`).join('; ')}`);
+  return withLock(storeDir, 'export', () => {
+    const store = loadStore(storeDir);
+    const gate = runGate(store, { fixture: false, today, repoRoot });
+    const opp0 = store.collections.opportunities.find(o => o.id === id);
+    if (!opp0 || opp0.record_status !== 'PUBLISHED' || !opp0.review) throw new Error(`${id} is not approved${opp0 && opp0.record_status === 'WITHHELD' ? ' (withheld or withdrawn: a new owner approval is required before export)' : ''}`);
+    if (gate.eligibility.opportunities[id].length) throw new Error(`${id} fails the gate: ${gate.eligibility.opportunities[id].join('; ')}`);
+    // defence in depth (audit B1): every applicable disclosure must be approved and is exported in full — never skipped
+    const disclosures = applicableDisclosures(store.collections.disclosures, opp0);
+    const pending = disclosures.filter(d => d.legal_review !== 'APPROVED' || !d.approved_at);
+    if (!disclosures.length || pending.length) throw new Error(`${id} cannot be exported: ${disclosures.length ? 'disclosure approval pending for ' + pending.map(d => `${d.id} (${d.kind})`).join(', ') : 'no disclosure recorded'}`);
+    const disclosureIds = new Set(disclosures.map(d => d.id));
+    const clone = (x) => JSON.parse(JSON.stringify(x));
+    const opp = clone(opp0);
+    const project = clone(store.collections.projects.find(p => p.id === opp.subject.id));
+    const own = new Set([opp.id, project.id, ...store.collections.assets.filter(a => a.project_id === project.id).map(a => a.id)]);
+    const shared = new Set([project.developer_id, project.district_id, project.area_id].filter(Boolean));
+    const subj = new Set([opp.id, project.id, opp.asset_id, ...shared].filter(Boolean));
+    const skipped = []; const heldBack = [];
+    const sevActive = methods()['M-RISK-SEVERITY'].status === 'ACTIVE';
+    const out = { opportunities: [opp], projects: [project] };
+    const take = (c, pred) => (out[c] = (out[c] || []).concat(store.collections[c].filter(pred).map(clone)));
+    take('developers', r => shared.has(r.id)); take('districts', r => shared.has(r.id)); take('areas', r => shared.has(r.id)); take('assets', r => r.id === opp.asset_id);
+    take('evidence', r => subj.has(r.subject.id) && (r.currency === null || (skipped.push(`${r.id} (currency)`), false))
+      && (isPublicClaim(r) || (heldBack.push(`${r.id} (${claimPublication(r).reason})`), false)));
+    take('conflicts', r => subj.has(r.subject.id));
+    take('research_blocks', r => subj.has(r.subject.id));
+    take('risks', r => subj.has(r.subject.id));
+    take('disclosures', r => disclosureIds.has(r.id));
+    take('media', r => [opp.id, project.id].includes(r.subject.id) && (gate.eligibility.media[r.id].length === 0 || (skipped.push(`${r.id} (${gate.eligibility.media[r.id].join(', ')})`), false)));
+    const srcs = new Set([...out.evidence.map(e => e.source_id), ...out.media.map(m => m.provenance.source_id)]);
+    take('sources', r => srcs.has(r.id));
+    out.risks = out.risks.map(r => sevActive ? r : { ...r, severity: null, probability: null });
+    const exported = new Set(Object.values(out).flat().map(r => r.id));
+    for (const r of Object.values(out).flat()) for (const k of ['evidence_ids', 'risk_ids', 'research_block_ids', 'disclosure_ids', 'conflict_ids']) if (Array.isArray(r[k])) r[k] = r[k].filter(i => exported.has(i));
+    // a conflict that would be exported with fewer than two public sides is not exported (its sides stay private)
+    out.conflicts = out.conflicts.filter(c => c.evidence_ids.length >= 2 || (heldBack.push(`${c.id} (conflict with non-public evidence)`), false));
+    for (const e of out.evidence) e.conflict_ids = e.conflict_ids.filter(i => out.conflicts.some(c => c.id === i));
+    opp.last_verified = deriveLastVerified([{ type: 'project', rec: project }, { type: 'developer', rec: out.developers.find(d => d.id === project.developer_id) || null }, { type: 'asset', rec: out.assets[0] || null }], out.evidence);
+    const res = publicChange({ repoRoot, today, label: 'export' }, (pub, stage) => {
+      dropSubjects(pub, own); // the opportunity's own records are replaced as a whole (removes revoked/held-back items)
+      for (const c of SUBJECT_BOUND) pub[c] = pub[c].filter(r => !(r.subject && shared.has(r.subject.id))); // shared subjects: current store projection
+      for (const [c, recs] of Object.entries(out)) for (const r of recs) { const i = pub[c].findIndex(x => x.id === r.id); if (i >= 0) pub[c][i] = r; else pub[c].push(r); }
+      for (const m of out.media) {
+        const src = path.join(storeDir, 'media', m.subject.id, path.basename(m.file.public_path));
+        const dst = path.join(stage, m.file.public_path); fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst);
+      }
     });
-    return { exported: [...exported].sort(), skipped, errors: [], changed: writes.map(f => `desk/${f}`), removed: removes.map(f => `desk/${f}`) };
-  } finally { fs.rmSync(stage, { recursive: true, force: true }); }
+    try { audit(store, 'export', id, today, { changed: res.changed.length, removed: res.removed.length, held_back: heldBack }); saveStore(store); }
+    catch (e) { res.auditWarning = `public tree updated, but the audit entry could not be written: ${e.message}`; }
+    return { exported: [...exported].sort(), skipped, heldBack, errors: [], ...res };
+  });
+}
+
+// ------------------------------------------------------------ withdrawal / unpublish (B4)
+// Owner-controlled. The store record is set to WITHHELD (review cleared, so a later export needs a new approval) and
+// the reason is recorded in the audit log; evidence and history are kept. The public projection then loses the
+// opportunity, its project, assets, evidence, media files, disclosures and generated page; shared developer/district
+// records are removed only when no other published opportunity still uses them. Idempotent: running it again changes
+// nothing. If the public step fails, the store step has already happened and a re-run completes the removal.
+export function withdraw({ storeDir, id, by, reason, today, repoRoot }) {
+  requireOwner(by, 'withdrawal');
+  if (!reason || reason === true) throw new Error('--reason is required');
+  if (id.startsWith('FIX-')) throw new Error('illustrative fixtures are never published; nothing to withdraw');
+  storeDir = assertStorePath(storeDir, repoRoot, { fixture: false });
+  return withLock(storeDir, 'withdraw', () => {
+    const store = loadStore(storeDir);
+    const opp = store.collections.opportunities.find(o => o.id === id); if (!opp) throw new Error(`${id} not found in the store`);
+    const pubOpp = JSON.parse(fs.readFileSync(path.join(repoRoot, 'desk/data/public/opportunities.json'), 'utf8')).records;
+    const isPublic = pubOpp.some(o => o.id === id);
+    let storeChanged = false;
+    if (opp.record_status !== 'WITHHELD' || opp.review) {
+      const previous = opp.record_status; opp.record_status = 'WITHHELD'; opp.review = null;
+      audit(store, 'withdraw', id, today, { reason, previous_status: previous, was_public: isPublic });
+      saveStore(store); storeChanged = true;
+    }
+    if (!isPublic) return { storeChanged, publicChanged: false, changed: [], removed: [] };
+    const res = publicChange({ repoRoot, today, label: 'withdraw' }, (pub) => {
+      const o = pub.opportunities.find(x => x.id === id); const pr = pub.projects.find(p => p.id === o.subject.id);
+      const own = new Set([id, pr ? pr.id : null, ...pub.assets.filter(a => pr && a.project_id === pr.id).map(a => a.id)].filter(Boolean));
+      const otherOpps = pub.opportunities.filter(x => x.id !== id);
+      const otherProjects = pub.projects.filter(p => otherOpps.some(x => x.subject.id === p.id));
+      const sharedGone = new Set([pr && pr.developer_id, pr && pr.district_id, pr && pr.area_id].filter(Boolean)
+        .filter(s => !otherProjects.some(p => [p.developer_id, p.district_id, p.area_id].includes(s))));
+      dropSubjects(pub, new Set([...own, ...sharedGone]));
+    });
+    if (!storeChanged) { try { audit(store, 'withdraw-completed', id, today, { reason }); saveStore(store); } catch { /* audit only */ } }
+    return { storeChanged, publicChanged: true, ...res };
+  });
 }
 
 // ------------------------------------------------------------ CLI
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const [cmd, ...rest] = process.argv.slice(2);
   const a = {}; for (let i = 0; i < rest.length; i++) { if (rest[i].startsWith('--')) { const k = rest[i].slice(2); a[k] = rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[++i] : true; } }
-  const today = a.today || new Date().toISOString().slice(0, 10);
+  const today = a.today || new Date().toISOString().slice(0, 10); // UTC calendar date
   const repoRoot = path.resolve(HERE, '../..');
   const fixture = !!a.fixture;
-  if (['ingest', 'gate', 'approve', 'approve-disclosure', 'export', 'recover'].includes(cmd)) {
+  const STORE_CMDS = ['ingest', 'gate', 'approve', 'approve-disclosure', 'approve-media', 'revoke-media', 'resolve-conflict', 'withdraw', 'export', 'recover', 'unlock'];
+  if (STORE_CMDS.includes(cmd)) {
     try { a.store = assertStorePath(a.store === true ? '' : a.store, repoRoot, { fixture }); }
     catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
   }
   const refreshFixtureGate = () => { if (fixture) validateRepo(repoRoot, { today, writeIndex: true }); };
   let wrote = false; // the fixture gate report is refreshed only after a command actually changed the fixture store
   process.on('exit', () => { if (wrote) refreshFixtureGate(); });
+  const O = { storeDir: a.store, id: a.id, by: a.by, fixture, today, repoRoot };
   try {
-    if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: path.resolve(a.store), fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
-    else if (cmd === 'gate') { const s = loadStore(path.resolve(a.store)); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
-    else if (cmd === 'approve') { const r = approve({ storeDir: path.resolve(a.store), id: a.id, by: a.by, fixture, today, repoRoot }); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported)` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
-    else if (cmd === 'approve-disclosure') { approveDisclosure({ storeDir: a.store, id: a.id, by: a.by, today, fixture, repoRoot }); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
-    else if (cmd === 'export') { const r = exportPublic({ storeDir: path.resolve(a.store), id: a.id, repoRoot, today }); console.log(`exported ${r.exported.length} records; skipped: ${r.skipped.join(', ') || 'none'}`); for (const e of r.errors) console.error(`✗ [${e.code}] ${e.id}: ${e.msg}`); process.exit(r.errors.length ? 1 : 0); }
-    else if (cmd === 'recover') { const n = recover(a.store); const m = recover(path.join(repoRoot, 'desk')); console.log(`recovered: store ${n} file(s), public tree ${m} file(s)`); }
-    else { console.log('commands: ingest | gate | approve-disclosure | approve | export | recover'); process.exit(2); }
+    if (cmd === 'ingest') { const r = ingest({ pkgDir: path.resolve(a.package), storeDir: a.store, fixture, apply: !!a.apply, today, repoRoot }); wrote = !!r.written; console.log(r.report); process.exit(r.errors.length ? 1 : 0); }
+    else if (cmd === 'gate') { const s = loadStore(a.store); const g = runGate(s, { fixture, today, repoRoot }); for (const [k, v] of Object.entries(g.eligibility.opportunities)) console.log(`${k}: ${v.length ? 'BLOCKED — ' + v.join('; ') : 'passes gate rules'}`); for (const w of g.warnings || []) console.log(`! [${w.code}] ${w.id}: ${w.msg}`); for (const e of g.errors) console.log(`✗ [${e.code}] ${e.id}: ${e.msg}`); }
+    else if (cmd === 'approve') { const r = approve(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved and marked PUBLISHED in the store (not yet exported); last verified: ${r.last_verified || 'not recorded in the evidence'}` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
+    else if (cmd === 'approve-disclosure') { approveDisclosure(O); wrote = true; console.log(`${a.id} legal review recorded as APPROVED`); }
+    else if (cmd === 'approve-media') { const r = approveMedia(O); wrote = r.approved; console.log(r.approved ? `${a.id} approved for public use` : `${a.id} NOT approved — ${r.why.join('; ')}`); process.exit(r.approved ? 0 : 1); }
+    else if (cmd === 'revoke-media') { const r = revokeMedia({ ...O, reason: a.reason }); wrote = r.changed; console.log(r.changed ? `${a.id} permission recorded as REVOKED.${r.isPublic ? ' It is still in the public tree: re-export the opportunity (the image is removed) or withdraw it if it no longer passes the gate.' : ''}` : `${a.id} was already revoked; nothing changed`); }
+    else if (cmd === 'resolve-conflict') { const r = resolveConflict({ ...O, status: a.status, note: a.note, accept: a.accept }); wrote = true; console.log(`${a.id} ${r.status}${r.accepted ? ` — accepted ${r.accepted}` : ''}${r.withheld ? `; withheld for re-approval: ${r.withheld.join(', ')}` : ''}`); }
+    else if (cmd === 'withdraw') { const r = withdraw({ ...O, reason: a.reason }); console.log(!r.storeChanged && !r.publicChanged ? `${a.id} is already withdrawn; nothing changed` : `${a.id} withdrawn${r.publicChanged ? `; public files changed ${r.changed.length}, removed ${r.removed.length}` : ' (it was not in the public tree)'}`); }
+    else if (cmd === 'export') { const r = exportPublic({ storeDir: a.store, id: a.id, repoRoot, today }); console.log(`exported ${r.exported.length} records; skipped: ${r.skipped.join(', ') || 'none'}; held back (not public): ${r.heldBack.join(', ') || 'none'}`); if (r.auditWarning) console.error(`! ${r.auditWarning}`); }
+    else if (cmd === 'recover') { const n = withLock(a.store, 'recover', () => recover(a.store)); const m = withLock(path.join(repoRoot, 'desk'), 'recover', () => recover(path.join(repoRoot, 'desk'))); console.log(`recovered: store ${n} file(s), public tree ${m} file(s)`); }
+    else if (cmd === 'unlock') { if (!a.force) { console.error('✗ unlock removes another operation\'s lock; check that it is not running, then add --force'); process.exit(2); } const l = forceUnlock(a.store); const m = a.public ? forceUnlock(path.join(repoRoot, 'desk')) : null; console.log(`lock removed${l ? ` (${l.label}, pid ${l.pid} on ${l.host})` : ' (none present)'}${m ? `; public-tree lock removed (${m.label})` : ''}`); }
+    else { console.log(`commands: ${STORE_CMDS.join(' | ')}`); process.exit(2); }
   } catch (e) { console.error(`✗ ${e.message}`); process.exit(1); }
 }

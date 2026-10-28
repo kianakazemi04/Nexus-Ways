@@ -1,6 +1,7 @@
 // Nexus Desk data loader. Production reads ONLY desk/data/public and shows ONLY what published.json lists.
 // Illustrative fixtures load only on a local development server (localhost / 127.0.0.1) with ?fixtures=1;
 // on GitHub Pages the _fixtures folder is not published at all, and any FIX id is rejected here as well.
+import { isPublicClaim } from './policy.js';
 const BASE = '/desk/';
 const COLLS = ['categories', 'markets', 'districts', 'areas', 'developers', 'projects', 'assets', 'opportunities', 'evidence', 'sources', 'conflicts', 'risks', 'research_blocks', 'media', 'disclosures'];
 const qs = new URLSearchParams(location.search);
@@ -55,7 +56,8 @@ async function loadOnce() {
     area: (p) => p && p.area_id ? byId.get(p.area_id) || null : null,
     asset: (o) => o && o.asset_id ? byId.get(o.asset_id) || null : null,
     // strict subject binding: evidence/media/risks are returned only for the exact record asked for
-    evidence: (type, id, field) => col.evidence.filter(e => same(e.subject, { type, id }) && (field === undefined || e.field === field)),
+    // claim policy CP-1: unverified, hypothesis and Tier 4 evidence is never rendered (the validator also keeps it out of public data)
+    evidence: (type, id, field) => col.evidence.filter(e => same(e.subject, { type, id }) && (field === undefined || e.field === field) && isPublicClaim(e)),
     source: (id) => byId.get(id) || null,
     conflictsFor: (refs) => col.conflicts.filter(c => refs.some(r => same(r, c.subject))),
     researchBlocks: (type, id) => col.research_blocks.filter(b => same(b.subject, { type, id })),

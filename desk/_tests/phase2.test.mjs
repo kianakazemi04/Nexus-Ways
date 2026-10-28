@@ -18,6 +18,9 @@ import { Txn, withTxn, recover } from '../_tools/txn.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const TODAY = '2026-10-27';
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
+// B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)
+const approveImages = (run, repo, storeArgs, storeDir) => { const f = path.join(storeDir, 'data/media.json'); if (!fs.existsSync(f)) return []; return JSON.parse(fs.readFileSync(f, 'utf8')).records.map(m => [m.id, run(repo, ['approve-media', ...storeArgs, '--id', m.id, '--by', 'owner']).code]); };
+
 const writeJson = (p, j) => fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
 const codes = (r) => r.errors.map(e => e.code);
@@ -159,6 +162,7 @@ function approvedSetup() {
   const s = realSetup();
   assert.equal(cli(s.repo, ['ingest', '--package', s.base, ...s.S, '--apply']).code, 0);
   assert.equal(cli(s.repo, ['approve-disclosure', ...s.S, '--id', DSC1, '--by', 'owner']).code, 0);
+  approveImages(cli, s.repo, s.S, s.store);
   assert.equal(cli(s.repo, ['approve', ...s.S, '--id', OPP, '--by', 'owner']).code, 0);
   return s;
 }
@@ -253,6 +257,7 @@ test('end-to-end: fixtures and a TEST-ONLY store through ingest → gate → app
     assert.deepEqual(validateRepo(s.repo, { today: TODAY }).errors, [], 'fixture store validates');
     assert.match(cli(s.repo, ['gate', ...F]).out, new RegExp(`${FA}: BLOCKED[^\\n]*legal review pending`));
     assert.equal(cli(s.repo, ['approve-disclosure', ...F, '--id', 'FIX-DSC-ILL-ILLUSTRATIVE-RESIDENCE-A-01', '--by', 'owner']).code, 0);
+    approveImages(cli, s.repo, F, fx);
     assert.equal(cli(s.repo, ['approve', ...F, '--id', FA, '--by', 'owner']).code, 0);
     const pubBefore = deskSnap(s.repo);
     const fe = cli(s.repo, ['export', '--store', fx, '--id', FA]);
@@ -271,7 +276,8 @@ test('end-to-end: fixtures and a TEST-ONLY store through ingest → gate → app
     // disclosure approval → owner approval
     assert.equal(cli(s.repo, ['approve-disclosure', ...s.S, '--id', DSC1, '--by', 'owner']).code, 0);
     assert.equal(cli(s.repo, ['approve', ...s.S, '--id', OPP, '--by', 'reviewer']).code, 1, 'only the owner approves');
-    assert.equal(cli(s.repo, ['approve', ...s.S, '--id', OPP, '--by', 'owner']).code, 0);
+    approveImages(cli, s.repo, s.S, s.store);
+  assert.equal(cli(s.repo, ['approve', ...s.S, '--id', OPP, '--by', 'owner']).code, 0);
     // export with an injected failure leaves everything as it was, then a clean export
     const pre = deskSnap(s.repo);
     assert.notEqual(cli(s.repo, ['export', ...s.S, '--id', OPP], { DESK_FAULT: 'export:applied' }).code, 0);

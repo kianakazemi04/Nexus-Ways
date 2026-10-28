@@ -23,6 +23,9 @@ const ingestCli = (repo, args) => {
   catch (e) { return { code: e.status, out: String(e.stdout) + String(e.stderr) }; }
 };
 const readJson = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
+// B3: images are approved one by one; approve every image whose permission allows it (others are refused, as intended)
+const approveImages = (run, repo, storeArgs, storeDir) => { const f = path.join(storeDir, 'data/media.json'); if (!fs.existsSync(f)) return []; return JSON.parse(fs.readFileSync(f, 'utf8')).records.map(m => [m.id, run(repo, ['approve-media', ...storeArgs, '--id', m.id, '--by', 'owner']).code]); };
+
 const writeJson = (p, j) => fs.writeFileSync(p, JSON.stringify(j, null, 2) + '\n');
 
 // ------------------------------------------------------------------ the committed repository
@@ -150,6 +153,7 @@ test('lifecycle: ingest → gate → approve → conflict re-blocks → cross-pr
     assert.equal(ingestCli(repo, ['approve', ...S, '--id', A, '--by', 'owner']).code, 1);
     assert.equal(ingestCli(repo, ['approve-disclosure', ...S, '--id', 'FIX-DSC-ILL-ILLUSTRATIVE-RESIDENCE-A-01', '--by', 'owner']).code, 0);
     assert.equal(ingestCli(repo, ['approve', ...S, '--id', A, '--by', 'reviewer']).code, 1, 'only the owner can approve');
+    approveImages(ingestCli, repo, S, fx);
     assert.equal(ingestCli(repo, ['approve', ...S, '--id', A, '--by', 'owner']).code, 0);
     // 2: re-ingesting the same package reuses ids and does not duplicate media
     r = ingestCli(repo, ['ingest', '--package', path.join(fx, 'packages/FIX-PKG-A'), ...S]);
@@ -209,6 +213,7 @@ test('lifecycle: a real (non-fixture) store exports only approved, public-safe d
     const opp = 'OPP-TST-ILLUSTRATIVE-RESIDENCE-A';
     assert.notEqual(ingestCli(repo, ['export', ...S, '--id', opp, '--repo', repo]).code, 0, 'export before approval must fail');
     ingestCli(repo, ['approve-disclosure', ...S, '--id', 'DSC-TST-ILLUSTRATIVE-RESIDENCE-A-01', '--by', 'owner']);
+    approveImages(ingestCli, repo, S, store);
     assert.equal(ingestCli(repo, ['approve', ...S, '--id', opp, '--by', 'owner']).code, 0);
     // a real store inside the public repo is refused
     assert.equal(ingestCli(repo, ['gate', '--store', path.join(repo, 'desk/data')]).code, 2);
