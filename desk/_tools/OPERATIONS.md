@@ -55,7 +55,7 @@ Prerequisites (owner):
 | Repository private, or hosting moved to a host that publishes from a private repository | Public | Decision |
 | Dependabot alerts on; secret scanning with non-provider patterns | Off | Settings → Security |
 | Workflows: SHA-pinned actions, `contents: read`, `persist-credentials: false`, no `pull_request_target` | Done | — |
-| Dependabot version updates for Actions (pull requests only) | `.github/dependabot.yml` | — |
+| Action upgrades: reviewed by hand once a quarter (no automatic update pull requests; owner decision 28 Oct 2026) | Manual | — |
 | Store boundary: store outside the repository; links inside the store cannot lead out | Done and tested | — |
 
 ## 3. Backup and recovery
