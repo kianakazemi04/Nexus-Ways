@@ -187,11 +187,33 @@ test('B3 regression: every store path inside the repository is refused after res
     for (const p of ['', '   ', null, undefined, 'a\0b']) assert.throws(() => assertStorePath(p, repo), StorePathError, String(p));
     assert.throws(() => assertStorePath(path.dirname(repo), repo), /must not contain the public repository/);
     assert.throws(() => assertStorePath(outside, repo, { fixture: true }), /--fixture requires/);
+    // a store that itself contains a link into the repository is refused (readiness closure); remove it for the allowed cases
+    assert.throws(() => assertStorePath(outside, repo), /into the public repository/); fs.unlinkSync(path.join(outside, 'link-into-repo'));
     // allowed: outside the repository (existing or not yet created) and, with --fixture, exactly desk/_fixtures
     assert.equal(assertStorePath(outside, repo), fs.realpathSync(outside));
     assert.ok(assertStorePath(path.join(outside, 'new', 'store'), repo).endsWith(path.join('new', 'store')));
     assert.equal(assertStorePath(path.join(repo, 'desk/_fixtures'), repo, { fixture: true }), fs.realpathSync(path.join(repo, 'desk/_fixtures')));
   } finally { fs.rmSync(repo, { recursive: true, force: true }); fs.rmSync(outside, { recursive: true, force: true }); }
+});
+
+test('B3 regression (readiness closure): a link inside the store that leads outside it is refused', () => {
+  const repo = tmpRepo(); const store = tmp('desk-p0-store-'); const elsewhere = tmp('desk-p0-else-');
+  try {
+    fs.mkdirSync(path.join(store, 'data'));
+    assert.equal(assertStorePath(store, repo), fs.realpathSync(store), 'a plain store is accepted');
+    fs.mkdirSync(path.join(store, 'inner')); fs.symlinkSync(path.join(store, 'inner'), path.join(store, 'data', 'alias'));
+    assert.equal(assertStorePath(store, repo), fs.realpathSync(store), 'a link that stays inside the store is accepted');
+    fs.symlinkSync(path.join(repo, 'desk'), path.join(store, 'reports'));
+    assert.throws(() => assertStorePath(store, repo), /reports leads outside the store into the public repository/);
+    fs.unlinkSync(path.join(store, 'reports'));
+    fs.mkdirSync(path.join(store, 'private', 'analysis'), { recursive: true }); fs.symlinkSync(elsewhere, path.join(store, 'private', 'analysis', 'x'));
+    assert.throws(() => assertStorePath(store, repo), /leads outside the store/);
+    fs.unlinkSync(path.join(store, 'private', 'analysis', 'x')); fs.symlinkSync(path.join(store, 'missing-target'), path.join(store, 'dangling'));
+    assert.throws(() => assertStorePath(store, repo), /cannot be resolved safely/);
+    // the CLI refuses before touching anything
+    fs.unlinkSync(path.join(store, 'dangling')); fs.symlinkSync(path.join(repo, 'desk'), path.join(store, 'media'));
+    const r = cli(repo, ['gate', '--store', store]); assert.notEqual(r.code, 0); assert.match(r.out, /leads outside the store/);
+  } finally { for (const x of [repo, store, elsewhere]) fs.rmSync(x, { recursive: true, force: true }); }
 });
 test('B3 regression (CLI): a store at <repo>/research-store is refused for every command and nothing is written', () => {
   const repo = tmpRepo();

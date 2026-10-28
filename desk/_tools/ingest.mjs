@@ -90,7 +90,21 @@ export function assertStorePath(storeDir, repoRoot, { fixture = false } = {}) {
   if (norm(store) === norm(fixtures)) throw new StorePathError('desk/_fixtures holds illustrative fixtures only; use --fixture, or a real store outside the repository');
   if (within(store, root)) throw new StorePathError('a real (non-fixture) store must live outside the public repository — the resolved store path is inside it');
   if (within(root, store)) throw new StorePathError('a real store must not contain the public repository');
+  // a symbolic link INSIDE the store must not lead out of it (e.g. reports/ or media/ linked into the public repository)
+  for (const link of storeLinks(store)) {
+    let target; try { target = fs.realpathSync.native(link); } catch { throw new StorePathError(`store link ${path.relative(store, link)} cannot be resolved safely`); }
+    if (!within(target, store)) throw new StorePathError(`store link ${path.relative(store, link)} leads outside the store${within(target, root) ? ' into the public repository' : ''}`);
+  }
   return store;
+}
+// every symbolic link below the store (the store is small; deep trees are bounded)
+function storeLinks(dir, out = [], depth = 0) {
+  if (depth > 12 || !fs.existsSync(dir)) return out;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isSymbolicLink()) out.push(p); else if (e.isDirectory()) storeLinks(p, out, depth + 1);
+  }
+  return out;
 }
 
 // ------------------------------------------------------------ store
