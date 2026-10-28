@@ -47,7 +47,11 @@ def plan_svg(path, label):
 <text x="300" y="300" font-size="26">Room</text><text x="610" y="300" font-size="26">Room</text><text x="880" y="300" font-size="26">Room</text>
 <text x="120" y="760" font-size="22">{label}</text></g></svg>''')
 
+# every fact points to a place in its (fictional) source: acceptance criterion A2 (readiness closure)
+LOCATORS = {'S1': 'extract p.1', 'S2': 'media kit p.2', 'S3': 'listing page, amenities section'}
 def write(pkg_dir, intake):
+    for f in intake.get('facts', []):
+        if not f.get('locator') and f.get('source') in LOCATORS: f['locator'] = LOCATORS[f['source']]
     os.makedirs(pkg_dir, exist_ok=True)
     json.dump(intake, open(os.path.join(pkg_dir, 'intake.json'), 'w'), indent=2, ensure_ascii=False)
     open(os.path.join(pkg_dir, 'README.txt'), 'w').write('ILLUSTRATIVE FIXTURE PACKAGE. All names, documents, images and values are fictional.\n')

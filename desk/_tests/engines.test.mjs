@@ -10,7 +10,7 @@ import { convertArea, convertMoney, fxRate, M2_PER_SQFT } from '../_tools/engine
 import { selectComparables, quantile } from '../_tools/engines/comparables.mjs';
 import { investmentFit, rank } from '../_tools/engines/fit.mjs';
 import { checkAnalysis } from '../_tools/engines/analysis.mjs';
-import { readJson, writeJson, cli, OPP, PRJ, publishedSetup, deskSnap, pub, ROOT } from './helpers.mjs';
+import { readJson, writeJson, cli, OPP, PRJ, publishedSetup, deskSnap, pub, ROOT, analysisDoc } from './helpers.mjs';
 
 const close = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps * Math.max(1, Math.abs(b)), `${a} ≠ ${b}`);
 // reference case (TRY, 5 years, rent from year 1, 10% rent growth, 20% appreciation a year, 2% selling costs)
@@ -236,25 +236,6 @@ test('investment fit: explicit criteria only; missing data is never a match; no 
 });
 
 // ================================================================== analysis handoff + Engine 8 decision report (end to end)
-const analysisDoc = (o = {}) => ({
-  opportunity_id: OPP, as_of: '2026-10-27',
-  fx: [],
-  finance: {
-    currency: 'TRY', horizon_years: { value: 5, ref: 'ASSUMPTION', note: 'TEST-ONLY investor horizon from the brief' }, delivery_year: { value: 2, ref: 'ASSUMPTION', note: 'TEST-ONLY delivery 2028 per developer claim' },
-    acquisition: { price: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY list price line scaled to the whole unit' }, payments: [{ t: 0, amount: { value: 7654321, ref: 'PRIVATE:TEST-PKG-1/F-PRICE', note: 'TEST-ONLY full price paid at signing' }, label: 'price' }] },
-    rent: { gross_annual: { value: 360000, ref: 'ASSUMPTION', note: 'TEST-ONLY rent quote from two agents' }, occupancy: { value: 0.9, ref: 'ASSUMPTION', note: 'TEST-ONLY ten per cent vacancy allowance' }, growth_rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal TRY rent growth' } },
-    operating: { fixed_annual: { value: 20000, ref: 'ASSUMPTION', note: 'TEST-ONLY building fees quoted by sales office' }, pct_of_collected_rent: { value: 0.1, ref: 'ASSUMPTION', note: 'TEST-ONLY management fee' } },
-    tax: { rental_income_rate: { value: 0.15, ref: 'ASSUMPTION', note: 'TEST-ONLY flat rate; counsel to confirm' }, capital_gains_rate: { value: 0, ref: 'ASSUMPTION', note: 'TEST-ONLY exemption after five years; counsel to confirm' } },
-    exit: { appreciation_rate: { value: 0.25, ref: 'ASSUMPTION', note: 'TEST-ONLY nominal price growth assumption' }, selling_cost_rate: { value: 0.03, ref: 'ASSUMPTION', note: 'TEST-ONLY agency and title costs' } },
-    discount: { rate: { value: 0.35, ref: 'ASSUMPTION', note: 'TEST-ONLY investor required nominal TRY return' }, basis: 'Investor required nominal return in TRY (TEST-ONLY)' },
-    views: { inflation: { rate: { value: 0.3, ref: 'ASSUMPTION', note: 'TEST-ONLY annual inflation assumption' }, basis: 'TEST-ONLY annual CPI assumption' } }
-  },
-  scenarios: { adverse: { rent: { occupancy: { value: 0.7, ref: 'ASSUMPTION', note: 'TEST-ONLY weak letting market' } } } },
-  findings: [{ type: 'STRENGTH', class: 'FACT', text: 'Project identity confirmed in the title registry.', refs: ['EVD-TST-ILLUSTRATIVE-RESIDENCE-A-0001'] }],
-  investor_profile: { objectives: ['long_term_hold'], horizon_years: 5 },
-  ...o
-});
-
 test('analysis handoff: every number needs provenance; findings need evidence; bad files are refused with reasons', () => {
   const s = publishedSetup({ exportIt: false });
   try {

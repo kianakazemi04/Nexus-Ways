@@ -111,7 +111,8 @@
       "evidence_class": "LEGAL FACT",
       "verification_status": "VERIFIED",
       "geography": "Illustrative Market",
-      "period": null
+      "period": null,
+      "locator": "extract p.1"
     },
     {
       "key": "F-DEVREL",
@@ -158,7 +159,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative Market",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-TYPES",
@@ -173,7 +175,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-STATUS",
@@ -191,7 +194,8 @@
       "period": "2026-10",
       "limitations": {
         "en": "Stated by the developer; not yet independently inspected."
-      }
+      },
+      "locator": "media kit p.2"
     },
     {
       "key": "F-DELIVERY",
@@ -207,7 +211,8 @@
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
       "period": "2026-10",
-      "next_review_trigger": "2027-04-01"
+      "next_review_trigger": "2027-04-01",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-TYPE",
@@ -222,7 +227,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-GROSS",
@@ -238,7 +244,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-NET",
@@ -254,7 +261,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-ADELIV",
@@ -269,7 +277,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "media kit p.2"
     },
     {
       "key": "F-AMEN",
@@ -284,7 +293,8 @@
       "evidence_class": "OPINION",
       "verification_status": "UNVERIFIED",
       "geography": "Illustrative District North",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "listing page, amenities section"
     },
     {
       "key": "F-PRICE",
@@ -296,7 +306,8 @@
       "claim": {
         "en": "Fictional price-list line — must stay private."
       },
-      "source": "S2"
+      "source": "S2",
+      "locator": "media kit p.2"
     }
   ],
   "unknowns": [],

@@ -1,0 +1,9 @@
+# Security audit F-11 (28 Oct 2026): weekly update proposals for the pinned GitHub Actions. Dependabot only opens pull
+# requests; nothing is merged automatically, and every proposal passes the Desk validation workflow first.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

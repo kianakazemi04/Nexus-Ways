@@ -60,7 +60,8 @@
       "evidence_class": "FACT",
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative Market",
-      "period": null
+      "period": null,
+      "locator": "media kit p.2"
     },
     {
       "key": "F-STATUS",
@@ -75,7 +76,8 @@
       "evidence_class": "FACT",
       "verification_status": "UNVERIFIED",
       "geography": "Illustrative Market",
-      "period": "2026-10"
+      "period": "2026-10",
+      "locator": "listing page, amenities section"
     },
     {
       "key": "F-OLD",
@@ -91,7 +93,8 @@
       "verification_status": "DEVELOPER-CLAIM",
       "geography": "Illustrative Market",
       "period": "2024",
-      "retrieved_at": "2024-05-01"
+      "retrieved_at": "2024-05-01",
+      "locator": "media kit p.2"
     }
   ],
   "unknowns": [

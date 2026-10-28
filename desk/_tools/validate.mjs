@@ -450,6 +450,9 @@ export function validateDataset(ds, opts) {
         const pub = evs.filter(isPublicClaim);
         if (!(IDENTITY_FIELDS[type] || []).includes(f) && !pub.length) { P('EVIDENCE_NOT_PUBLISHABLE', `${rec.id}:${f} has no publishable evidence (${evs.length ? 'unverified or Tier 4 only' : 'no evidence'})`); continue; }
         if (!pub.length) continue; // identity fields are reported above
+        // acceptance criterion A2 (readiness closure): a published material fact must be traceable to a place in its
+        // source — a URL, or a locator (page, section, register entry) when the source is a document without a URL
+        if (!pub.some(e => e.source_url || e.source_locator || (get(e.source_id) && get(e.source_id).r.url))) P('EVIDENCE_NO_LOCATOR', `${rec.id}:${f} evidence has no source URL or locator (page, section or register entry)`);
         const fr = pub.map(e => evidenceFreshness(e, today, get(e.source_id) ? get(e.source_id).r.source_type : null));
         if (fr.every(x => x.state === 'EXPIRED' || x.state === 'INVALID')) { const w = `${rec.id}:${f} evidence ${fr.some(x => x.state === 'EXPIRED') ? 'expired' : 'has no valid date'} — re-review required`; P('EVIDENCE_EXPIRED', w); fresh.add(w); }
         else if (fr.every(x => x.state !== 'CURRENT')) W('W02', r.id, `${rec.id}:${f} evidence review due`);

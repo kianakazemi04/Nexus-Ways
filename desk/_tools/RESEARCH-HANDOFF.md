@@ -64,6 +64,9 @@ only; it also re-computes NPV and ROI by hand and checks that no private figure 
 - **Public copy (PUB-2):** write public notes as a client would read them — no internal status, no open legal item, no
   unverified figure, no method code. Anything uncertain stays in the private report.
 
+- **Locators (acceptance A2):** every fact needs `locator` (page, section or register entry) unless its source has a
+  URL; a published material fact without one is blocked by the gate (`EVIDENCE_NO_LOCATOR`).
+
 ## Commands
 ```
 node desk/_tools/ingest.mjs ingest --package <pkg> --store <store>            # dry run: report only
