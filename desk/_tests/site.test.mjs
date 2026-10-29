@@ -151,3 +151,14 @@ test('market overview: official figures with publisher, date and link; counts an
   }
   for (const f of ['desk/markets/istanbul/index.html', 'desk/tr/markets/istanbul/index.html', 'desk/ar/markets/istanbul/index.html']) assert.doesNotMatch(read(f), /licences and permits that apply to our own|kendi faaliyetimiz için gereken lisans|التراخيص والتصاريح التي تنطبق على نشاطنا/, f);
 });
+
+test('Cloudflare build: wrangler deploys only the clean public copy, after validation, with the security headers', () => {
+  const cfg = JSON.parse(read('wrangler.jsonc').replace(/^\s*\/\/.*$/gm, ''));
+  assert.equal(cfg.assets.directory, './_cfsite'); assert.equal(cfg.build.command, 'node desk/_tools/cf-build.mjs');
+  assert.equal(cfg.assets.not_found_handling, '404-page');
+  const pkg = JSON.parse(read('package.json')); assert.match(pkg.devDependencies.wrangler, /^\d+\.\d+\.\d+$/, 'wrangler pinned to an exact version');
+  const b = read('desk/_tools/cf-build.mjs');
+  for (const s of ["'desk/_tools/validate.mjs'", "seg.startsWith('_') || seg.startsWith('.')", "desk/_tools/cloudflare/_headers", 'pages_check.py', 'process.exit(1)']) assert.ok(b.includes(s), s);
+  assert.match(read('.gitignore'), /^_cfsite\/$/m);
+  assert.ok(!fs.existsSync(path.join(ROOT, '.github/workflows/cloudflare-deploy.yml')), 'one deployment path to Cloudflare (Workers Builds)');
+});

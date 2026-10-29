@@ -708,7 +708,7 @@ export function validateRepo(root, { today = new Date().toISOString().slice(0, 1
 
   // P01 — parent site must not change outside approved commits
   const manPath = path.join(desk, '_tools/parent-manifest.json');
-  const parentFiles = listFiles(root, root, (rel) => ['.git', 'desk', '.github', 'node_modules'].includes(rel.split('/')[0])).sort();
+  const parentFiles = listFiles(root, root, (rel) => ['.git', 'desk', '.github', 'node_modules', '_cfsite', '.wrangler'].includes(rel.split('/')[0])).sort(); // _cfsite, .wrangler: Cloudflare build output (gitignored)
   const manifest = Object.fromEntries(parentFiles.map(f => [f, sha256(fs.readFileSync(path.join(root, f)))]));
   if (updateParentManifest) fs.writeFileSync(manPath, JSON.stringify(manifest, null, 2) + '\n');
   else if (!fs.existsSync(manPath)) errors.push({ code: 'P01', id: 'parent-manifest.json', msg: 'missing parent manifest' });
